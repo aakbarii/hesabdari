@@ -1,18 +1,24 @@
 {
   "name": "hesabdari-bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "Telegram Hesabdari Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "telegram",
+    "hesabdari",
+    "bot",
+    "nodejs"
+  ],
+  "author": "Your Name",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "axios": "^1.10.0",
     "dotenv": "^17.2.0",
+    "express": "^4.18.2",
     "moment-jalaali": "^0.10.4",
     "mongoose": "^8.16.4",
     "node-cron": "^4.2.1",
