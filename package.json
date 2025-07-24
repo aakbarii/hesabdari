@@ -1,0 +1,21 @@
+{
+  "name": "hesabdari-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.10.0",
+    "dotenv": "^17.2.0",
+    "moment-jalaali": "^0.10.4",
+    "mongoose": "^8.16.4",
+    "node-cron": "^4.2.1",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}
