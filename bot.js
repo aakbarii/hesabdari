@@ -115,7 +115,9 @@ bot.onText(/\/start/, async (msg) => {
         keyboard: [
           ["➕ افزودن تراکنش", "📋 لیست تراکنش‌ها"],
           ["🏦 مدیریت حساب‌ها", "📊 گزارش‌گیری"],
-          ["🎯 اهداف مالی", "⚙️ تنظیمات"],
+          ["🎯 اهداف مالی", "🔔 یادآوری اهداف"],
+          ["🔍 جستجو", "📊 آمار دسته‌بندی‌ها"],
+          ["💡 نکات مالی", "⚙️ تنظیمات"],
           ["ℹ️ راهنما"]
         ],
         resize_keyboard: true,
@@ -347,7 +349,9 @@ bot.on("message", async (msg) => {
             keyboard: [
               ["➕ افزودن تراکنش", "📋 لیست تراکنش‌ها"],
               ["🏦 مدیریت حساب‌ها", "📊 گزارش‌گیری"],
-              ["🎯 اهداف مالی", "⚙️ تنظیمات"],
+              ["🎯 اهداف مالی", "🔔 یادآوری اهداف"],
+              ["🔍 جستجو", "📊 آمار دسته‌بندی‌ها"],
+              ["💡 نکات مالی", "⚙️ تنظیمات"],
               ["ℹ️ راهنما"]
             ],
             resize_keyboard: true,
@@ -496,7 +500,9 @@ bot.on("message", async (msg) => {
             keyboard: [
               ["➕ افزودن تراکنش", "📋 لیست تراکنش‌ها"],
               ["🏦 مدیریت حساب‌ها", "📊 گزارش‌گیری"],
-              ["🎯 اهداف مالی", "⚙️ تنظیمات"],
+              ["🎯 اهداف مالی", "🔔 یادآوری اهداف"],
+              ["🔍 جستجو", "📊 آمار دسته‌بندی‌ها"],
+              ["💡 نکات مالی", "⚙️ تنظیمات"],
               ["ℹ️ راهنما"]
             ],
             resize_keyboard: true,
@@ -809,7 +815,9 @@ bot.on("message", async (msg) => {
             keyboard: [
               ["➕ افزودن تراکنش", "📋 لیست تراکنش‌ها"],
               ["🏦 مدیریت حساب‌ها", "📊 گزارش‌گیری"],
-              ["🎯 اهداف مالی", "⚙️ تنظیمات"],
+              ["🎯 اهداف مالی", "🔔 یادآوری اهداف"],
+              ["🔍 جستجو", "📊 آمار دسته‌بندی‌ها"],
+              ["💡 نکات مالی", "⚙️ تنظیمات"],
               ["ℹ️ راهنما"]
             ],
             resize_keyboard: true,
@@ -1214,6 +1222,443 @@ bot.on("message", async (msg) => {
     return;
   }
 
+  // ====== یادآوری اهداف ======
+  if (text === "🔔 یادآوری اهداف") {
+    try {
+      const goals = await Goal.find({ 
+        userId: user._id, 
+        isCompleted: false 
+      });
+
+      if (!goals.length) {
+        return bot.sendMessage(chatId, "🎯 هیچ هدف فعالی برای یادآوری وجود ندارد.");
+      }
+
+      let reminders = `🔔 یادآوری اهداف:\n\n`;
+      let urgentGoals = 0;
+
+      for (const goal of goals) {
+        const progress = Math.round((goal.currentAmount / goal.targetAmount) * 100);
+        const remaining = goal.targetAmount - goal.currentAmount;
+        
+        // بررسی نزدیکی به مهلت
+        let deadlineWarning = "";
+        if (goal.deadline) {
+          const daysLeft = Math.ceil((goal.deadline - new Date()) / (1000 * 60 * 60 * 24));
+          if (daysLeft <= 7 && daysLeft > 0) {
+            deadlineWarning = `⚠️ ${daysLeft} روز تا مهلت`;
+            urgentGoals++;
+          } else if (daysLeft <= 0) {
+            deadlineWarning = `❌ مهلت گذشته`;
+            urgentGoals++;
+          }
+        }
+
+        // بررسی پیشرفت
+        let progressWarning = "";
+        if (progress >= 90) {
+          progressWarning = "🎉 نزدیک به تکمیل!";
+        } else if (progress >= 50) {
+          progressWarning = "🟡 در حال پیشرفت";
+        } else if (progress < 10) {
+          progressWarning = "🔴 نیاز به تلاش بیشتر";
+        }
+
+        reminders += `🎯 ${goal.title}\n`;
+        reminders += `💰 ${goal.currentAmount.toLocaleString()} / ${goal.targetAmount.toLocaleString()} تومان\n`;
+        reminders += `📊 ${progress}% ${'█'.repeat(Math.round(progress / 10))}\n`;
+        reminders += `💸 باقی‌مانده: ${remaining.toLocaleString()} تومان\n`;
+        if (deadlineWarning) reminders += `${deadlineWarning}\n`;
+        if (progressWarning) reminders += `${progressWarning}\n`;
+        reminders += `\n`;
+      }
+
+      if (urgentGoals > 0) {
+        reminders += `⚠️ ${urgentGoals} هدف نیاز به توجه فوری دارد!\n`;
+      }
+
+      reminders += `💡 برای به‌روزرسانی اهداف، از منوی "🎯 اهداف مالی" استفاده کنید.`;
+
+      bot.sendMessage(chatId, reminders);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در دریافت یادآوری اهداف.");
+    }
+    return;
+  }
+
+  // ====== جستجو ======
+  if (text === "🔍 جستجو") {
+    userStates[chatId] = { step: 'search_type', data: {} };
+    
+    bot.sendMessage(
+      chatId,
+      "🔍 نوع جستجو را انتخاب کنید:",
+      {
+        reply_markup: {
+          keyboard: [
+            ["🔤 جستجو با نام", "📅 جستجو با تاریخ", "💰 جستجو با مبلغ"],
+            ["❌ انصراف"]
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== جستجو با نام ======
+  if (text === "🔤 جستجو با نام") {
+    userStates[chatId].step = 'search_by_name';
+    bot.sendMessage(
+      chatId,
+      "🔤 نام تراکنش را وارد کنید:\nمثال: غذا، ناهار، تاکسی",
+      {
+        reply_markup: {
+          keyboard: [["❌ انصراف"]],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== جستجو با تاریخ ======
+  if (text === "📅 جستجو با تاریخ") {
+    userStates[chatId].step = 'search_by_date';
+    bot.sendMessage(
+      chatId,
+      "📅 تاریخ را وارد کنید:\nفرمت: YYYY-MM-DD\nمثال: 2024-01-15",
+      {
+        reply_markup: {
+          keyboard: [["❌ انصراف"]],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== جستجو با مبلغ ======
+  if (text === "💰 جستجو با مبلغ") {
+    userStates[chatId].step = 'search_by_amount';
+    bot.sendMessage(
+      chatId,
+      "💰 مبلغ را وارد کنید:\nمثال: 50000",
+      {
+        reply_markup: {
+          keyboard: [["❌ انصراف"]],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== اجرای جستجو با نام ======
+  if (userStates[chatId]?.step === 'search_by_name' && !text.startsWith("❌")) {
+    try {
+      const transactions = await Transaction.find({
+        userId: user._id,
+        title: { $regex: text, $options: 'i' }
+      }).populate('category account').sort({ date: -1 });
+
+      if (!transactions.length) {
+        return bot.sendMessage(chatId, `🔍 هیچ تراکنشی با نام "${text}" یافت نشد.`);
+      }
+
+      let results = `🔍 نتایج جستجو برای "${text}":\n\n`;
+      let totalAmount = 0;
+
+      for (const tx of transactions) {
+        const persianDate = moment(tx.date).format('jYYYY/jMM/jDD');
+        results += `• ${tx.title}\n`;
+        results += `💰 ${tx.amount.toLocaleString()} تومان | ${tx.type === "income" ? "➕ درآمد" : "➖ هزینه"}\n`;
+        results += `📅 ${persianDate} | 🏦 ${tx.account?.name || 'نامشخص'}\n`;
+        if (tx.description) results += `📄 ${tx.description}\n`;
+        results += `\n`;
+        totalAmount += tx.amount;
+      }
+
+      results += `📊 مجموع: ${totalAmount.toLocaleString()} تومان`;
+      results += `\n📝 تعداد: ${transactions.length} تراکنش`;
+
+      delete userStates[chatId];
+      bot.sendMessage(chatId, results);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در جستجو.");
+    }
+    return;
+  }
+
+  // ====== اجرای جستجو با تاریخ ======
+  if (userStates[chatId]?.step === 'search_by_date' && !text.startsWith("❌")) {
+    try {
+      const searchDate = new Date(text);
+      if (isNaN(searchDate.getTime())) {
+        return bot.sendMessage(chatId, "❌ فرمت تاریخ نامعتبر است.");
+      }
+
+      const start = new Date(searchDate.getFullYear(), searchDate.getMonth(), searchDate.getDate());
+      const end = new Date(searchDate.getFullYear(), searchDate.getMonth(), searchDate.getDate(), 23, 59, 59);
+
+      const transactions = await Transaction.find({
+        userId: user._id,
+        date: { $gte: start, $lte: end }
+      }).populate('category account').sort({ date: -1 });
+
+      if (!transactions.length) {
+        return bot.sendMessage(chatId, `📅 هیچ تراکنشی در تاریخ ${moment(searchDate).format('jYYYY/jMM/jDD')} یافت نشد.`);
+      }
+
+      let results = `📅 تراکنش‌های تاریخ ${moment(searchDate).format('jYYYY/jMM/jDD')}:\n\n`;
+      let totalIncome = 0;
+      let totalExpense = 0;
+
+      for (const tx of transactions) {
+        results += `• ${tx.title}\n`;
+        results += `💰 ${tx.amount.toLocaleString()} تومان | ${tx.type === "income" ? "➕ درآمد" : "➖ هزینه"}\n`;
+        results += `🏦 ${tx.account?.name || 'نامشخص'}\n`;
+        if (tx.description) results += `📄 ${tx.description}\n`;
+        results += `\n`;
+        
+        if (tx.type === "income") totalIncome += tx.amount;
+        else totalExpense += tx.amount;
+      }
+
+      results += `📊 خلاصه:\n`;
+      results += `💰 درآمد: ${totalIncome.toLocaleString()} تومان\n`;
+      results += `💸 هزینه: ${totalExpense.toLocaleString()} تومان\n`;
+      results += `💼 مانده: ${(totalIncome - totalExpense).toLocaleString()} تومان`;
+
+      delete userStates[chatId];
+      bot.sendMessage(chatId, results);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در جستجو.");
+    }
+    return;
+  }
+
+  // ====== اجرای جستجو با مبلغ ======
+  if (userStates[chatId]?.step === 'search_by_amount' && !text.startsWith("❌")) {
+    try {
+      const amount = parseInt(text);
+      if (isNaN(amount)) {
+        return bot.sendMessage(chatId, "❌ مبلغ نامعتبر است.");
+      }
+
+      const transactions = await Transaction.find({
+        userId: user._id,
+        amount: amount
+      }).populate('category account').sort({ date: -1 });
+
+      if (!transactions.length) {
+        return bot.sendMessage(chatId, `💰 هیچ تراکنشی با مبلغ ${amount.toLocaleString()} تومان یافت نشد.`);
+      }
+
+      let results = `💰 تراکنش‌های با مبلغ ${amount.toLocaleString()} تومان:\n\n`;
+
+      for (const tx of transactions) {
+        const persianDate = moment(tx.date).format('jYYYY/jMM/jDD');
+        results += `• ${tx.title}\n`;
+        results += `📅 ${persianDate} | ${tx.type === "income" ? "➕ درآمد" : "➖ هزینه"}\n`;
+        results += `🏦 ${tx.account?.name || 'نامشخص'}\n`;
+        if (tx.description) results += `📄 ${tx.description}\n`;
+        results += `\n`;
+      }
+
+      results += `📝 تعداد: ${transactions.length} تراکنش`;
+
+      delete userStates[chatId];
+      bot.sendMessage(chatId, results);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در جستجو.");
+    }
+    return;
+  }
+
+  // ====== آمار دسته‌بندی‌ها ======
+  if (text === "📊 آمار دسته‌بندی‌ها") {
+    try {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      const start = new Date(currentYear, currentMonth, 1);
+      const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
+      const transactions = await Transaction.find({
+        userId: user._id,
+        date: { $gte: start, $lte: end },
+        type: "expense"
+      }).populate('category');
+
+      if (!transactions.length) {
+        return bot.sendMessage(chatId, "📭 هیچ هزینه‌ای در این ماه یافت نشد.");
+      }
+
+      // جمع‌آوری آمار دسته‌بندی‌ها
+      const categoryStats = {};
+      let totalExpense = 0;
+
+      for (const tx of transactions) {
+        const categoryName = tx.category?.name || 'سایر';
+        if (!categoryStats[categoryName]) {
+          categoryStats[categoryName] = { amount: 0, count: 0, transactions: [] };
+        }
+        categoryStats[categoryName].amount += tx.amount;
+        categoryStats[categoryName].count += 1;
+        categoryStats[categoryName].transactions.push(tx);
+        totalExpense += tx.amount;
+      }
+
+      let report = `📊 آمار دسته‌بندی‌های ماه جاری:\n\n`;
+      
+      // مرتب‌سازی بر اساس مبلغ
+      const sortedCategories = Object.entries(categoryStats)
+        .sort(([,a], [,b]) => b.amount - a.amount);
+
+      for (const [categoryName, stats] of sortedCategories) {
+        const percentage = Math.round((stats.amount / totalExpense) * 100);
+        const avgAmount = Math.round(stats.amount / stats.count);
+        const bar = '█'.repeat(Math.round(percentage / 5));
+        
+        report += `🏷️ ${categoryName}:\n`;
+        report += `💰 ${stats.amount.toLocaleString()} تومان (${percentage}%)\n`;
+        report += `📊 ${stats.count} تراکنش\n`;
+        report += `📈 میانگین: ${avgAmount.toLocaleString()} تومان\n`;
+        report += `📊 ${bar} ${percentage}%\n\n`;
+      }
+
+      report += `📊 خلاصه:\n`;
+      report += `💸 کل هزینه: ${totalExpense.toLocaleString()} تومان\n`;
+      report += `🏷️ تعداد دسته: ${sortedCategories.length} دسته\n`;
+      report += `📝 کل تراکنش: ${transactions.length} عدد`;
+
+      bot.sendMessage(chatId, report);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در دریافت آمار دسته‌بندی‌ها.");
+    }
+    return;
+  }
+
+  // ====== نکات مالی ======
+  if (text === "💡 نکات مالی") {
+    try {
+      // تحلیل الگوهای خرج
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const currentYear = now.getFullYear();
+      const lastMonthYear = lastMonth === 11 ? currentYear - 1 : currentYear;
+
+      const currentMonthStart = new Date(currentYear, currentMonth, 1);
+      const currentMonthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+      const lastMonthStart = new Date(lastMonthYear, lastMonth, 1);
+      const lastMonthEnd = new Date(lastMonthYear, lastMonth + 1, 0, 23, 59, 59);
+
+      const currentTransactions = await Transaction.find({
+        userId: user._id,
+        date: { $gte: currentMonthStart, $lte: currentMonthEnd }
+      });
+
+      const lastTransactions = await Transaction.find({
+        userId: user._id,
+        date: { $gte: lastMonthStart, $lte: lastMonthEnd }
+      });
+
+      const currentIncome = currentTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const currentExpense = currentTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const lastIncome = lastTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const lastExpense = lastTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+
+      let tips = `💡 نکات مالی شخصی‌سازی شده:\n\n`;
+
+      // تحلیل تغییرات
+      const incomeChange = currentIncome - lastIncome;
+      const expenseChange = currentExpense - lastExpense;
+
+      if (incomeChange > 0) {
+        tips += `📈 درآمد شما ${incomeChange.toLocaleString()} تومان نسبت به ماه قبل افزایش یافته!\n`;
+        tips += `💡 پیشنهاد: این افزایش را در پس‌انداز سرمایه‌گذاری کنید.\n\n`;
+      } else if (incomeChange < 0) {
+        tips += `📉 درآمد شما ${Math.abs(incomeChange).toLocaleString()} تومان نسبت به ماه قبل کاهش یافته.\n`;
+        tips += `💡 پیشنهاد: هزینه‌های غیرضروری را کاهش دهید.\n\n`;
+      }
+
+      if (expenseChange > 0) {
+        tips += `📈 هزینه‌های شما ${expenseChange.toLocaleString()} تومان نسبت به ماه قبل افزایش یافته.\n`;
+        tips += `💡 پیشنهاد: الگوهای خرج خود را بررسی کنید.\n\n`;
+      } else if (expenseChange < 0) {
+        tips += `📉 هزینه‌های شما ${Math.abs(expenseChange).toLocaleString()} تومان نسبت به ماه قبل کاهش یافته!\n`;
+        tips += `💡 پیشنهاد: عالی! این روند را ادامه دهید.\n\n`;
+      }
+
+      // تحلیل نسبت درآمد به هزینه
+      const currentRatio = currentIncome > 0 ? (currentExpense / currentIncome) * 100 : 0;
+      
+      if (currentRatio > 90) {
+        tips += `⚠️ هشدار: ${Math.round(currentRatio)}% از درآمد شما صرف هزینه‌ها می‌شود!\n`;
+        tips += `💡 پیشنهاد: فوری هزینه‌های خود را کاهش دهید.\n\n`;
+      } else if (currentRatio > 70) {
+        tips += `🟡 توجه: ${Math.round(currentRatio)}% از درآمد شما صرف هزینه‌ها می‌شود.\n`;
+        tips += `💡 پیشنهاد: سعی کنید این نسبت را به زیر 70% برسانید.\n\n`;
+      } else {
+        tips += `✅ عالی: فقط ${Math.round(currentRatio)}% از درآمد شما صرف هزینه‌ها می‌شود!\n`;
+        tips += `💡 پیشنهاد: این روند را ادامه دهید و بیشتر پس‌انداز کنید.\n\n`;
+      }
+
+      // تحلیل الگوهای خرج
+      const expenseTransactions = currentTransactions.filter(t => t.type === 'expense');
+      const categoryStats = {};
+      
+      for (const tx of expenseTransactions) {
+        const categoryName = tx.category?.name || 'سایر';
+        categoryStats[categoryName] = (categoryStats[categoryName] || 0) + tx.amount;
+      }
+
+      const topCategory = Object.entries(categoryStats)
+        .sort(([,a], [,b]) => b - a)[0];
+
+      if (topCategory) {
+        const [categoryName, amount] = topCategory;
+        const percentage = Math.round((amount / currentExpense) * 100);
+        
+        tips += `🏷️ بیشترین هزینه شما در دسته "${categoryName}" است (${percentage}%)\n`;
+        
+        if (percentage > 50) {
+          tips += `💡 پیشنهاد: این دسته خرج زیادی دارد. آن را بررسی کنید.\n\n`;
+        } else if (percentage > 30) {
+          tips += `💡 پیشنهاد: این دسته خرج متوسطی دارد. کنترل کنید.\n\n`;
+        } else {
+          tips += `💡 پیشنهاد: توزیع خرج شما متعادل است.\n\n`;
+        }
+      }
+
+      // نصیحت‌های عمومی
+      tips += `📚 نصیحت‌های مالی:\n`;
+      tips += `• 20% از درآمد خود را پس‌انداز کنید\n`;
+      tips += `• 50% از درآمد را برای نیازهای ضروری خرج کنید\n`;
+      tips += `• 30% از درآمد را برای خواسته‌ها و تفریح استفاده کنید\n`;
+      tips += `• هر ماه بودجه‌بندی کنید\n`;
+      tips += `• هزینه‌های غیرضروری را حذف کنید\n`;
+      tips += `• اهداف مالی کوتاه‌مدت و بلندمدت تعریف کنید`;
+
+      bot.sendMessage(chatId, tips);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در دریافت نکات مالی.");
+    }
+    return;
+  }
+
   // ====== راهنما ======
   if (text === "ℹ️ راهنما") {
     bot.sendMessage(
@@ -1223,6 +1668,8 @@ bot.on("message", async (msg) => {
       `🏦 مدیریت حساب‌ها: ایجاد و مدیریت حساب‌های مختلف\n` +
       `📊 گزارش‌گیری: گزارش‌های تفصیلی و مقایسه‌ای\n` +
       `🎯 اهداف مالی: تعریف و پیگیری اهداف مالی\n` +
+      `🔍 جستجو: جستجو در تراکنش‌ها با نام، تاریخ یا مبلغ\n` +
+      `💡 نکات مالی: تحلیل شخصی و نصیحت‌های مالی\n` +
       `⚙️ تنظیمات: تنظیم دسته‌بندی‌ها و رنگ‌ها\n\n` +
       `💡 نکته: ابتدا حساب ایجاد کنید، سپس تراکنش ثبت کنید.`
     );
