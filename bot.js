@@ -898,6 +898,159 @@ bot.on("message", async (msg) => {
     return;
   }
 
+  // ====== گزارش دسته‌بندی ======
+  if (text === "🏷️ گزارش دسته‌بندی") {
+    try {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      const start = new Date(currentYear, currentMonth, 1);
+      const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
+      const transactions = await Transaction.find({
+        userId: user._id,
+        date: { $gte: start, $lte: end },
+        type: "expense"
+      }).populate('category');
+
+      if (!transactions.length) {
+        return bot.sendMessage(chatId, "📭 هیچ هزینه‌ای در این ماه یافت نشد.");
+      }
+
+      // جمع‌آوری آمار دسته‌بندی‌ها
+      const categoryStats = {};
+      let totalExpense = 0;
+
+      for (const tx of transactions) {
+        const categoryName = tx.category?.name || 'سایر';
+        if (!categoryStats[categoryName]) {
+          categoryStats[categoryName] = { amount: 0, count: 0 };
+        }
+        categoryStats[categoryName].amount += tx.amount;
+        categoryStats[categoryName].count += 1;
+        totalExpense += tx.amount;
+      }
+
+      let report = `🏷️ گزارش دسته‌بندی ماه جاری:\n\n`;
+      
+      // مرتب‌سازی بر اساس مبلغ
+      const sortedCategories = Object.entries(categoryStats)
+        .sort(([,a], [,b]) => b.amount - a.amount);
+
+      for (const [categoryName, stats] of sortedCategories) {
+        const percentage = Math.round((stats.amount / totalExpense) * 100);
+        const bar = '█'.repeat(Math.round(percentage / 5));
+        report += `${categoryName}:\n`;
+        report += `💰 ${stats.amount.toLocaleString()} تومان (${percentage}%)\n`;
+        report += `📊 ${stats.count} تراکنش\n`;
+        report += `📈 ${bar} ${percentage}%\n\n`;
+      }
+
+      report += `\n📊 خلاصه:\n`;
+      report += `💸 کل هزینه: ${totalExpense.toLocaleString()} تومان\n`;
+      report += `🏷️ تعداد دسته: ${sortedCategories.length} دسته`;
+
+      bot.sendMessage(chatId, report);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در دریافت گزارش دسته‌بندی.");
+    }
+    return;
+  }
+
+  // ====== گزارش حساب‌ها ======
+  if (text === "💰 گزارش حساب‌ها") {
+    try {
+      const accounts = await Account.find({ userId: user._id, isActive: true });
+      
+      if (!accounts.length) {
+        return bot.sendMessage(chatId, "🏦 هیچ حسابی یافت نشد.");
+      }
+
+      let report = `💰 گزارش حساب‌ها:\n\n`;
+      let totalBalance = 0;
+
+      for (const account of accounts) {
+        const transactions = await Transaction.find({
+          userId: user._id,
+          account: account._id
+        });
+
+        const income = transactions
+          .filter(t => t.type === 'income')
+          .reduce((sum, t) => sum + t.amount, 0);
+        
+        const expense = transactions
+          .filter(t => t.type === 'expense')
+          .reduce((sum, t) => sum + t.amount, 0);
+
+        report += `🏦 ${account.name}\n`;
+        report += `💰 مانده: ${account.balance.toLocaleString()} تومان\n`;
+        report += `📈 درآمد: ${income.toLocaleString()} تومان\n`;
+        report += `📉 هزینه: ${expense.toLocaleString()} تومان\n`;
+        report += `📊 تراکنش: ${transactions.length} عدد\n\n`;
+        
+        totalBalance += account.balance;
+      }
+
+      report += `📊 خلاصه:\n`;
+      report += `💰 کل مانده: ${totalBalance.toLocaleString()} تومان\n`;
+      report += `🏦 تعداد حساب: ${accounts.length} حساب`;
+
+      bot.sendMessage(chatId, report);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در دریافت گزارش حساب‌ها.");
+    }
+    return;
+  }
+
+  // ====== گزارش اهداف ======
+  if (text === "📊 گزارش اهداف") {
+    try {
+      const goals = await Goal.find({ userId: user._id });
+      
+      if (!goals.length) {
+        return bot.sendMessage(chatId, "🎯 هیچ هدفی تعریف نشده.");
+      }
+
+      let report = `🎯 گزارش اهداف:\n\n`;
+      let completedGoals = 0;
+      let totalTarget = 0;
+      let totalCurrent = 0;
+
+      for (const goal of goals) {
+        const progress = Math.round((goal.currentAmount / goal.targetAmount) * 100);
+        const status = goal.isCompleted ? '✅ تکمیل شده' : 
+                      progress >= 80 ? '🟡 نزدیک به تکمیل' :
+                      progress >= 50 ? '🟠 در حال پیشرفت' : '🔴 شروع شده';
+        
+        report += `🎯 ${goal.title}\n`;
+        report += `💰 ${goal.currentAmount.toLocaleString()} / ${goal.targetAmount.toLocaleString()} تومان\n`;
+        report += `📊 ${progress}% ${'█'.repeat(Math.round(progress / 10))}\n`;
+        report += `📅 مهلت: ${goal.deadline ? moment(goal.deadline).format('jYYYY/jMM/jDD') : 'تعیین نشده'}\n`;
+        report += `📈 وضعیت: ${status}\n\n`;
+        
+        if (goal.isCompleted) completedGoals++;
+        totalTarget += goal.targetAmount;
+        totalCurrent += goal.currentAmount;
+      }
+
+      const overallProgress = Math.round((totalCurrent / totalTarget) * 100);
+      report += `📊 خلاصه اهداف:\n`;
+      report += `✅ تکمیل شده: ${completedGoals} از ${goals.length}\n`;
+      report += `📈 پیشرفت کلی: ${overallProgress}%\n`;
+      report += `💰 کل هدف: ${totalTarget.toLocaleString()} تومان\n`;
+      report += `💰 کل جمع‌آوری: ${totalCurrent.toLocaleString()} تومان`;
+
+      bot.sendMessage(chatId, report);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در دریافت گزارش اهداف.");
+    }
+    return;
+  }
+
   // ====== آمار کلی ======
   if (text === "📊 آمار کلی") {
     try {
@@ -990,6 +1143,73 @@ bot.on("message", async (msg) => {
     } catch (err) {
       console.error(err);
       bot.sendMessage(chatId, "❌ خطا در دریافت لیست تراکنش‌ها.");
+    }
+    return;
+  }
+
+  // ====== نمودار هزینه‌ها ======
+  if (text === "📊 نمودار هزینه‌ها") {
+    try {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      const start = new Date(currentYear, currentMonth, 1);
+      const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
+      const transactions = await Transaction.find({
+        userId: user._id,
+        date: { $gte: start, $lte: end },
+        type: "expense"
+      }).populate('category');
+
+      if (!transactions.length) {
+        return bot.sendMessage(chatId, "📭 هیچ هزینه‌ای در این ماه یافت نشد.");
+      }
+
+      // جمع‌آوری آمار دسته‌بندی‌ها
+      const categoryMap = {};
+      transactions.forEach((tx) => {
+        const categoryName = tx.category?.name || 'سایر';
+        categoryMap[categoryName] = (categoryMap[categoryName] || 0) + tx.amount;
+      });
+
+      const labels = Object.keys(categoryMap);
+      const data = Object.values(categoryMap);
+
+      const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(
+        JSON.stringify({
+          type: "doughnut",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "هزینه‌ها",
+                data,
+                backgroundColor: [
+                  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                  '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                ]
+              },
+            ],
+          },
+          options: {
+            plugins: {
+              legend: { position: "right" },
+              title: {
+                display: true,
+                text: `نمودار هزینه‌های ${moment().format('jYYYY/jMM')}`,
+              },
+            },
+          },
+        })
+      )}`;
+
+      bot.sendPhoto(chatId, chartUrl, {
+        caption: `📊 نمودار هزینه‌های ${moment().format('jYYYY/jMM')}`,
+      });
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در ایجاد نمودار.");
     }
     return;
   }
