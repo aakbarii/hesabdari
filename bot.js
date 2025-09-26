@@ -4,6 +4,7 @@ const Transaction = require("./models/Transaction");
 const Account = require("./models/Account");
 const Category = require("./models/Category");
 const Goal = require("./models/Goal");
+const User = require("./models/User");
 require("dotenv").config();
 const moment = require('moment-jalaali');   
 
@@ -48,6 +49,34 @@ bot.on('error', (error) => {
 // ====== ذخیره وضعیت کاربران ======
 const userStates = {};
 
+// ====== تابع مدیریت کاربر ======
+async function getUserOrCreate(telegramId, username, firstName, lastName) {
+  try {
+    let user = await User.findOne({ telegramId });
+    if (!user) {
+      user = new User({
+        telegramId,
+        username,
+        firstName,
+        lastName
+      });
+      await user.save();
+      console.log(`✅ New user created: ${firstName} (${telegramId})`);
+    } else {
+      // به‌روزرسانی اطلاعات کاربر
+      user.username = username;
+      user.firstName = firstName;
+      user.lastName = lastName;
+      user.lastActivity = new Date();
+      await user.save();
+    }
+    return user;
+  } catch (err) {
+    console.error("❌ Error managing user:", err);
+    return null;
+  }
+}
+
 // ====== رنگ‌های پیش‌فرض برای دسته‌ها ======
 const categoryColors = {
   'غذا': '#FF6384',
@@ -61,14 +90,26 @@ const categoryColors = {
 };
 
 // ====== دستور شروع ======
-bot.onText(/\/start/, (msg) => {
-  if (msg.chat.id !== CHAT_ID) return;
+bot.onText(/\/start/, async (msg) => {
+  const chatId = msg.chat.id;
   
-  delete userStates[CHAT_ID];
+  // مدیریت کاربر
+  const user = await getUserOrCreate(
+    chatId,
+    msg.from.username,
+    msg.from.first_name,
+    msg.from.last_name
+  );
+  
+  if (!user) {
+    return bot.sendMessage(chatId, "❌ خطا در ایجاد کاربر. لطفاً دوباره تلاش کنید.");
+  }
+  
+  delete userStates[chatId];
 
   bot.sendMessage(
-    CHAT_ID,
-    "🤖 ربات حسابداری پیشرفته خوش آمدید!\n\nاز دکمه‌های زیر استفاده کنید:",
+    chatId,
+    `🤖 ربات حسابداری پیشرفته خوش آمدید!\n\n👤 کاربر: ${user.firstName}\n📅 تاریخ: ${moment().format('jYYYY/jMM/jDD')}\n\nاز دکمه‌های زیر استفاده کنید:`,
     {
       reply_markup: {
         keyboard: [
@@ -86,10 +127,21 @@ bot.onText(/\/start/, (msg) => {
 
 // ====== مدیریت پیام‌ها ======
 bot.on("message", async (msg) => {
-  if (msg.chat.id !== CHAT_ID) return;
+  const chatId = msg.chat.id;
+  
+  // مدیریت کاربر
+  const user = await getUserOrCreate(
+    chatId,
+    msg.from.username,
+    msg.from.first_name,
+    msg.from.last_name
+  );
+  
+  if (!user) {
+    return bot.sendMessage(chatId, "❌ خطا در احراز هویت. لطفاً /start را بزنید.");
+  }
 
   const text = msg.text.trim();
-  const chatId = msg.chat.id;
 
   // ====== دکمه افزودن تراکنش ======
   if (text === "➕ افزودن تراکنش") {
@@ -120,7 +172,7 @@ bot.on("message", async (msg) => {
       userStates[chatId].step = 'account';
       
       // دریافت لیست حساب‌ها
-      const accounts = await Account.find({ isActive: true });
+      const accounts = await Account.find({ userId: user._id, isActive: true });
       if (accounts.length === 0) {
         return bot.sendMessage(chatId, "❌ ابتدا باید حساب ایجاد کنید. از منوی '🏦 مدیریت حساب‌ها' استفاده کنید.");
       }
@@ -145,7 +197,7 @@ bot.on("message", async (msg) => {
 
   // ====== انتخاب حساب ======
   if (userStates[chatId]?.step === 'account' && !text.startsWith("❌")) {
-    const accounts = await Account.find({ isActive: true });
+    const accounts = await Account.find({ userId: user._id, isActive: true });
     const selectedAccount = accounts.find(acc => text.includes(acc.name));
     
     if (!selectedAccount) {
@@ -254,6 +306,7 @@ bot.on("message", async (msg) => {
     
     try {
       const transaction = new Transaction({
+        userId: user._id,
         type: userStates[chatId].data.type,
         amount: userStates[chatId].data.amount,
         title: userStates[chatId].data.title,
@@ -311,7 +364,7 @@ bot.on("message", async (msg) => {
 
   // ====== مدیریت حساب‌ها ======
   if (text === "🏦 مدیریت حساب‌ها") {
-    const accounts = await Account.find({ isActive: true });
+    const accounts = await Account.find({ userId: user._id, isActive: true });
     
     if (accounts.length === 0) {
       bot.sendMessage(
@@ -426,6 +479,7 @@ bot.on("message", async (msg) => {
     
     try {
       const account = new Account({
+        userId: user._id,
         name: userStates[chatId].data.name,
         type: userStates[chatId].data.type,
         balance: balance
@@ -487,6 +541,7 @@ bot.on("message", async (msg) => {
 
     try {
       const transactions = await Transaction.find({
+        userId: user._id,
         date: { $gte: start, $lte: end },
       }).populate('category account').sort({ date: -1 });
 
@@ -542,6 +597,7 @@ bot.on("message", async (msg) => {
       const currentEnd = currentMonth.endOf('month').toDate();
       
       const currentTransactions = await Transaction.find({
+        userId: user._id,
         date: { $gte: currentStart, $lte: currentEnd }
       });
       
@@ -550,6 +606,7 @@ bot.on("message", async (msg) => {
       const lastEnd = lastMonth.endOf('month').toDate();
       
       const lastTransactions = await Transaction.find({
+        userId: user._id,
         date: { $gte: lastStart, $lte: lastEnd }
       });
       
@@ -588,7 +645,7 @@ bot.on("message", async (msg) => {
 
   // ====== اهداف مالی ======
   if (text === "🎯 اهداف مالی") {
-    const goals = await Goal.find({ isCompleted: false });
+    const goals = await Goal.find({ userId: user._id, isCompleted: false });
     
     if (goals.length === 0) {
       bot.sendMessage(
@@ -633,6 +690,140 @@ bot.on("message", async (msg) => {
     return;
   }
 
+  // ====== ایجاد هدف جدید ======
+  if (text === "➕ ایجاد هدف جدید") {
+    userStates[chatId] = { step: 'new_goal_title', data: {} };
+    
+    bot.sendMessage(
+      chatId,
+      "🎯 عنوان هدف را وارد کنید:\nمثال: خرید لپ‌تاپ، سفر به اروپا، پس‌انداز اضطراری",
+      {
+        reply_markup: {
+          keyboard: [["❌ انصراف"]],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== دریافت عنوان هدف جدید ======
+  if (userStates[chatId]?.step === 'new_goal_title' && !text.startsWith("❌")) {
+    userStates[chatId].data.title = text;
+    userStates[chatId].step = 'new_goal_amount';
+    
+    bot.sendMessage(
+      chatId,
+      "💰 مبلغ هدف را وارد کنید (فقط عدد):",
+      {
+        reply_markup: {
+          keyboard: [["❌ انصراف"]],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== دریافت مبلغ هدف جدید ======
+  if (userStates[chatId]?.step === 'new_goal_amount' && !text.startsWith("❌")) {
+    const amount = parseInt(text);
+    if (isNaN(amount) || amount <= 0) {
+      return bot.sendMessage(chatId, "❌ مبلغ نامعتبر است. لطفاً عدد صحیح وارد کنید.");
+    }
+    
+    userStates[chatId].data.targetAmount = amount;
+    userStates[chatId].step = 'new_goal_type';
+    
+    bot.sendMessage(
+      chatId,
+      "🎯 نوع هدف را انتخاب کنید:",
+      {
+        reply_markup: {
+          keyboard: [
+            ["💰 پس‌انداز", "💸 محدودیت هزینه", "📈 هدف درآمد"],
+            ["❌ انصراف"]
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== دریافت نوع هدف جدید ======
+  if (userStates[chatId]?.step === 'new_goal_type' && !text.startsWith("❌")) {
+    const typeMap = {
+      '💰 پس‌انداز': 'savings',
+      '💸 محدودیت هزینه': 'expense_limit',
+      '📈 هدف درآمد': 'income_target'
+    };
+    
+    userStates[chatId].data.type = typeMap[text];
+    userStates[chatId].step = 'new_goal_deadline';
+    
+    bot.sendMessage(
+      chatId,
+      "📅 مهلت هدف (اختیاری - فرمت: YYYY-MM-DD):\nاگر مهلت ندارید، 'ندارد' بنویسید",
+      {
+        reply_markup: {
+          keyboard: [["❌ انصراف"]],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== دریافت مهلت هدف جدید ======
+  if (userStates[chatId]?.step === 'new_goal_deadline' && !text.startsWith("❌")) {
+    let deadline = null;
+    if (text !== 'ندارد') {
+      deadline = new Date(text);
+      if (isNaN(deadline.getTime())) {
+        return bot.sendMessage(chatId, "❌ فرمت تاریخ نامعتبر است. لطفاً دوباره تلاش کنید.");
+      }
+    }
+    
+    try {
+      const goal = new Goal({
+        userId: user._id,
+        title: userStates[chatId].data.title,
+        targetAmount: userStates[chatId].data.targetAmount,
+        type: userStates[chatId].data.type,
+        deadline: deadline
+      });
+      
+      await goal.save();
+      delete userStates[chatId];
+      
+      bot.sendMessage(
+        chatId,
+        `✅ هدف "${goal.title}" با موفقیت ایجاد شد!\n💰 مبلغ: ${goal.targetAmount.toLocaleString()} تومان\n📅 مهلت: ${deadline ? moment(deadline).format('jYYYY/jMM/jDD') : 'تعیین نشده'}`,
+        {
+          reply_markup: {
+            keyboard: [
+              ["➕ افزودن تراکنش", "📋 لیست تراکنش‌ها"],
+              ["🏦 مدیریت حساب‌ها", "📊 گزارش‌گیری"],
+              ["🎯 اهداف مالی", "⚙️ تنظیمات"],
+              ["ℹ️ راهنما"]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: false,
+          },
+        }
+      );
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در ایجاد هدف.");
+    }
+    return;
+  }
+
   // ====== انصراف ======
   if (text === "❌ انصراف" || text === "🔙 بازگشت") {
     delete userStates[chatId];
@@ -652,6 +843,154 @@ bot.on("message", async (msg) => {
         },
       }
     );
+    return;
+  }
+
+  // ====== تنظیمات ======
+  if (text === "⚙️ تنظیمات") {
+    bot.sendMessage(
+      chatId,
+      "⚙️ تنظیمات:\n\n" +
+      "👤 اطلاعات کاربر:\n" +
+      `نام: ${user.firstName} ${user.lastName || ''}\n` +
+      `نام کاربری: @${user.username || 'ندارد'}\n` +
+      `آخرین فعالیت: ${moment(user.lastActivity).format('jYYYY/jMM/jDD HH:mm')}\n\n` +
+      "از دکمه‌های زیر استفاده کنید:",
+      {
+        reply_markup: {
+          keyboard: [
+            ["🏷️ مدیریت دسته‌بندی‌ها", "📊 آمار کلی"],
+            ["🔙 بازگشت"]
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== مدیریت دسته‌بندی‌ها ======
+  if (text === "🏷️ مدیریت دسته‌بندی‌ها") {
+    const categories = await Category.find({ isDefault: true });
+    
+    let categoryList = "🏷️ دسته‌بندی‌های موجود:\n\n";
+    for (const cat of categories) {
+      categoryList += `${cat.icon} ${cat.name}\n`;
+      categoryList += `📊 استفاده: ${cat.usageCount} بار\n`;
+      categoryList += `🎨 رنگ: ${cat.color}\n\n`;
+    }
+    
+    bot.sendMessage(
+      chatId,
+      categoryList,
+      {
+        reply_markup: {
+          keyboard: [
+            ["➕ افزودن دسته جدید", "🎨 تغییر رنگ دسته‌ها"],
+            ["🔙 بازگشت"]
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // ====== آمار کلی ======
+  if (text === "📊 آمار کلی") {
+    try {
+      const totalTransactions = await Transaction.countDocuments({ userId: user._id });
+      const totalAccounts = await Account.countDocuments({ userId: user._id });
+      const totalGoals = await Goal.countDocuments({ userId: user._id });
+      
+      const thisMonth = moment().startOf('month');
+      const thisMonthTransactions = await Transaction.find({
+        userId: user._id,
+        date: { $gte: thisMonth.toDate() }
+      });
+      
+      const thisMonthIncome = thisMonthTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      const thisMonthExpense = thisMonthTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      let stats = `📊 آمار کلی:\n\n`;
+      stats += `👤 کاربر: ${user.firstName}\n`;
+      stats += `📅 عضویت: ${moment(user.createdAt).format('jYYYY/jMM/jDD')}\n\n`;
+      stats += `📈 آمار ماه جاری:\n`;
+      stats += `💰 درآمد: ${thisMonthIncome.toLocaleString()} تومان\n`;
+      stats += `💸 هزینه: ${thisMonthExpense.toLocaleString()} تومان\n`;
+      stats += `💼 مانده: ${(thisMonthIncome - thisMonthExpense).toLocaleString()} تومان\n\n`;
+      stats += `📊 آمار کلی:\n`;
+      stats += `📝 تراکنش‌ها: ${totalTransactions} عدد\n`;
+      stats += `🏦 حساب‌ها: ${totalAccounts} عدد\n`;
+      stats += `🎯 اهداف: ${totalGoals} عدد\n`;
+      
+      bot.sendMessage(chatId, stats);
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در دریافت آمار.");
+    }
+    return;
+  }
+
+  // ====== لیست تراکنش‌ها ======
+  if (text === "📋 لیست تراکنش‌ها") {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const start = new Date(currentYear, currentMonth, 1);
+    const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
+    try {
+      const transactions = await Transaction.find({
+        userId: user._id,
+        date: { $gte: start, $lte: end },
+      }).populate('category account').sort({ date: -1 });
+
+      if (!transactions.length) {
+        return bot.sendMessage(chatId, "📭 هیچ تراکنشی در این ماه یافت نشد.");
+      }
+
+      let report = `📆 لیست تراکنش‌های ماه جاری:\n\n`;
+      let totalIncome = 0;
+      let totalExpense = 0;
+
+      for (const tx of transactions) {
+        const persianDate = moment(tx.date).format('jYYYY/jMM/jDD');
+        const line = `• ${tx.title}\n` +
+          `💰 ${tx.amount.toLocaleString()} تومان | ` +
+          `${tx.type === "income" ? "➕ درآمد" : "➖ هزینه"}\n` +
+          `📅 ${persianDate} | 🏦 ${tx.account?.name || 'نامشخص'}\n` +
+          `${tx.description ? `📄 ${tx.description}\n` : ''}\n`;
+        report += line;
+        
+        if (tx.type === "income") totalIncome += tx.amount;
+        else totalExpense += tx.amount;
+      }
+
+      report += `\n📊 خلاصه ماه:\n`;
+      report += `💰 جمع درآمد: ${totalIncome.toLocaleString()} تومان\n`;
+      report += `💸 جمع هزینه: ${totalExpense.toLocaleString()} تومان\n`;
+      report += `💼 مانده: ${(totalIncome - totalExpense).toLocaleString()} تومان`;
+
+      if (report.length > 4000) {
+        const chunks = report.match(/[\s\S]{1,4000}/g) || [];
+        for (let i = 0; i < chunks.length; i++) {
+          await bot.sendMessage(chatId, chunks[i]);
+        }
+      } else {
+        bot.sendMessage(chatId, report);
+      }
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, "❌ خطا در دریافت لیست تراکنش‌ها.");
+    }
     return;
   }
 
@@ -681,14 +1020,14 @@ bot.on("message", async (msg) => {
 async function createDefaultCategories() {
   try {
     const defaultCategories = [
-      { name: 'غذا', type: 'expense', color: '#FF6384', icon: '🍕' },
-      { name: 'حمل‌ونقل', type: 'expense', color: '#36A2EB', icon: '🚗' },
-      { name: 'خرید', type: 'expense', color: '#FFCE56', icon: '🛍️' },
-      { name: 'تفریح', type: 'expense', color: '#4BC0C0', icon: '🎮' },
-      { name: 'پزشکی', type: 'expense', color: '#9966FF', icon: '🏥' },
-      { name: 'آموزش', type: 'expense', color: '#FF9F40', icon: '📚' },
-      { name: 'حقوق', type: 'income', color: '#4BC0C0', icon: '💰' },
-      { name: 'سایر', type: 'expense', color: '#C9CBCF', icon: '📁' }
+      { name: 'غذا', type: 'expense', color: '#FF6384', icon: '🍕', isDefault: true },
+      { name: 'حمل‌ونقل', type: 'expense', color: '#36A2EB', icon: '🚗', isDefault: true },
+      { name: 'خرید', type: 'expense', color: '#FFCE56', icon: '🛍️', isDefault: true },
+      { name: 'تفریح', type: 'expense', color: '#4BC0C0', icon: '🎮', isDefault: true },
+      { name: 'پزشکی', type: 'expense', color: '#9966FF', icon: '🏥', isDefault: true },
+      { name: 'آموزش', type: 'expense', color: '#FF9F40', icon: '📚', isDefault: true },
+      { name: 'حقوق', type: 'income', color: '#4BC0C0', icon: '💰', isDefault: true },
+      { name: 'سایر', type: 'expense', color: '#C9CBCF', icon: '📁', isDefault: true }
     ];
     
     for (const cat of defaultCategories) {
