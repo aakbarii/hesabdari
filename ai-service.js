@@ -380,7 +380,8 @@ class AIService {
 
 توجه: اگر کاربر حساب ندارد، باید ابتدا حساب ایجاد کند.
 
-پاسخ را حتماً به صورت JSON با این فرمت بدهید:
+برای درخواست‌های ساده یا سلام و احوال‌پرسی، مستقیماً پاسخ دوستانه بدهید.
+برای درخواست‌های پیچیده که نیاز به عملیات خاص دارند، پاسخ را به صورت JSON با این فرمت بدهید:
 {
   "action": "نوع عملیات",
   "params": {اطلاعات مورد نیاز},
@@ -409,9 +410,19 @@ class AIService {
 
       let result;
       try {
-        result = JSON.parse(aiResponse.content);
+        // اگر پاسخ JSON است، آن را parse کنیم
+        if (aiResponse.content.trim().startsWith('{')) {
+          result = JSON.parse(aiResponse.content);
+        } else {
+          // اگر JSON نیست، پاسخ عادی برگردانیم
+          return {
+            success: true,
+            message: aiResponse.content,
+            needsMoreInfo: false
+          };
+        }
       } catch (e) {
-        // اگر JSON نبود، پاسخ عادی بدهیم
+        // اگر JSON نامعتبر بود، پاسخ عادی بدهیم
         return {
           success: true,
           message: aiResponse.content,
@@ -423,7 +434,7 @@ class AIService {
       if (result.needsMoreInfo) {
         return {
           success: true,
-          message: result.question || result.response,
+          message: result.question || result.response || "لطفاً اطلاعات بیشتری ارائه دهید.",
           needsMoreInfo: true
         };
       }
@@ -477,10 +488,11 @@ class AIService {
           operationResult = await this.getCategoryStats(userId);
           break;
 
+        case 'general_chat':
         default:
           operationResult = {
             success: true,
-            message: result.response || "درخواست شما دریافت شد ولی متوجه نشدم چه کاری باید انجام دهم. لطفاً واضح‌تر بفرمایید."
+            message: result.response || "سلام! چطور می‌تونم بهت کمک کنم؟ می‌تونی ازم بخوای تراکنش اضافه کنم، گزارش بدم، یا هر کار دیگه‌ای انجام بدم! 😊"
           };
       }
 
