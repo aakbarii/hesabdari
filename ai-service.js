@@ -351,109 +351,105 @@ class AIService {
       const accounts = await Account.find({ userId: userId, isActive: true });
       const categories = await Category.find({ isDefault: true });
 
-      // تحلیل ساده پیام برای تشخیص نوع درخواست
-      const message = userMessage.toLowerCase();
-      
-      // اگر سلام است
-      if (message.includes('سلام') || message.includes('hi') || message.includes('hello')) {
-        return {
-          success: true,
-          message: `سلام ${user?.firstName || 'عزیز'}! چطور می‌تونم بهت کمک کنم؟ 😊\n\nمیخوای تراکنشی ثبت کنی، گزارش بگیری یا کاری دیگه انجام بدی؟`
-        };
-      }
-      
-      // اگر درخواست گزارش است
-      if (message.includes('گزارش') || message.includes('report')) {
-        return await this.getMonthlyReport(userId);
-      }
-      
-      // اگر درخواست مانده است
-      if (message.includes('مانده') || message.includes('balance')) {
-        return await this.getAccountBalance(userId);
-      }
-      
-      // اگر درخواست افزودن تراکنش است
-      if (message.includes('هزینه') || message.includes('ثبت') || message.includes('اضافه') || 
-          message.includes('تومان') || /\d+/.test(message)) {
-        
-        // استخراج اطلاعات از متن
-        let amount = null;
-        let title = 'هزینه';
-        let categoryName = 'سایر';
-        let accountName = accounts.length > 0 ? accounts[0].name : null;
-        
-        // استخراج مبلغ
-        const amountMatch = message.match(/(\d+)\s*(هزار|تومان|تومن)?/);
-        if (amountMatch) {
-          amount = parseInt(amountMatch[1]);
-          if (amountMatch[2] === 'هزار') {
-            amount *= 1000;
-          }
-        }
-        
-        // تشخیص عنوان و دسته‌بندی
-        if (message.includes('ناهار') || message.includes('صبحانه') || message.includes('شام') || message.includes('غذا')) {
-          title = 'ناهار';
-          categoryName = 'غذا';
-        } else if (message.includes('تاکسی') || message.includes('اتوبوس') || message.includes('مترو')) {
-          title = 'حمل‌ونقل';
-          categoryName = 'حمل‌ونقل';
-        } else if (message.includes('دارو') || message.includes('دکتر') || message.includes('پزشک')) {
-          title = 'پزشکی';
-          categoryName = 'پزشکی';
-        }
-        
-        // تشخیص حساب
-        if (message.includes('بلو')) {
-          const blueAccount = accounts.find(acc => acc.name.toLowerCase().includes('بلو'));
-          if (blueAccount) accountName = blueAccount.name;
-        } else if (message.includes('ملت')) {
-          const mellatAccount = accounts.find(acc => acc.name.toLowerCase().includes('ملت'));
-          if (mellatAccount) accountName = mellatAccount.name;
-        } else if (message.includes('پاسارگاد')) {
-          const pasargadAccount = accounts.find(acc => acc.name.toLowerCase().includes('پاسارگاد'));
-          if (pasargadAccount) accountName = pasargadAccount.name;
-        }
-        
-        // اگر اطلاعات کافی نیست
-        if (!amount) {
-          return {
-            success: true,
-            message: "مبلغ هزینه رو مشخص نکردی. مثلاً: 50 هزار تومان یا 215 تومان"
-          };
-        }
-        
-        if (!accountName || accounts.length === 0) {
-          return {
-            success: true,
-            message: "ابتدا باید یه حساب ایجاد کنی. می‌گی یه حساب جدید بسازم؟"
-          };
-        }
-        
-        // ثبت تراکنش
-        return await this.addTransaction(
-          userId,
-          'expense',
-          amount,
-          title,
-          '',
-          categoryName,
-          accountName
-        );
-      }
-      
-      // اگر درخواست ایجاد حساب است
-      if (message.includes('حساب') && (message.includes('بساز') || message.includes('ایجاد') || message.includes('جدید'))) {
-        return {
-          success: true,
-          message: "برای ایجاد حساب جدید، نام حساب رو بگو. مثلاً: بلوبانک، ملت، کیف پول"
-        };
-      }
+      const systemPrompt = `شما یک دستیار مالی هوشمند هستید. وظیفه شما تحلیل درخواست کاربر و استخراج اطلاعات برای انجام عملیات مالی است.
 
-      // پاسخ پیش‌فرض
+اطلاعات کاربر:
+- نام: ${user?.firstName || 'کاربر'}
+- حساب‌ها: ${accounts.map(acc => `${acc.name} (مانده: ${acc.balance.toLocaleString()} تومان)`).join(', ') || 'هیچ حسابی ندارد'}
+- دسته‌بندی‌ها: ${categories.map(cat => `${cat.name} (${cat.type})`).join(', ')}
+
+درخواست کاربر: "${userMessage}"
+
+مراحل تحلیل:
+1. اگر کاربر سلام کرده و درخواست خاصی نداره، جواب دوستانه بده
+2. اگر می‌خواد تراکنش ثبت کنه، اطلاعات رو استخراج کن:
+   - مبلغ (مثل "215 هزار تومان" یا "50 تومن")
+   - نوع (هزینه یا درآمد)
+   - عنوان (مثل "غذا" یا "ناهار")
+   - دسته‌بندی (از لیست موجود)
+   - حساب (از لیست موجود)
+3. اگر درخواست گزارش یا مانده داره، مشخص کن
+4. اگر می‌خواد حساب جدید بسازه، راهنماییش کن
+
+فقط یکی از این اعمال را انجام بده:
+- اگر سلام ساده است: پاسخ دوستانه
+- اگر تراکنش کامل است: {"action":"add_transaction","amount":مبلغ,"title":"عنوان","category":"دسته","account":"حساب","type":"expense"}
+- اگر گزارش می‌خواد: {"action":"monthly_report"}
+- اگر مانده می‌خواد: {"action":"account_balance"}
+- اگر نیاز به سوال داره: پاسخ سوال
+
+مهم: اگر اطلاعات کافی برای تراکنش داری، بلافاصله عمل کن و سوال اضافی نپرس!`;
+
+      const aiResponse = await this.callAI([
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage }
+      ]);
+
+      let response = aiResponse.content.trim();
+      
+      // اگر پاسخ JSON است
+      if (response.includes('{') && response.includes('}')) {
+        try {
+          // استخراج JSON از پاسخ
+          const jsonMatch = response.match(/\{[^}]*\}/);
+          if (jsonMatch) {
+            const result = JSON.parse(jsonMatch[0]);
+            
+            if (result.action === 'add_transaction') {
+              // پیدا کردن حساب و دسته‌بندی
+              let account = accounts.find(acc => 
+                acc.name.toLowerCase().includes(result.account?.toLowerCase()) ||
+                result.account?.toLowerCase().includes(acc.name.toLowerCase())
+              );
+              
+              if (!account && accounts.length > 0) {
+                account = accounts[0]; // حساب اول به عنوان پیش‌فرض
+              }
+              
+              let category = categories.find(cat => 
+                cat.name.toLowerCase().includes(result.category?.toLowerCase()) ||
+                result.category?.toLowerCase().includes(cat.name.toLowerCase())
+              );
+              
+              if (!category) {
+                category = categories.find(cat => cat.name === 'سایر');
+              }
+              
+              if (!account) {
+                return {
+                  success: true,
+                  message: "ابتدا باید یه حساب ایجاد کنی. می‌گی یه حساب جدید بسازم؟"
+                };
+              }
+              
+              return await this.addTransaction(
+                userId,
+                result.type || 'expense',
+                result.amount,
+                result.title || 'تراکنش',
+                '',
+                category?.name || 'سایر',
+                account.name
+              );
+            }
+            
+            if (result.action === 'monthly_report') {
+              return await this.getMonthlyReport(userId);
+            }
+            
+            if (result.action === 'account_balance') {
+              return await this.getAccountBalance(userId);
+            }
+          }
+        } catch (e) {
+          // اگر JSON parse نشد، ادامه می‌دیم
+        }
+      }
+      
+      // اگر پاسخ معمولی است
       return {
         success: true,
-        message: "متوجه نشدم چی می‌خوای! 🤔\n\nمیتونی از این عبارات استفاده کنی:\n• «هزینه 50 هزار تومان برای ناهار از بلو»\n• «گزارش این ماه»\n• «مانده حساب‌هام»\n• «یه حساب جدید بساز»"
+        message: response
       };
 
     } catch (error) {
