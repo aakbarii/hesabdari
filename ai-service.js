@@ -351,152 +351,110 @@ class AIService {
       const accounts = await Account.find({ userId: userId, isActive: true });
       const categories = await Category.find({ isDefault: true });
 
-      const systemContext = `
-شما یک دستیار مالی هوشمند و دوستانه هستید که به کاربران کمک می‌کنید تا امور مالی خود را مدیریت کنند.
-
-اطلاعات فعلی کاربر:
-- نام: ${user?.firstName || 'کاربر'}
-- حساب‌های موجود: ${accounts.length > 0 ? accounts.map(acc => `${acc.name} (${acc.type}) - مانده: ${acc.balance.toLocaleString()} تومان`).join(', ') : 'هیچ حسابی ثبت نشده'}
-- دسته‌بندی‌های موجود: ${categories.map(cat => `${cat.name} (${cat.type})`).join(', ')}
-
-شما می‌توانید این عملیات‌ها را انجام دهید:
-1. افزودن تراکنش (درآمد، هزینه) - مثال: "یه هزینه 50 هزار تومانی برای ناهار اضافه کن"
-2. مشاهده گزارش‌ها (ماهانه، حساب‌ها، دسته‌بندی‌ها) - مثال: "گزارش این ماه رو نشون بده"
-3. جستجو در تراکنش‌ها - مثال: "تراکنش‌های ناهار رو پیدا کن"
-4. مشاهده اهداف مالی - مثال: "اهداف من چطورن؟"
-5. ایجاد حساب جدید - مثال: "یه حساب جدید بساز"
-6. مشاهده مانده حساب‌ها - مثال: "مانده حساب‌هام چقدره؟"
-
-اگر کاربر درخواست غیرمرتبط با مالی کند، به صورت دوستانه هدایتش کن که شما فقط دستیار مالی هستید.
-
-درخواست کاربر: "${userMessage}"
-
-اگر کاربر می‌خواهد تراکنش اضافه کند، این اطلاعات را استخراج کنید:
-- نوع: درآمد یا هزینه (expense/income)
-- مبلغ: عدد به تومان
-- عنوان: توضیح کوتاه
-- دسته‌بندی: نزدیک‌ترین دسته از لیست موجود
-- حساب: نزدیک‌ترین حساب از لیست موجود
-
-توجه: اگر کاربر حساب ندارد، باید ابتدا حساب ایجاد کند.
-
-برای درخواست‌های ساده یا سلام و احوال‌پرسی، مستقیماً پاسخ دوستانه بدهید.
-برای درخواست‌های پیچیده که نیاز به عملیات خاص دارند، پاسخ را به صورت JSON با این فرمت بدهید:
-{
-  "action": "نوع عملیات",
-  "params": {اطلاعات مورد نیاز},
-  "response": "پاسخ دوستانه برای کاربر",
-  "needsMoreInfo": true/false,
-  "question": "سوال برای دریافت اطلاعات بیشتر"
-}
-
-انواع action ها:
-- "add_transaction" - افزودن تراکنش
-- "monthly_report" - گزارش ماهانه
-- "account_balance" - مانده حساب‌ها
-- "search" - جستجو در تراکنش‌ها
-- "create_account" - ایجاد حساب جدید
-- "goals" - مشاهده اهداف مالی
-- "category_stats" - آمار دسته‌بندی‌ها
-- "general_chat" - گفتگوی عمومی
-
-مهم: همیشه JSON معتبر برگردانید!
-      `;
-
-      const aiResponse = await this.callAI([
-        { role: "system", content: systemContext },
-        { role: "user", content: userMessage }
-      ]);
-
-      let result;
-      try {
-        // اگر پاسخ JSON است، آن را parse کنیم
-        if (aiResponse.content.trim().startsWith('{')) {
-          result = JSON.parse(aiResponse.content);
-        } else {
-          // اگر JSON نیست، پاسخ عادی برگردانیم
+      // تحلیل ساده پیام برای تشخیص نوع درخواست
+      const message = userMessage.toLowerCase();
+      
+      // اگر سلام است
+      if (message.includes('سلام') || message.includes('hi') || message.includes('hello')) {
+        return {
+          success: true,
+          message: `سلام ${user?.firstName || 'عزیز'}! چطور می‌تونم بهت کمک کنم؟ 😊\n\nمیخوای تراکنشی ثبت کنی، گزارش بگیری یا کاری دیگه انجام بدی؟`
+        };
+      }
+      
+      // اگر درخواست گزارش است
+      if (message.includes('گزارش') || message.includes('report')) {
+        return await this.getMonthlyReport(userId);
+      }
+      
+      // اگر درخواست مانده است
+      if (message.includes('مانده') || message.includes('balance')) {
+        return await this.getAccountBalance(userId);
+      }
+      
+      // اگر درخواست افزودن تراکنش است
+      if (message.includes('هزینه') || message.includes('ثبت') || message.includes('اضافه') || 
+          message.includes('تومان') || /\d+/.test(message)) {
+        
+        // استخراج اطلاعات از متن
+        let amount = null;
+        let title = 'هزینه';
+        let categoryName = 'سایر';
+        let accountName = accounts.length > 0 ? accounts[0].name : null;
+        
+        // استخراج مبلغ
+        const amountMatch = message.match(/(\d+)\s*(هزار|تومان|تومن)?/);
+        if (amountMatch) {
+          amount = parseInt(amountMatch[1]);
+          if (amountMatch[2] === 'هزار') {
+            amount *= 1000;
+          }
+        }
+        
+        // تشخیص عنوان و دسته‌بندی
+        if (message.includes('ناهار') || message.includes('صبحانه') || message.includes('شام') || message.includes('غذا')) {
+          title = 'ناهار';
+          categoryName = 'غذا';
+        } else if (message.includes('تاکسی') || message.includes('اتوبوس') || message.includes('مترو')) {
+          title = 'حمل‌ونقل';
+          categoryName = 'حمل‌ونقل';
+        } else if (message.includes('دارو') || message.includes('دکتر') || message.includes('پزشک')) {
+          title = 'پزشکی';
+          categoryName = 'پزشکی';
+        }
+        
+        // تشخیص حساب
+        if (message.includes('بلو')) {
+          const blueAccount = accounts.find(acc => acc.name.toLowerCase().includes('بلو'));
+          if (blueAccount) accountName = blueAccount.name;
+        } else if (message.includes('ملت')) {
+          const mellatAccount = accounts.find(acc => acc.name.toLowerCase().includes('ملت'));
+          if (mellatAccount) accountName = mellatAccount.name;
+        } else if (message.includes('پاسارگاد')) {
+          const pasargadAccount = accounts.find(acc => acc.name.toLowerCase().includes('پاسارگاد'));
+          if (pasargadAccount) accountName = pasargadAccount.name;
+        }
+        
+        // اگر اطلاعات کافی نیست
+        if (!amount) {
           return {
             success: true,
-            message: aiResponse.content,
-            needsMoreInfo: false
+            message: "مبلغ هزینه رو مشخص نکردی. مثلاً: 50 هزار تومان یا 215 تومان"
           };
         }
-      } catch (e) {
-        // اگر JSON نامعتبر بود، پاسخ عادی بدهیم
-        return {
-          success: true,
-          message: aiResponse.content,
-          needsMoreInfo: false
-        };
-      }
-
-      // اگر اطلاعات بیشتری نیاز است
-      if (result.needsMoreInfo) {
-        return {
-          success: true,
-          message: result.question || result.response || "لطفاً اطلاعات بیشتری ارائه دهید.",
-          needsMoreInfo: true
-        };
-      }
-
-      // اجرای عملیات بر اساس action
-      let operationResult;
-      
-      switch (result.action) {
-        case 'add_transaction':
-          operationResult = await this.addTransaction(
-            userId,
-            result.params.type,
-            result.params.amount,
-            result.params.title,
-            result.params.description || '',
-            result.params.category,
-            result.params.account
-          );
-          break;
-
-        case 'monthly_report':
-          operationResult = await this.getMonthlyReport(userId);
-          break;
-
-        case 'account_balance':
-          operationResult = await this.getAccountBalance(userId, result.params.accountName);
-          break;
-
-        case 'search':
-          operationResult = await this.searchTransactions(
-            userId,
-            result.params.query,
-            result.params.type || 'title'
-          );
-          break;
-
-        case 'create_account':
-          operationResult = await this.createAccount(
-            userId,
-            result.params.name,
-            result.params.type,
-            result.params.balance || 0
-          );
-          break;
-
-        case 'goals':
-          operationResult = await this.getGoals(userId);
-          break;
-
-        case 'category_stats':
-          operationResult = await this.getCategoryStats(userId);
-          break;
-
-        case 'general_chat':
-        default:
-          operationResult = {
+        
+        if (!accountName || accounts.length === 0) {
+          return {
             success: true,
-            message: result.response || "سلام! چطور می‌تونم بهت کمک کنم؟ می‌تونی ازم بخوای تراکنش اضافه کنم، گزارش بدم، یا هر کار دیگه‌ای انجام بدم! 😊"
+            message: "ابتدا باید یه حساب ایجاد کنی. می‌گی یه حساب جدید بسازم؟"
           };
+        }
+        
+        // ثبت تراکنش
+        return await this.addTransaction(
+          userId,
+          'expense',
+          amount,
+          title,
+          '',
+          categoryName,
+          accountName
+        );
+      }
+      
+      // اگر درخواست ایجاد حساب است
+      if (message.includes('حساب') && (message.includes('بساز') || message.includes('ایجاد') || message.includes('جدید'))) {
+        return {
+          success: true,
+          message: "برای ایجاد حساب جدید، نام حساب رو بگو. مثلاً: بلوبانک، ملت، کیف پول"
+        };
       }
 
-      return operationResult;
+      // پاسخ پیش‌فرض
+      return {
+        success: true,
+        message: "متوجه نشدم چی می‌خوای! 🤔\n\nمیتونی از این عبارات استفاده کنی:\n• «هزینه 50 هزار تومان برای ناهار از بلو»\n• «گزارش این ماه»\n• «مانده حساب‌هام»\n• «یه حساب جدید بساز»"
+      };
 
     } catch (error) {
       console.error('خطا در پردازش درخواست:', error);
