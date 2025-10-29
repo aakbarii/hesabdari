@@ -4,7 +4,8 @@
   "description": "",
   "main": "bot.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "reset-db": "node reset-database.js"
   },
   "keywords": [],
   "author": "Your Name",

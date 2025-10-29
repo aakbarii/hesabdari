@@ -1,30 +1,20 @@
 const TelegramBot = require("node-telegram-bot-api");
 const mongoose = require("mongoose");
-const Transaction = require("./models/Transaction");
-const Account = require("./models/Account");
 const Category = require("./models/Category");
-const Goal = require("./models/Goal");
 const User = require("./models/User");
 const AIService = require("./ai-service");
 require("dotenv").config();
 const moment = require('moment-jalaali');
 
-// ====== تنظیمات ======
 const TOKEN = process.env.TOKEN;
-const CHAT_ID = +process.env.CHAT_ID;
 const MONGO_URI = process.env.MONGO_URI;
 const OPENROUTER_API_KEY = process.env.AI_KEY;
 
-// ====== ایجاد سرویس هوش مصنوعی ======
 const aiService = new AIService(OPENROUTER_API_KEY);
 
-// ====== اتصال به MongoDB ======
-mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
+mongoose.connect(MONGO_URI).then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ====== ساخت ربات ======
 const bot = new TelegramBot(TOKEN, { 
   polling: {
     interval: 1000,
@@ -35,7 +25,6 @@ const bot = new TelegramBot(TOKEN, {
   }
 });
 
-// ====== مدیریت خطاهای polling ======
 bot.on('polling_error', (error) => {
   console.error('❌ Polling error:', error.message);
   
@@ -51,7 +40,6 @@ bot.on('error', (error) => {
   console.error('❌ Bot error:', error);
 });
 
-// ====== تابع مدیریت کاربر ======
 async function getUserOrCreate(telegramId, username, firstName, lastName) {
   try {
     let user = await User.findOne({ telegramId });
@@ -65,7 +53,6 @@ async function getUserOrCreate(telegramId, username, firstName, lastName) {
       await user.save();
       console.log(`✅ New user created: ${firstName} (${telegramId})`);
     } else {
-      // به‌روزرسانی اطلاعات کاربر
       user.username = username;
       user.firstName = firstName;
       user.lastName = lastName;
@@ -79,11 +66,9 @@ async function getUserOrCreate(telegramId, username, firstName, lastName) {
   }
 }
 
-// ====== دستور شروع ======
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   
-  // مدیریت کاربر
   const user = await getUserOrCreate(
     chatId,
     msg.from.username,
@@ -97,17 +82,35 @@ bot.onText(/\/start/, async (msg) => {
 
   bot.sendMessage(
     chatId,
-    `🤖 سلام ${user.firstName}! من دستیار مالی هوشمند شما هستم! 🎉\n\n` +
+    `🤖 سلام ${user.firstName}! من دستیار مالی فوق‌العاده هوشمند شما هستم! 🎉✨\n\n` +
     `💬 دیگه نیازی به دکمه زدن نیست! فقط با من چت کن و من همه کارهات رو انجام میدم.\n\n` +
     `📅 امروز: ${moment().format('jYYYY/jMM/jDD')}\n\n` +
-    `✨ من می‌تونم برات:\n` +
-    `• تراکنش اضافه کنم (درآمد یا هزینه)\n` +
-    `• گزارش‌های مالی بهت بدم\n` +
-    `• حساب‌هات رو مدیریت کنم\n` +
-    `• اهداف مالیت رو پیگیری کنم\n` +
-    `• توی تراکنش‌ها جستجو کنم\n` +
-    `• نصیحت‌های مالی بهت بدم\n\n` +
-    `💡 مثال: "یه هزینه 50 هزار تومانی برای ناهار اضافه کن" یا "گزارش این ماه رو نشون بده"\n\n` +
+    `🚀 قدرت‌های من:\n\n` +
+    `💰 مدیریت مالی:\n` +
+    `• ثبت تراکنش‌های درآمد و هزینه\n` +
+    `• انتقال پول بین حساب‌ها\n` +
+    `• تراکنش‌های تکراری (روزانه، هفتگی، ماهانه)\n\n` +
+    `📊 گزارش‌ها و تحلیل:\n` +
+    `• گزارش‌های کامل (هفته، ماه، سال)\n` +
+    `• تحلیل روند مالی\n` +
+    `• مقایسه دوره‌های مختلف\n` +
+    `• آمار دسته‌بندی‌ها\n` +
+    `• جستجوی پیشرفته\n\n` +
+    `🎯 مدیریت اهداف:\n` +
+    `• ایجاد و پیگیری اهداف مالی\n` +
+    `• بررسی پیشرفت\n\n` +
+    `💡 نصیحت و مشاوره:\n` +
+    `• نصیحت‌های شخصی‌سازی شده\n` +
+    `• پیشنهادهای مالی هوشمند\n\n` +
+    `💡 نمونه دستورات:\n` +
+    `• "215 هزار هزینه غذا کردم"\n` +
+    `• "گزارش کامل این ماه"\n` +
+    `• "نسبت به ماه قبل چقدر خرج کردم؟"\n` +
+    `• "روند هزینه‌هام چطوریه؟"\n` +
+    `• "200 هزار از بلو به کش ببر"\n` +
+    `• "یه هدف 10 میلیونی برای خرید ماشین تا پایان سال بذار"\n` +
+    `• "چیکار کنم پول بیشتری پس‌انداز کنم؟"\n` +
+    `• "هزینه‌های غذا رو نشون بده"\n\n` +
     `چیکار برات انجام بدم؟ 🤗`,
     {
       reply_markup: {
@@ -117,16 +120,13 @@ bot.onText(/\/start/, async (msg) => {
   );
 });
 
-// ====== مدیریت پیام‌ها ======
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   
-  // نادیده گیری دستور /start
   if (msg.text && msg.text.startsWith('/start')) {
     return;
   }
   
-  // مدیریت کاربر
   const user = await getUserOrCreate(
     chatId,
     msg.from.username,
@@ -140,16 +140,13 @@ bot.on("message", async (msg) => {
 
   const text = msg.text?.trim();
   
-  // اگر پیام متنی نیست، نادیده بگیر
   if (!text) {
     return;
   }
 
   try {
-    // نمایش حالت typing
     await bot.sendChatAction(chatId, 'typing');
     
-    // پردازش درخواست توسط هوش مصنوعی
     const result = await aiService.processUserRequest(user._id, text);
     
     if (result.success) {
@@ -163,7 +160,6 @@ bot.on("message", async (msg) => {
   }
 });
 
-// ====== ایجاد دسته‌بندی‌های پیش‌فرض ======
 async function createDefaultCategories() {
   try {
     const defaultCategories = [
@@ -191,7 +187,6 @@ async function createDefaultCategories() {
   }
 }
 
-// ====== اجرای تابع ایجاد دسته‌بندی‌های پیش‌فرض ======
 createDefaultCategories();
 
 console.log("🤖 AI-Powered Financial Bot is up and running…");
