@@ -965,6 +965,406 @@ class AIService {
     }
   }
 
+  // ======= بودجه‌بندی خودکار =======
+  async getBudgetRecommendation(userId) {
+    try {
+      const now = new Date();
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const last3MonthsStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+      
+      // دریافت متوسط هزینه‌های 3 ماه گذشته
+      const avgExpenses = await Transaction.aggregate([
+        { 
+          $match: { 
+            userId: userId, 
+            type: 'expense', 
+            date: { $gte: last3MonthsStart, $lt: currentMonthStart } 
+          } 
+        },
+        { 
+          $group: { 
+            _id: { $month: '$date' }, 
+            total: { $sum: '$amount' } 
+          } 
+        }
+      ]);
+
+      const currentIncome = await Transaction.aggregate([
+        { 
+          $match: { 
+            userId: userId, 
+            type: 'income', 
+            date: { $gte: currentMonthStart } 
+          } 
+        },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]);
+
+      let avgExpense = 0;
+      if (avgExpenses.length > 0) {
+        avgExpense = avgExpenses.reduce((sum, item) => sum + item.total, 0) / avgExpenses.length;
+      }
+
+      const currentIncomeAmount = currentIncome[0]?.total || 0;
+      
+      // پیشنهاد بودجه بر اساس 70% قانون (70% هزینه، 20% پس‌انداز، 10% سرمایه‌گذاری)
+      const recommendedExpense = currentIncomeAmount > 0 
+        ? Math.round(currentIncomeAmount * 0.7) 
+        : Math.round(avgExpense);
+      
+      const recommendedSavings = currentIncomeAmount > 0 
+        ? Math.round(currentIncomeAmount * 0.2) 
+        : Math.round(currentIncomeAmount * 0.2);
+      
+      const recommendedInvestment = currentIncomeAmount > 0 
+        ? Math.round(currentIncomeAmount * 0.1) 
+        : 0;
+
+      let report = `💰 پیشنهاد بودجه‌بندی ماهانه:\n\n`;
+      report += `📊 بر اساس درآمد فعلی و هزینه‌های متوسط 3 ماه گذشته\n\n`;
+      
+      if (currentIncomeAmount > 0) {
+        report += `💵 درآمد ماهانه: ${currentIncomeAmount.toLocaleString()} تومان\n\n`;
+        report += `💡 پیشنهادات:\n`;
+        report += `• هزینه‌ها: ${recommendedExpense.toLocaleString()} تومان (70%)\n`;
+        report += `• پس‌انداز: ${recommendedSavings.toLocaleString()} تومان (20%)\n`;
+        report += `• سرمایه‌گذاری: ${recommendedInvestment.toLocaleString()} تومان (10%)\n\n`;
+      } else {
+        report += `💡 بر اساس هزینه‌های متوسط:\n`;
+        report += `• بودجه پیشنهادی: ${recommendedExpense.toLocaleString()} تومان\n`;
+        report += `• متوسط هزینه 3 ماه گذشته: ${Math.round(avgExpense).toLocaleString()} تومان\n\n`;
+      }
+
+      // هزینه‌های فعلی ماه
+      const currentMonthExpenses = await Transaction.aggregate([
+        { 
+          $match: { 
+            userId: userId, 
+            type: 'expense', 
+            date: { $gte: currentMonthStart } 
+          } 
+        },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]);
+
+      const currentExpense = currentMonthExpenses[0]?.total || 0;
+      
+      if (currentIncomeAmount > 0) {
+        const remaining = recommendedExpense - currentExpense;
+        const percentage = (currentExpense / recommendedExpense * 100).toFixed(1);
+        
+        report += `📈 وضعیت فعلی:\n`;
+        report += `• هزینه شده: ${currentExpense.toLocaleString()} تومان (${percentage}%)\n`;
+        report += `• باقی‌مانده: ${remaining.toLocaleString()} تومان\n`;
+        
+        if (currentExpense > recommendedExpense) {
+          report += `\n⚠️ هشدار: بودجه تجاوز کرده! ${((currentExpense - recommendedExpense) / recommendedExpense * 100).toFixed(1)}% بیشتر خرج کردی.\n`;
+          report += `💡 سعی کن در هفته‌های باقی‌مانده صرفه‌جویی کنی.`;
+        } else if (percentage > 80) {
+          report += `\n⚠️ توجه: ${((recommendedExpense - currentExpense) / recommendedExpense * 100).toFixed(1)}% از بودجه باقی مونده. مراقب باش!`;
+        } else {
+          report += `\n✅ عالی! بودجه رو خوب مدیریت می‌کنی.`;
+        }
+      }
+
+      return { success: true, message: report };
+    } catch (error) {
+      console.error('خطا در بودجه‌بندی:', error);
+      return { success: false, message: 'خطایی در محاسبه بودجه رخ داد.' };
+    }
+  }
+
+  // ======= پیش‌بینی مالی =======
+  async getFinancialForecast(userId, months = 3) {
+    try {
+      const now = new Date();
+      const last6MonthsStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+      
+      // تحلیل متوسط درآمد و هزینه 6 ماه گذشته
+      const incomeData = await Transaction.aggregate([
+        { 
+          $match: { 
+            userId: userId, 
+            type: 'income', 
+            date: { $gte: last6MonthsStart } 
+          } 
+        },
+        { 
+          $group: { 
+            _id: { $month: '$date' }, 
+            total: { $sum: '$amount' } 
+          } 
+        }
+      ]);
+
+      const expenseData = await Transaction.aggregate([
+        { 
+          $match: { 
+            userId: userId, 
+            type: 'expense', 
+            date: { $gte: last6MonthsStart } 
+          } 
+        },
+        { 
+          $group: { 
+            _id: { $month: '$date' }, 
+            total: { $sum: '$amount' } 
+          } 
+        }
+      ]);
+
+      let avgIncome = 0;
+      let avgExpense = 0;
+
+      if (incomeData.length > 0) {
+        avgIncome = incomeData.reduce((sum, item) => sum + item.total, 0) / incomeData.length;
+      }
+
+      if (expenseData.length > 0) {
+        avgExpense = expenseData.reduce((sum, item) => sum + item.total, 0) / expenseData.length;
+      }
+
+      // دریافت مانده فعلی
+      const accounts = await Account.find({ userId: userId, isActive: true });
+      const currentBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+
+      let forecast = `🔮 پیش‌بینی مالی ${months} ماه آینده:\n\n`;
+      forecast += `📊 بر اساس تحلیل 6 ماه گذشته:\n`;
+      forecast += `• متوسط درآمد ماهانه: ${Math.round(avgIncome).toLocaleString()} تومان\n`;
+      forecast += `• متوسط هزینه ماهانه: ${Math.round(avgExpense).toLocaleString()} تومان\n`;
+      forecast += `• متوسط مانده ماهانه: ${Math.round(avgIncome - avgExpense).toLocaleString()} تومان\n\n`;
+
+      let projectedBalance = currentBalance;
+      const monthlyNet = avgIncome - avgExpense;
+
+      forecast += `💰 پیش‌بینی ماهانه:\n\n`;
+      for (let i = 1; i <= months; i++) {
+        const futureDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        projectedBalance += monthlyNet;
+        
+        forecast += `${i}. ${moment(futureDate).format('jYYYY/jMM')}:\n`;
+        forecast += `   💵 درآمد پیش‌بینی: ${Math.round(avgIncome).toLocaleString()} تومان\n`;
+        forecast += `   💸 هزینه پیش‌بینی: ${Math.round(avgExpense).toLocaleString()} تومان\n`;
+        forecast += `   💼 مانده پیش‌بینی: ${Math.round(projectedBalance).toLocaleString()} تومان\n`;
+        
+        if (projectedBalance < 0) {
+          forecast += `   ⚠️ هشدار: تراز منفی خواهد شد!\n`;
+        }
+        forecast += `\n`;
+      }
+
+      // پیشنهادات
+      forecast += `💡 توصیه‌ها:\n`;
+      if (monthlyNet < 0) {
+        forecast += `⚠️ در حال حاضر بیشتر از درآمدت خرج می‌کنی!\n`;
+        forecast += `💡 باید ${Math.abs(monthlyNet).toLocaleString()} تومان صرفه‌جویی کنی یا درآمدت رو افزایش بدی.\n`;
+      } else if (monthlyNet < avgIncome * 0.1) {
+        forecast += `📊 پس‌اندازت کم است. سعی کن هزینه‌ها رو کاهش بدی.\n`;
+      } else {
+        forecast += `✅ وضعیت مالی خوبی داری! می‌تونی اهداف بزرگتری تعریف کنی.\n`;
+      }
+
+      return { success: true, message: forecast };
+    } catch (error) {
+      console.error('خطا در پیش‌بینی:', error);
+      return { success: false, message: 'خطایی در پیش‌بینی مالی رخ داد.' };
+    }
+  }
+
+  // ======= تحلیل الگوهای مصرف =======
+  async getSpendingPatterns(userId) {
+    try {
+      const now = new Date();
+      const last3MonthsStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+      
+      // تحلیل بر اساس دسته‌بندی
+      const categoryPatterns = await Transaction.aggregate([
+        { 
+          $match: { 
+            userId: userId, 
+            type: 'expense', 
+            date: { $gte: last3MonthsStart } 
+          } 
+        },
+        { 
+          $group: { 
+            _id: '$category', 
+            total: { $sum: '$amount' }, 
+            count: { $sum: 1 },
+            avg: { $avg: '$amount' }
+          } 
+        },
+        { $sort: { total: -1 } },
+        { $limit: 10 }
+      ]);
+
+      // تحلیل بر اساس روز هفته
+      const dayOfWeekPatterns = await Transaction.aggregate([
+        { 
+          $match: { 
+            userId: userId, 
+            type: 'expense', 
+            date: { $gte: last3MonthsStart } 
+          } 
+        },
+        { 
+          $group: { 
+            _id: { $dayOfWeek: '$date' }, 
+            total: { $sum: '$amount' }, 
+            count: { $sum: 1 } 
+          } 
+        },
+        { $sort: { total: -1 } }
+      ]);
+
+      const dayNames = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
+
+      let report = `📊 تحلیل الگوهای مصرف (3 ماه گذشته):\n\n`;
+
+      // الگوی دسته‌بندی
+      if (categoryPatterns.length > 0) {
+        report += `🏷️ بیشترین هزینه بر اساس دسته‌بندی:\n`;
+        for (let i = 0; i < Math.min(5, categoryPatterns.length); i++) {
+          const cat = categoryPatterns[i];
+          const category = await Category.findById(cat._id);
+          if (category) {
+            report += `${i + 1}. ${category.name}:\n`;
+            report += `   💰 ${cat.total.toLocaleString()} تومان | ${cat.count} تراکنش\n`;
+            report += `   📊 متوسط: ${Math.round(cat.avg).toLocaleString()} تومان\n\n`;
+          }
+        }
+      }
+
+      // الگوی روز هفته
+      if (dayOfWeekPatterns.length > 0) {
+        report += `📅 الگوی مصرف بر اساس روز هفته:\n`;
+        const sortedDays = dayOfWeekPatterns.sort((a, b) => b.total - a.total);
+        for (const day of sortedDays.slice(0, 3)) {
+          const dayName = dayNames[day._id - 1] || 'نامشخص';
+          report += `• ${dayName}: ${day.total.toLocaleString()} تومان (${day.count} تراکنش)\n`;
+        }
+        report += `\n`;
+      }
+
+      // تحلیل کلی
+      const totalExpense = categoryPatterns.reduce((sum, item) => sum + item.total, 0);
+      if (totalExpense > 0 && categoryPatterns.length > 0) {
+        const topCategoryPercent = (categoryPatterns[0].total / totalExpense * 100).toFixed(1);
+        report += `💡 نکات:\n`;
+        report += `• ${topCategoryPercent}% از هزینه‌هات تو یک دسته‌بندی خاص هست\n`;
+        
+        if (topCategoryPercent > 50) {
+          report += `⚠️ تمرکز زیاد روی یک دسته‌بندی! بهتره تنوع بیشتری داشته باشی.\n`;
+        }
+      }
+
+      return { success: true, message: report };
+    } catch (error) {
+      console.error('خطا در تحلیل الگوها:', error);
+      return { success: false, message: 'خطایی در تحلیل الگوها رخ داد.' };
+    }
+  }
+
+  // ======= بهینه‌سازی هزینه‌ها =======
+  async getCostOptimization(userId) {
+    try {
+      const now = new Date();
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const last3MonthsStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+
+      // دریافت هزینه‌های جاری
+      const currentMonthExpenses = await Transaction.aggregate([
+        { 
+          $match: { 
+            userId: userId, 
+            type: 'expense', 
+            date: { $gte: currentMonthStart } 
+          } 
+        },
+        { 
+          $group: { 
+            _id: '$category', 
+            total: { $sum: '$amount' }, 
+            count: { $sum: 1 },
+            transactions: { $push: { amount: '$amount', title: '$title', date: '$date' } }
+          } 
+        }
+      ]);
+
+      // متوسط 3 ماه گذشته
+      const avgExpenses = await Transaction.aggregate([
+        { 
+          $match: { 
+            userId: userId, 
+            type: 'expense', 
+            date: { $gte: last3MonthsStart, $lt: currentMonthStart } 
+          } 
+        },
+        { 
+          $group: { 
+            _id: '$category', 
+            avgTotal: { $avg: { 
+              $let: {
+                vars: { month: { $month: '$date' } },
+                in: { $sum: '$amount' }
+              }
+            }}
+          } 
+        }
+      ]);
+
+      let report = `💡 پیشنهادات بهینه‌سازی هزینه:\n\n`;
+
+      const suggestions = [];
+
+      for (const current of currentMonthExpenses) {
+        const category = await Category.findById(current._id);
+        if (!category) continue;
+
+        const avgData = avgExpenses.find(a => a._id.toString() === current._id.toString());
+        
+        if (avgData && current.total > avgData.avgTotal * 1.2) {
+          const increase = ((current.total - avgData.avgTotal) / avgData.avgTotal * 100).toFixed(1);
+          const savings = Math.round(current.total - avgData.avgTotal);
+          
+          suggestions.push({
+            category: category.name,
+            increase: parseFloat(increase),
+            savings: savings,
+            current: current.total,
+            avg: avgData.avgTotal
+          });
+        }
+      }
+
+      if (suggestions.length > 0) {
+        suggestions.sort((a, b) => b.increase - a.increase);
+        
+        report += `⚠️ دسته‌بندی‌های با افزایش هزینه:\n\n`;
+        for (let i = 0; i < Math.min(5, suggestions.length); i++) {
+          const s = suggestions[i];
+          report += `${i + 1}. ${s.category}:\n`;
+          report += `   📈 ${s.increase}% افزایش نسبت به متوسط\n`;
+          report += `   💰 می‌تونی ${s.savings.toLocaleString()} تومان صرفه‌جویی کنی\n`;
+          report += `   💵 فعلی: ${s.current.toLocaleString()} | متوسط: ${Math.round(s.avg).toLocaleString()}\n\n`;
+        }
+
+        const totalSavings = suggestions.reduce((sum, s) => sum + s.savings, 0);
+        report += `💡 اگر این بهینه‌سازی‌ها رو انجام بدی:\n`;
+        report += `• صرفه‌جویی کل: ${totalSavings.toLocaleString()} تومان در ماه\n`;
+        report += `• صرفه‌جویی سالانه: ${(totalSavings * 12).toLocaleString()} تومان\n`;
+      } else {
+        report += `✅ تبریک! هزینه‌هات در حد متوسط یا کمتر از اون هست.\n`;
+        report += `💡 می‌تونی روی افزایش درآمد تمرکز کنی.`;
+      }
+
+      return { success: true, message: report };
+    } catch (error) {
+      console.error('خطا در بهینه‌سازی:', error);
+      return { success: false, message: 'خطایی در بهینه‌سازی رخ داد.' };
+    }
+  }
+
   // ======= تحلیل درخواست کاربر با هوش مصنوعی پیشرفته =======
   async processUserRequest(userId, userMessage) {
     try {
@@ -1027,6 +1427,10 @@ class AIService {
 8. تراکنش‌های تکراری ایجاد کنی
 9. تحلیل دقیق الگوهای مصرف
 10. پیش‌بینی مالی
+11. بودجه‌بندی خودکار و پیشنهادات
+12. بهینه‌سازی هزینه‌ها
+13. تحلیل الگوهای مصرف (روز هفته، دسته‌بندی)
+14. پیش‌بینی مالی آینده
 
 📊 اطلاعات کاربر:
 - نام: ${user?.firstName || 'کاربر'}
@@ -1048,7 +1452,7 @@ class AIService {
 
 📝 فرمت JSON برای عملیات:
 {
-  "action": "add_transaction|monthly_report|account_balance|search_transactions|create_account|transfer_money|create_goal|update_goal|trend_analysis|period_comparison|financial_advice|category_stats|recurring_transaction|delete_transaction",
+  "action": "add_transaction|monthly_report|account_balance|search_transactions|create_account|transfer_money|create_goal|update_goal|trend_analysis|period_comparison|financial_advice|category_stats|recurring_transaction|delete_transaction|budget_recommendation|financial_forecast|spending_patterns|cost_optimization",
   "amount": 215000,
   "title": "غذا",
   "description": "...",
@@ -1063,10 +1467,11 @@ class AIService {
   "goalTitle": "...",
   "targetAmount": 10000000,
   "deadline": "1403/12/29",
-  "recurringType": "daily|weekly|monthly|yearly"
+  "recurringType": "daily|weekly|monthly|yearly",
+  "months": 3
 }
 
-💡 مثال‌های هوشمند:
+💡 مثال‌های هوشمند (دستورات مالی - JSON برگردون):
 - "215 هزار هزینه غذا کردم" → {"action":"add_transaction","amount":215000,"title":"غذا","category":"غذا","type":"expense"}
 - "گزارش کامل این ماه" → {"action":"monthly_report","period":"month"}
 - "نسبت به ماه قبل چقدر خرج کردم؟" → {"action":"period_comparison","period":"month"}
@@ -1076,13 +1481,25 @@ class AIService {
 - "چیکار کنم پول بیشتری پس‌انداز کنم؟" → {"action":"financial_advice"}
 - "هزینه‌های غذا رو نشون بده" → {"action":"search_transactions","query":"غذا","searchType":"category"}
 - "یه تراکنش ماهانه 500 هزار برای اجاره بذار" → {"action":"recurring_transaction","amount":500000,"title":"اجاره","type":"expense","recurringType":"monthly"}
+- "بودجه پیشنهادی ماهانه" → {"action":"budget_recommendation"}
+- "پیش‌بینی 3 ماه آینده" → {"action":"financial_forecast","months":3}
+- "الگوهای مصرفم چیه؟" → {"action":"spending_patterns"}
+- "چطوری هزینه‌هام رو بهینه کنم؟" → {"action":"cost_optimization"}
 
-⚠️ نکات مهم:
+💬 مثال‌های پاسخ معمولی (نه JSON!):
+- "سلام" → "سلام! خوشحالم که باهات صحبت می‌کنم 😊 چه کمکی از دستم بر میاد؟ می‌تونم برات تراکنش ثبت کنم، گزارش بدم، یا هر کار مالی دیگه‌ای!"
+- "خوبی؟" → "بله، خوبم! ممنون از سوالت 😊 امروز چیکار برات انجام بدم؟"
+- "چطوری؟" → "عالی! چطوری خودت؟ چیزی می‌خوای از قسمت مالی‌هات ببینی یا کاری انجام بدی؟"
+- "ممنون" → "خواهش می‌کنم! همیشه در خدمتتم 🙏 اگه سوال یا درخواستی داری، بپرس!"
+
+⚠️ نکات خیلی مهم:
+- اگر کاربر فقط سلام کرد یا سوال غیر مالی پرسید، JSON برنگردون! فقط یک پاسخ دوستانه و طبیعی بده
+- فقط وقتی JSON برگردون که کاربر یک دستور مالی واضح داد (مثلاً "215 هزار هزینه غذا" یا "گزارش بده")
+- اگر action null میشه یا نمیدونی چی باید بکنی، از JSON استفاده نکن و پاسخ معمولی بده
 - اگر حساب مشخص نیست، اولین حساب با بیشترین مانده رو انتخاب کن
-- همیشه JSON کامل برگردون، حتی اگر بعضی فیلدها null باشه
-- اگه کاربر سوال غیر مالی پرسید، جواب دوستانه و مرتبط بده
 - تحلیل عمیق کن و insight بده، نه فقط لیست کردن
-- از emoji استفاده کن برای بهتر شدن UX`;
+- از emoji استفاده کن برای بهتر شدن UX
+- وقتی فقط سلام می‌کنه، دوستانه جواب بده و بپرس چی میتونی براش انجام بدی`;
 
       // ساخت پیام‌ها با تاریخچه
       const messages = [
@@ -1106,8 +1523,12 @@ class AIService {
       // ذخیره پاسخ AI در تاریخچه
       this.addToHistory(userId, "assistant", response);
       
-      // استخراج و پردازش JSON
-      if (response.includes('{') && response.includes('}')) {
+      // بررسی اینکه آیا پیام فقط یک سلام یا مکالمه معمولی است
+      const greetingPatterns = /^(سلام|درود|صبح بخیر|ظهر بخیر|عصر بخیر|خب|خوبی|چطوری|چیه|چطوره|هی|بله|نه|ممنون|متشکرم|عالی|خوب|بد|بدون|خداحافظ)/i;
+      const isGreeting = greetingPatterns.test(userMessage.trim());
+      
+      // استخراج و پردازش JSON - فقط اگر پیام کاربر یک دستور مالی است
+      if (response.includes('{') && response.includes('}') && !isGreeting) {
         try {
           let jsonText = response;
           
@@ -1123,6 +1544,23 @@ class AIService {
           
           const result = JSON.parse(jsonText);
           console.log('🤖 AI Action:', result.action, result);
+          
+          // اگر action null یا undefined است، پاسخ معمولی را برگردان
+          if (!result.action || result.action === null || result.action === 'null' || result.action === '') {
+            // بررسی اینکه آیا description یک پیام دوستانه است
+            if (result.description && result.description.trim().length > 10) {
+              return { success: true, message: result.description.trim() };
+            }
+            // اگر description هم خالی است، بررسی می‌کنیم که آیا پاسخ اصلی متن معمولی است یا JSON
+            // اگر response شامل JSON کامل است اما action نداره، احتمالاً یک خطا در تشخیص AI بوده
+            // پس بهتر است پاسخ اصلی را بدون JSON برگردانیم
+            const textWithoutJson = response.replace(/\{[^}]*\}/g, '').trim();
+            if (textWithoutJson.length > 20) {
+              return { success: true, message: textWithoutJson };
+            }
+            // در غیر این صورت پاسخ اصلی
+            return { success: true, message: response };
+          }
           
           // اجرای عملیات مختلف
           switch (result.action) {
@@ -1169,6 +1607,22 @@ class AIService {
               
             case 'delete_transaction':
               return await this.deleteTransaction(userId, result.transactionId);
+              
+            case 'budget_recommendation':
+            case 'budget':
+              return await this.getBudgetRecommendation(userId);
+              
+            case 'financial_forecast':
+            case 'forecast':
+              return await this.getFinancialForecast(userId, result.months || 3);
+              
+            case 'spending_patterns':
+            case 'patterns':
+              return await this.getSpendingPatterns(userId);
+              
+            case 'cost_optimization':
+            case 'optimize':
+              return await this.getCostOptimization(userId);
               
             default:
               // اگر action ناشناخته است، پاسخ AI را برگردان
