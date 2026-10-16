@@ -36,6 +36,16 @@ yarn-error.log*
 # vercel
 .vercel
 
-# typescript
+# database
+/data/
+/data/receipts/
+
+# desktop build
+/dist-desktop/
+/dist-desktop-trash-*/
+/build-resources/node/
+/build-resources/*.zip
+/build-resources/_node_extract/
+
 *.tsbuildinfo
 next-env.d.ts

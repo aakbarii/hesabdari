@@ -1,0 +1,83 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1783580898056,
+      "tag": "0000_aberrant_morlocks",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1783582996961,
+      "tag": "0001_sturdy_living_mummy",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783583755475,
+      "tag": "0002_colorful_blizzard",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1783620000000,
+      "tag": "0003_currency_unit",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1783700000000,
+      "tag": "0004_household_reset",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1783800000000,
+      "tag": "0005_family_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1783900000000,
+      "tag": "0006_auth_onboarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1784000000000,
+      "tag": "0007_life_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784100000000,
+      "tag": "0008_flow_protocol",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1784200000000,
+      "tag": "0009_cleanup_household",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1784300000000,
+      "tag": "0010_drop_flow",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,263 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import moment from "jalali-moment";
+import { Header } from "@/components/layout/header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, ChevronRight, ChevronLeft, Trash2 } from "lucide-react";
+import { formatToman, getJalaliMonthName } from "@/lib/format";
+import { toast } from "sonner";
+import { AmountInput } from "@/components/amount-input";
+
+interface Category {
+  id: string;
+  name: string;
+  type: string;
+}
+
+interface BudgetItem {
+  id: string;
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  amount: number;
+  spent: number;
+  remaining: number;
+  percent: number;
+}
+
+export default function BudgetPage() {
+  const [year, setYear] = useState(moment().jYear());
+  const [month, setMonth] = useState(moment().jMonth() + 1);
+  const [budgets, setBudgets] = useState<BudgetItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ categoryId: "", amount: "" });
+
+  const load = () => {
+    fetch(`/api/budgets?year=${year}&month=${month}`)
+      .then((r) => r.json())
+      .then((d) => setBudgets(d.budgets ?? d.personal ?? []));
+    fetch("/api/categories?type=expense")
+      .then((r) => r.json())
+      .then(setCategories);
+  };
+
+  useEffect(() => {
+    load();
+  }, [year, month]);
+
+  const prevMonth = () => {
+    if (month === 1) {
+      setYear(year - 1);
+      setMonth(12);
+    } else setMonth(month - 1);
+  };
+
+  const nextMonth = () => {
+    if (month === 12) {
+      setYear(year + 1);
+      setMonth(1);
+    } else setMonth(month + 1);
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch("/api/budgets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        categoryId: form.categoryId,
+        year,
+        month,
+        amount: parseInt(form.amount.replace(/,/g, "")),
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast.success("بودجه ثبت شد");
+      setOpen(false);
+      setForm({ categoryId: "", amount: "" });
+      load();
+    } else {
+      toast.error(data.error ?? "خطا");
+    }
+  };
+
+  const categoryItems = Object.fromEntries(categories.map((c) => [c.id, c.name]));
+  const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
+  const totalSpent = budgets.reduce((s, b) => s + b.spent, 0);
+
+  const deleteBudget = async (id: string) => {
+    const res = await fetch(`/api/budgets/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) return toast.error(data.error ?? "خطا");
+    toast.success("بودجه حذف شد");
+    load();
+  };
+
+  return (
+    <>
+      <Header title="بودجه" />
+      <div className="p-4 lg:p-8 space-y-6 motion-stagger">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={prevMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <span className="font-semibold min-w-32 text-center">
+              {getJalaliMonthName(month)} {year}
+            </span>
+            <Button variant="outline" size="icon" onClick={nextMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4 ml-2" />
+              بودجه جدید
+            </Button>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>تعیین بودجه ماهانه</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={submit} className="space-y-4">
+                <div>
+                  <Label>دسته‌بندی</Label>
+                  <Select
+                    value={form.categoryId}
+                    onValueChange={(v) =>
+                      setForm({ ...form, categoryId: v ?? "" })
+                    }
+                    items={categoryItems}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="انتخاب دسته" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>سقف بودجه (تومان)</Label>
+                  <AmountInput
+                    value={form.amount}
+                    onValueChange={(v) => setForm({ ...form, amount: v })}
+                    required
+                    autoFocus
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  ذخیره
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {budgets.length > 0 && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">
+                  کل بودجه
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{formatToman(totalBudget)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">
+                  کل هزینه شده
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-red-600">
+                  {formatToman(totalSpent)}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {budgets.map((b) => (
+            <Card key={b.id}>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: b.categoryColor }}
+                    />
+                    <span className="font-medium">{b.categoryName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {formatToman(b.spent)} از {formatToman(b.amount)}
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => deleteBudget(b.id)}
+                      aria-label="حذف بودجه"
+                    >
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                </div>
+                <Progress
+                  value={b.percent}
+                  className={`h-2 ${b.percent >= 100 ? "[&_[data-slot=progress-indicator]]:bg-red-500" : b.percent >= 80 ? "[&_[data-slot=progress-indicator]]:bg-amber-500" : ""}`}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {b.percent}% مصرف شده · باقیمانده:{" "}
+                  {formatToman(Math.max(0, b.remaining))}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {budgets.length === 0 && (
+          <Card>
+            <CardContent className="py-12 text-center space-y-3">
+              <p className="text-muted-foreground">
+                بودجه‌ای برای این ماه تعریف نشده
+              </p>
+              <Button onClick={() => setOpen(true)}>
+                <Plus className="h-4 w-4 ml-2" />
+                اولین بودجه را بساز
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </>
+  );
+}

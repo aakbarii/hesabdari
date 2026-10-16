@@ -1,0 +1,49 @@
+appId: ir.hesabdari.app
+productName: Hesabdari
+copyright: Personal
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+directories:
+  output: dist-desktop
+  buildResources: build-resources
+files:
+  - electron/**/*
+  - package.json
+extraResources:
+  - from: .next/standalone
+    to: server
+    filter:
+      - "**/*"
+      - "!dist-desktop{,/**/*}"
+      - "!**/dist-desktop{,/**/*}"
+      - "!.git{,/**/*}"
+      - "!**/.git{,/**/*}"
+  - from: build-resources/node
+    to: node
+    filter:
+      - "**/*"
+win:
+  icon: build-resources/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  artifactName: Hesabdari-${version}-${os}-${arch}.${ext}
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  # ASCII only — Persian breaks NSIS shortcut encoding on some Windows locales
+  shortcutName: Hesabdari
+  runAfterFinish: true
+  # Never wipe %APPDATA%\Hesabdari (user DB lives there)
+  deleteAppDataOnUninstall: false
+portable:
+  artifactName: Hesabdari-Portable.exe
+  requestExecutionLevel: user
