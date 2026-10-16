@@ -13,14 +13,17 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: "حسابداری شخصی",
-  description: "مدیریت مالی و زندگی شخصی",
-  applicationName: "حسابداری",
+  title: {
+    default: "سامان | سیستم هوشمند مدیریت زندگی و دارایی",
+    template: "%s | سامان",
+  },
+  description: "سامان (Saman Life OS) — سیستم جامع مدیریت مالی، بودجه‌بندی، رژیم و کالری‌شمار، تمرینات ورزشی، تمرکز و رشد فردی",
+  applicationName: "سامان (Saman)",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "حسابداری",
+    title: "سامان",
   },
   formatDetection: {
     telephone: false,

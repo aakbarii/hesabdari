@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Calculator, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { AppLogo } from "@/components/layout/app-logo";
 
 function LoginForm() {
   const router = useRouter();
@@ -137,16 +138,16 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
       <Card className="w-full max-w-md motion-scale-in">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Calculator className="h-6 w-6" />
+          <div className="mx-auto mb-3 flex items-center justify-center">
+            <AppLogo size="xl" showText={false} clickable={false} />
           </div>
-          <CardTitle>
-            {needsSetup ? "فعال‌سازی حساب" : "ورود به حسابداری"}
+          <CardTitle className="text-2xl font-black">
+            {needsSetup ? "راه‌اندازی و ورود به سامان" : "ورود به سامان"}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             {needsSetup
-              ? "برای داده‌های فعلی رمز عبور تنظیم کنید"
-              : "ایمیل و رمز عبور خود را وارد کنید"}
+              ? "برای داده‌های فعلی رمز عبور تعیین کنید"
+              : "سیستم جامع مدیریت زندگی و دارایی"}
           </p>
         </CardHeader>
         <CardContent>

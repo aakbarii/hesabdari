@@ -19,6 +19,8 @@ function userDataDir() {
     process.env.HOME ||
     process.env.USERPROFILE ||
     process.cwd();
+  const samanDir = path.join(base, "Saman");
+  if (fs.existsSync(samanDir)) return samanDir;
   return path.join(base, "Hesabdari");
 }
 

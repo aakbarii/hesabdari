@@ -33,25 +33,27 @@ function loadingHtml() {
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>حسابداری</title>
+  <title>سامان | Saman Life OS</title>
   <style>
     html,body{height:100%;margin:0;font-family:Tahoma,Segoe UI,sans-serif;
-      background:linear-gradient(160deg,#0f766e 0%,#134e4a 45%,#0c1f1c 100%);
+      background:linear-gradient(160deg,#042f2e 0%,#064e3b 45%,#011b15 100%);
       color:#ecfdf5;display:flex;align-items:center;justify-content:center}
     .box{text-align:center}
-    .spin{width:42px;height:42px;border:3px solid rgba(255,255,255,.25);
-      border-top-color:#fff;border-radius:50%;margin:0 auto 18px;
-      animation:r .55s linear infinite}
+    .spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.2);
+      border-top-color:#34d399;border-radius:50%;margin:16px auto 0;
+      animation:r .6s linear infinite}
     @keyframes r{to{transform:rotate(360deg)}}
-    h1{font-size:22px;margin:0 0 8px;font-weight:700}
-    p{margin:0;opacity:.8;font-size:14px}
+    h1{font-size:24px;margin:0 0 4px;font-weight:800}
+    p{margin:0;opacity:.8;font-size:13px}
+    .tag{display:inline-block;background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.4);color:#6ee7b7;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:bold;margin-bottom:8px}
   </style>
 </head>
 <body>
   <div class="box">
+    <h1>سامان</h1>
+    <div><span class="tag">Life OS</span></div>
     <div class="spin"></div>
-    <h1>حسابداری شخصی</h1>
-    <p>در حال آماده‌سازی...</p>
+    <p style="margin-top:14px">در حال آماده‌سازی سامانه زندگی و مالی...</p>
   </div>
 </body>
 </html>`)}`;
@@ -95,7 +97,7 @@ function createWindow(showSplash) {
     height: 840,
     minWidth: 900,
     minHeight: 600,
-    title: "حسابداری شخصی",
+    title: "سامان | Saman Life OS",
     icon: path.join(__dirname, "icon.png"),
     show: true,
     autoHideMenuBar: true,
@@ -134,7 +136,7 @@ function createWindow(showSplash) {
 function createTray() {
   if (tray) return;
   tray = new Tray(trayIcon());
-  tray.setToolTip("حسابداری شخصی");
+  tray.setToolTip("سامان | Saman Life OS");
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "باز کردن", click: () => openApp() },
@@ -257,10 +259,20 @@ function quitFully() {
 }
 
 async function boot() {
+  const currentUserData = app.getPath("userData");
+  const oldUserData = path.join(app.getPath("appData"), "Hesabdari");
+  if (!fs.existsSync(currentUserData) && fs.existsSync(oldUserData)) {
+    try {
+      fs.cpSync(oldUserData, currentUserData, { recursive: true });
+    } catch (e) {
+      console.error("Data migration error:", e);
+    }
+  }
+
   mgr = createManager({
     isPackaged: app.isPackaged,
     resourcesPath: process.resourcesPath,
-    userDataPath: app.getPath("userData"),
+    userDataPath: currentUserData,
     projectRootDev: path.join(__dirname, ".."),
     appVersion: String(pkg.version || "0.0.0"),
   });

@@ -30,6 +30,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { AppLogo } from "@/components/layout/app-logo";
 
 const iconMap = {
   "layout-dashboard": LayoutDashboard,
@@ -61,9 +62,10 @@ export function MobileMoreNav() {
         <Menu className="h-5 w-5" />
         <span>بیشتر</span>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[70vh] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>منوی کامل</SheetTitle>
+      <SheetContent side="bottom" className="h-[75vh] overflow-y-auto">
+        <SheetHeader className="flex flex-row items-center justify-between border-b pb-3 text-right">
+          <AppLogo size="sm" subtitle="سیستم جامع زندگی و دارایی" />
+          <SheetTitle className="sr-only">منوی کامل</SheetTitle>
         </SheetHeader>
         <div className="mt-4 space-y-5">
           {NAV_GROUPS.map((group) => (

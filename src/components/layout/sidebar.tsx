@@ -26,6 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { AppLogo } from "@/components/layout/app-logo";
 
 const iconMap = {
   "layout-dashboard": LayoutDashboard,
@@ -64,14 +65,8 @@ export function Sidebar() {
 
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:right-0 border-l bg-card motion-slide-in-right">
-      <div className="flex h-16 items-center gap-2 px-6 border-b">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Calculator className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="font-bold text-lg">حسابداری</h1>
-          <p className="text-xs text-muted-foreground">مالی و زندگی</p>
-        </div>
+      <div className="flex h-16 items-center px-5 border-b">
+        <AppLogo size="md" subtitle="سامانه جامع زندگی و مالی" />
       </div>
       <nav className="flex-1 p-4 space-y-5 overflow-y-auto">
         {NAV_GROUPS.map((group) => (

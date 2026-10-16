@@ -1,6 +1,6 @@
-appId: ir.hesabdari.app
-productName: Hesabdari
-copyright: Personal
+appId: ir.saman.app
+productName: Saman
+copyright: Saman Life OS
 npmRebuild: false
 nodeGypRebuild: false
 buildDependenciesFromSource: false
@@ -32,7 +32,7 @@ win:
     - target: portable
       arch:
         - x64
-  artifactName: Hesabdari-${version}-${os}-${arch}.${ext}
+  artifactName: Saman-${version}-${os}-${arch}.${ext}
 nsis:
   oneClick: true
   perMachine: false
@@ -40,10 +40,10 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   # ASCII only — Persian breaks NSIS shortcut encoding on some Windows locales
-  shortcutName: Hesabdari
+  shortcutName: Saman
   runAfterFinish: true
-  # Never wipe %APPDATA%\Hesabdari (user DB lives there)
+  # Never wipe %APPDATA%\Saman or %APPDATA%\Hesabdari
   deleteAppDataOnUninstall: false
 portable:
-  artifactName: Hesabdari-Portable.exe
+  artifactName: Saman-Portable.exe
   requestExecutionLevel: user

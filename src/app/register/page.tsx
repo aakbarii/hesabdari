@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Calculator } from "lucide-react";
 import { toast } from "sonner";
+import { AppLogo } from "@/components/layout/app-logo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -41,11 +41,11 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
       <Card className="w-full max-w-md motion-scale-in">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Calculator className="h-6 w-6" />
+          <div className="mx-auto mb-3 flex items-center justify-center">
+            <AppLogo size="xl" showText={false} clickable={false} />
           </div>
-          <CardTitle>ثبت‌نام</CardTitle>
-          <p className="text-sm text-muted-foreground">حساب جدید بسازید</p>
+          <CardTitle className="text-2xl font-black">عضویت در سامان</CardTitle>
+          <p className="text-sm text-muted-foreground">حساب کاربری جدید خود را ایجاد کنید</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-4">
