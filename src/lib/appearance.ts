@@ -73,6 +73,24 @@ export const DEFAULT_ACCENT_COLOR: AccentColorId = "emerald";
 /** Routes that cannot be hidden from navigation */
 export const LOCKED_NAV_HREFS = ["/", "/settings"] as const;
 
+/** Hidden for male profiles (period / cycle tracking) */
+export const FEMALE_ONLY_NAV_HREFS = ["/cycle"] as const;
+
+export type Gender = "male" | "female";
+
+export function isGender(value: unknown): value is Gender {
+  return value === "male" || value === "female";
+}
+
+export function filterNavForGender(
+  hrefs: string[],
+  gender: Gender | null | undefined
+): string[] {
+  if (gender !== "male") return hrefs;
+  const blocked = new Set<string>(FEMALE_ONLY_NAV_HREFS);
+  return hrefs.filter((h) => !blocked.has(h));
+}
+
 export type NavHref = (typeof NAV_ITEMS)[number]["href"];
 
 export function getAllNavHrefs(): string[] {
@@ -144,38 +162,93 @@ function hexToOklch(hex: string): { l: number; c: number; h: number } {
 }
 
 export function normalizeVisibleNav(raw: unknown): string[] {
-  const all = new Set(getAllNavHrefs());
-  const locked = new Set<string>(LOCKED_NAV_HREFS);
+  const allSet = new Set(getAllNavHrefs());
+  const locked = LOCKED_NAV_HREFS as readonly string[];
   let list: string[];
   if (Array.isArray(raw)) {
-    list = raw.filter((h): h is string => typeof h === "string" && all.has(h));
+    const seen = new Set<string>();
+    list = [];
+    for (const h of raw) {
+      if (typeof h === "string" && allSet.has(h) && !seen.has(h)) {
+        list.push(h);
+        seen.add(h);
+      }
+    }
   } else {
     list = getDefaultVisibleNav();
   }
   for (const href of locked) {
     if (!list.includes(href)) list.unshift(href);
   }
-  return getAllNavHrefs().filter((h) => list.includes(h));
+  return list;
+}
+
+/** Reorder `list` by moving index `from` to `to` */
+export function moveNavItem(list: string[], from: number, to: number): string[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) {
+    return list;
+  }
+  const next = [...list];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
 }
 
 export function filterNavGroups(visible: string[]) {
+  const order = new Map(visible.map((h, i) => [h, i]));
   const set = new Set(visible);
-  return NAV_GROUPS.map((group) => ({
+
+  const groups = NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => set.has(item.href)),
+    items: [...group.items]
+      .filter((item) => set.has(item.href))
+      .sort(
+        (a, b) => (order.get(a.href) ?? 999) - (order.get(b.href) ?? 999)
+      ),
   })).filter((group) => group.items.length > 0);
+
+  return groups.sort((a, b) => {
+    const ai = Math.min(...a.items.map((i) => order.get(i.href) ?? 999));
+    const bi = Math.min(...b.items.map((i) => order.get(i.href) ?? 999));
+    return ai - bi;
+  });
 }
 
-export function filterMobilePrimary(visible: string[]) {
-  const set = new Set(visible);
-  const preferred = ["/", "/transactions", "/life", "/budget", "/nutrition", "/fitness", "/habits"];
-  const ordered = preferred
-    .filter((h) => set.has(h))
+const DEFAULT_MOBILE_NAV = [
+  "/",
+  "/transactions",
+  "/life",
+  "/budget",
+] as const;
+
+export function normalizeMobileNav(
+  raw: unknown,
+  visible: string[]
+): string[] {
+  const vis = new Set(visible);
+  let list: string[];
+  if (Array.isArray(raw)) {
+    const seen = new Set<string>();
+    list = [];
+    for (const h of raw) {
+      if (typeof h === "string" && vis.has(h) && !seen.has(h)) {
+        list.push(h);
+        seen.add(h);
+      }
+    }
+  } else {
+    list = DEFAULT_MOBILE_NAV.filter((h) => vis.has(h));
+  }
+  for (const h of visible) {
+    if (list.length >= 4) break;
+    if (!list.includes(h) && h !== "/settings") list.push(h);
+  }
+  return list.slice(0, 4);
+}
+
+export function filterMobilePrimary(visible: string[], mobileNav?: string[]) {
+  const ordered = normalizeMobileNav(mobileNav ?? null, visible);
+  return ordered
     .map((h) => NAV_ITEMS.find((i) => i.href === h)!)
     .filter(Boolean);
-  if (ordered.length >= 4) return ordered.slice(0, 4);
-  const rest = NAV_ITEMS.filter(
-    (item) => set.has(item.href) && !ordered.some((o) => o.href === item.href)
-  );
-  return [...ordered, ...rest].slice(0, 4);
 }

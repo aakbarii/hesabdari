@@ -468,8 +468,7 @@ html[data-appearance="masculine"] .app-shell::before { opacity: 0.08; }
 [data-slot="table-container"] { border-radius: var(--radius); }
 .dashboard-welcome {
   color: white;
-  background:
-    linear-gradient(115deg, color-mix(in oklch, var(--primary) 88%, black), color-mix(in oklch, var(--primary) 70%, oklch(0.45 0.1 160)) 65%, color-mix(in oklch, var(--primary) 55%, white));
+  background-color: #022c22;
   box-shadow: 0 18px 40px -24px color-mix(in oklch, var(--primary) 55%, transparent);
 }
 .dashboard-welcome::after {

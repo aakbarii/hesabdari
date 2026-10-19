@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -28,6 +28,7 @@ import { ASSET_TYPES } from "@/lib/constants";
 import { JalaliDatePicker } from "@/components/jalali-date-picker";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/amount-input";
+import { PageHero } from "@/components/layout/page-hero";
 
 interface Asset {
   id: string;
@@ -176,6 +177,11 @@ export default function AssetsPage() {
     <>
       <Header title="دارایی‌ها" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
+        <PageHero
+          heroKey="assets"
+          title="دارایی‌ها"
+          subtitle="طلا، ارز و سرمایه‌هایت در یک نگاه"
+        />
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <p className="text-sm text-muted-foreground">ارزش کل دارایی‌ها</p>

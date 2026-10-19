@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Moon } from "lucide-react";
 import { toast } from "sonner";
 import { toISODate } from "@/lib/format";
 import { useLocale } from "@/components/locale-provider";
@@ -65,22 +65,16 @@ export default function SleepPage() {
     <>
       <Header title={t("nav.sleep")} />
       <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6 motion-stagger">
+        <PageHero
+          heroKey="sleep"
+          title={t("nav.sleep")}
+          subtitle={
+            locale === "en"
+              ? "Track sleep hours, quality and next-day energy"
+              : "ثبت ساعت خواب، کیفیت و انرژی روز بعد"
+          }
+        />
         <Card className="border-primary/15 overflow-hidden">
-          <div className="p-5 bg-gradient-to-l from-indigo-500/15 via-violet-400/10 to-transparent">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                <Moon className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg">{t("nav.sleep")}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {locale === "en"
-                    ? "Track sleep hours, quality and next-day energy"
-                    : "ثبت ساعت خواب، کیفیت و انرژی روز بعد"}
-                </p>
-              </div>
-            </div>
-          </div>
           <CardContent className="space-y-4 pt-5">
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">

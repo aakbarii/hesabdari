@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -319,6 +320,11 @@ export default function LifePage() {
     <>
       <Header title="زندگی" />
       <div className="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto motion-stagger">
+        <PageHero
+          heroKey="life"
+          title="زندگی"
+          subtitle="کارها، روال‌ها و برنامه روزانه در یک نگاه"
+        />
         {summary && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="bg-gradient-to-br from-violet-500/10 to-transparent">

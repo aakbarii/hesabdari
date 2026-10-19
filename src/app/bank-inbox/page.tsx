@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Inbox, Check, X, Copy, Sparkles } from "lucide-react";
+import { Check, X, Copy, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { formatToman } from "@/lib/format";
 import { useLocale } from "@/components/locale-provider";
@@ -160,37 +161,27 @@ export default function BankInboxPage() {
         title={locale === "en" ? "Bank SMS inbox" : "صندوق پیامک بانکی"}
       />
       <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
+        <PageHero
+          heroKey="bankInbox"
+          title={locale === "en" ? "Bank SMS inbox" : "صندوق پیامک بانکی"}
+          subtitle={
+            locale === "en"
+              ? "SMS suggestions stay pending until you confirm."
+              : "پیشنهاد پیامک‌ها تا وقتی تأیید نکنی وارد تراکنش‌ها نمی‌شود."
+          }
+        />
         <Card className="border-primary/15 overflow-hidden">
-          <div className="p-5 bg-gradient-to-l from-emerald-500/15 via-teal-400/10 to-transparent">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                <Inbox className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg">
-                  {locale === "en" ? "Review before apply" : "اول تأیید، بعد ثبت"}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {locale === "en"
-                    ? "SMS suggestions stay pending until you confirm."
-                    : "پیشنهاد پیامک‌ها تا وقتی تأیید نکنی وارد تراکنش‌ها نمی‌شود."}
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Badge variant="secondary">
-                <Sparkles className="h-3 w-3 me-1" />
-                {gemini
-                  ? locale === "en"
-                    ? "Gemini ON"
-                    : "Gemini فعال"
-                  : locale === "en"
-                    ? "Heuristic only"
-                    : "فقط پارس ساده"}
-              </Badge>
-            </div>
-          </div>
           <CardContent className="space-y-3 pt-5">
+            <Badge variant="secondary">
+              <Sparkles className="h-3 w-3 me-1" />
+              {gemini
+                ? locale === "en"
+                  ? "Gemini ON"
+                  : "Gemini فعال"
+                : locale === "en"
+                  ? "Heuristic only"
+                  : "فقط پارس ساده"}
+            </Badge>
             <Label>
               {locale === "en" ? "Paste a bank SMS" : "متن پیامک بانکی را بچسبان"}
             </Label>

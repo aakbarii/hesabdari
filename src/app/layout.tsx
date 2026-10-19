@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { AppearanceProvider } from "@/components/appearance-provider";
+import { HeroProvider } from "@/components/hero-provider";
 import { LocaleProvider } from "@/components/locale-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AppChrome } from "@/components/layout/app-chrome";
@@ -64,9 +65,11 @@ export default function RootLayout({
           <CurrencyProvider>
             <LocaleProvider>
               <AppearanceProvider>
-                <AppChrome>{children}</AppChrome>
-                <Toaster position="top-center" />
-                <PwaRegister />
+                <HeroProvider>
+                  <AppChrome>{children}</AppChrome>
+                  <Toaster position="top-center" />
+                  <PwaRegister />
+                </HeroProvider>
               </AppearanceProvider>
             </LocaleProvider>
           </CurrencyProvider>

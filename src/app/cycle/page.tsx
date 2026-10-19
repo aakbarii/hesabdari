@@ -1,17 +1,20 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { HeartPulse, CalendarHeart, Sparkles } from "lucide-react";
+import { CalendarHeart, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { toISODate } from "@/lib/format";
 import { useLocale } from "@/components/locale-provider";
+import { useAppearance } from "@/components/appearance-provider";
 import { cn } from "@/lib/utils";
 import type { MessageKey } from "@/lib/i18n";
 
@@ -36,8 +39,16 @@ type Entry = {
 
 export default function CyclePage() {
   const { t, locale } = useLocale();
+  const { gender, loaded } = useAppearance();
+  const router = useRouter();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [phase, setPhase] = useState("unknown");
+
+  useEffect(() => {
+    if (loaded && gender === "male") {
+      router.replace("/");
+    }
+  }, [loaded, gender, router]);
   const [nextEstimate, setNextEstimate] = useState<string | null>(null);
   const [cycleLength, setCycleLength] = useState(28);
   const [periodLength, setPeriodLength] = useState(5);
@@ -115,20 +126,12 @@ export default function CyclePage() {
     <>
       <Header title={t("cycle.title")} />
       <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
+        <PageHero
+          heroKey="cycle"
+          title={t("cycle.title")}
+          subtitle={t("cycle.subtitle")}
+        />
         <Card className="overflow-hidden border-primary/20">
-          <div className="bg-gradient-to-l from-rose-500/20 via-fuchsia-500/10 to-transparent p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                <HeartPulse className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg">{t("cycle.title")}</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t("cycle.subtitle")}
-                </p>
-              </div>
-            </div>
-          </div>
           <CardContent className="grid gap-3 sm:grid-cols-2 pt-5">
             <div className="rounded-2xl border bg-muted/30 p-4">
               <p className="text-xs text-muted-foreground">{t("cycle.phase")}</p>

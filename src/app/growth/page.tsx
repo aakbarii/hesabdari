@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card,   } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -177,20 +178,12 @@ export default function GrowthPage() {
       <Header title="یادگیری و رشد فردی" />
 
       <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
-        {/* Top Banner */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-600">
-              <BookOpen className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="font-bold text-lg">قفسه کتاب‌ها و دوره‌های آموزشی</h2>
-              <p className="text-xs text-muted-foreground">رهگیری پیشرفت مطالعه، دوره‌های فرانت‌اند و مهارت‌های جدید</p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            {tab === "books" ? (
+        <PageHero
+          heroKey="growth"
+          title="یادگیری و رشد فردی"
+          subtitle="رهگیری پیشرفت مطالعه، دوره‌های آموزشی و مهارت‌های جدید"
+          action={
+            tab === "books" ? (
               <Button size="sm" onClick={() => setOpenBook(true)} className="gap-1.5">
                 <Plus className="h-4 w-4" /> افزودن کتاب جدید
               </Button>
@@ -198,9 +191,9 @@ export default function GrowthPage() {
               <Button size="sm" onClick={() => setOpenCourse(true)} className="gap-1.5">
                 <Plus className="h-4 w-4" /> افزودن دوره آموزشی
               </Button>
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

@@ -1,7 +1,8 @@
 import { getSessionSecret } from "./session-secret";
 
 export const SESSION_COOKIE = "hesabdari_session";
-const SESSION_DAYS = 30;
+/** ~1 year — browsers typically allow up to ~400 days */
+const SESSION_DAYS = 365;
 
 const getSecret = getSessionSecret;
 

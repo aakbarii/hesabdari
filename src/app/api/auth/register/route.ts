@@ -18,6 +18,7 @@ const schema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().min(1),
+  gender: z.enum(["male", "female"]),
 });
 
 export async function POST(request: Request) {
@@ -28,13 +29,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "اطلاعات نامعتبر" }, { status: 400 });
   }
 
-  const { email, password, name } = parsed.data;
+  const { email, password, name, gender } = parsed.data;
   if (await getUserByEmail(email)) {
     return NextResponse.json({ error: "این ایمیل قبلاً ثبت شده" }, { status: 400 });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const userId = await createUserWithDefaults(email, passwordHash, name);
+  const userId = await createUserWithDefaults(email, passwordHash, name, gender);
   const token = await signSession(userId);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);

@@ -1,11 +1,19 @@
-"use client";
+﻿"use client";
 
 import { TotpQrCode } from "@/components/totp-qr-code";
 import { AUTH_ENABLED } from "@/lib/app-config";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useConfirm } from "@/components/confirm-dialog";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
+import {
+  CUSTOMIZABLE_HERO_KEYS,
+  PAGE_HERO_LABELS,
+  PAGE_HEROES,
+} from "@/lib/page-heroes";
+import { useHeroes } from "@/components/hero-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrency } from "@/components/currency-provider";
 import { CURRENCY_UNITS, type CurrencyUnit } from "@/lib/currency";
@@ -30,15 +38,24 @@ import {
   Lock,
   Languages,
   Download,
+  ImagePlus,
+  RotateCcw,
+  ChevronUp,
+  ChevronDown,
+  Smartphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CATEGORY_COLORS, NAV_GROUPS } from "@/lib/constants";
+import { CATEGORY_COLORS, NAV_ITEMS } from "@/lib/constants";
 import {
   ACCENT_COLORS,
   APPEARANCE_MOODS,
+  FEMALE_ONLY_NAV_HREFS,
   LOCKED_NAV_HREFS,
+  getAllNavHrefs,
+  moveNavItem,
   type AccentColorId,
   type AppearanceMood,
+  type Gender,
 } from "@/lib/appearance";
 import { useAppearance } from "@/components/appearance-provider";
 import { useLocale } from "@/components/locale-provider";
@@ -79,11 +96,22 @@ export default function SettingsPage() {
     mood,
     accent,
     visibleNav,
+    mobileNav,
+    gender,
     setMood,
     setAccent,
     setVisibleNav,
+    setMobileNav,
+    setGender,
   } = useAppearance();
   const { locale, setLocale, t } = useLocale();
+  const {
+    resolve: resolveHero,
+    hide: hideHero,
+    show: showHero,
+    reset: resetHero,
+    upload: uploadHero,
+  } = useHeroes();
   const [, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -170,11 +198,68 @@ export default function SettingsPage() {
     }
   };
 
+  const moveVisible = async (index: number, dir: -1 | 1) => {
+    const next = moveNavItem(visibleNav, index, index + dir);
+    if (next === visibleNav) return;
+    try {
+      await setVisibleNav(next);
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
+
+  const moveMobile = async (index: number, dir: -1 | 1) => {
+    const next = moveNavItem(mobileNav, index, index + dir);
+    if (next === mobileNav) return;
+    try {
+      await setMobileNav(next);
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
+
+  const setMobileSlot = async (index: number, href: string) => {
+    const next = [...mobileNav];
+    // avoid duplicates: swap if already present
+    const existing = next.indexOf(href);
+    if (existing >= 0) {
+      next[existing] = next[index] ?? href;
+    }
+    next[index] = href;
+    try {
+      await setMobileNav(next);
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
+
+  const navLabel = (href: string) => {
+    const item = NAV_ITEMS.find((i) => i.href === href);
+    return item ? t(item.labelKey as MessageKey) : href;
+  };
+
+  const hiddenNavHrefs = getAllNavHrefs().filter(
+    (h) =>
+      !visibleNav.includes(h) &&
+      (gender !== "male" ||
+        !(FEMALE_ONLY_NAV_HREFS as readonly string[]).includes(h))
+  );
+
   const selectLocale = async (next: Locale) => {
     if (next === locale) return;
     try {
       await setLocale(next);
       toast.success(next === "en" ? "Language set to English" : "زبان فارسی شد");
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
+
+  const selectGender = async (next: Gender) => {
+    if (next === gender) return;
+    try {
+      await setGender(next);
+      toast.success(next === "male" ? "پروفایل مردانه" : "پروفایل زنانه");
     } catch {
       toast.error(t("common.error"));
     }
@@ -321,6 +406,15 @@ export default function SettingsPage() {
     <>
       <Header title={t("settings.title")} />
       <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6 motion-stagger">
+        <PageHero
+          heroKey="settings"
+          title={t("settings.title")}
+          subtitle={
+            locale === "en"
+              ? "Profile, appearance, categories and security"
+              : "پروفایل، ظاهر، دسته‌بندی‌ها و امنیت"
+          }
+        />
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -377,6 +471,34 @@ export default function SettingsPage() {
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <Label>جنسیت</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["male", "مرد"],
+                      ["female", "زن"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => selectGender(id)}
+                      className={cn(
+                        "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                        gender === id
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  برای مرد، بخش پریود و چرخه از منو حذف می‌شود.
+                </p>
+              </div>
               {/* Password management is paused together with login. */}
               {AUTH_ENABLED && <div className="border-t pt-4 space-y-3">
                 <p className="text-sm text-muted-foreground">تغییر رمز (اختیاری)</p>
@@ -406,11 +528,182 @@ export default function SettingsPage() {
         </Card>
 
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ImagePlus className="h-5 w-5 text-primary" />
+              {locale === "en" ? "Page cover photos" : "تصاویر بالای صفحات"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {locale === "en"
+                ? "Replace, hide, or restore the cover image on each page. You can also use the ⋯ menu on each banner."
+                : "برای هر صفحه عکس را عوض کن، بردار، یا به پیش‌فرض برگردان. از منوی ⋯ روی خود بنر هم می‌شود."}
+            </p>
+            <div className="space-y-2 max-h-80 overflow-y-auto pe-1">
+              {CUSTOMIZABLE_HERO_KEYS.filter(
+                (key) => gender !== "male" || key !== "cycle"
+              ).map((key) => {
+                const r = resolveHero(key);
+                const label =
+                  PAGE_HERO_LABELS[key][locale === "en" ? "en" : "fa"];
+                const thumb = r.hidden
+                  ? PAGE_HEROES[key]
+                  : r.src;
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center gap-3 rounded-xl border px-2.5 py-2"
+                  >
+                    <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
+                      {thumb.startsWith("/api/") ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={thumb}
+                          alt=""
+                          className={cn(
+                            "h-full w-full object-cover",
+                            r.hidden && "opacity-30"
+                          )}
+                        />
+                      ) : (
+                        <Image
+                          src={thumb}
+                          alt=""
+                          fill
+                          className={cn(
+                            "object-cover",
+                            r.hidden && "opacity-30"
+                          )}
+                          sizes="80px"
+                        />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{label}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {r.hidden
+                          ? locale === "en"
+                            ? "Hidden"
+                            : "مخفی"
+                          : r.isCustom
+                            ? locale === "en"
+                              ? "Custom"
+                              : "سفارشی"
+                            : locale === "en"
+                              ? "Default"
+                              : "پیش‌فرض"}
+                      </p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <label className="inline-flex">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!f) return;
+                            try {
+                              await uploadHero(key, f);
+                              toast.success(t("common.success"));
+                            } catch (err) {
+                              toast.error(
+                                err instanceof Error
+                                  ? err.message
+                                  : t("common.error")
+                              );
+                            }
+                          }}
+                        />
+                        <span
+                          className={cn(
+                            buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                            "cursor-pointer"
+                          )}
+                          title={locale === "en" ? "Replace" : "جایگزین"}
+                        >
+                          <ImagePlus className="h-3.5 w-3.5" />
+                        </span>
+                      </label>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={async () => {
+                          try {
+                            if (r.hidden) await showHero(key);
+                            else await hideHero(key);
+                            toast.success(t("common.success"));
+                          } catch {
+                            toast.error(t("common.error"));
+                          }
+                        }}
+                        title={
+                          r.hidden
+                            ? locale === "en"
+                              ? "Show"
+                              : "نمایش"
+                            : locale === "en"
+                              ? "Hide"
+                              : "مخفی"
+                        }
+                      >
+                        {r.hidden ? (
+                          <Eye className="h-3.5 w-3.5" />
+                        ) : (
+                          <EyeOff className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        disabled={!r.isCustom && !r.hidden}
+                        onClick={async () => {
+                          try {
+                            await resetHero(key);
+                            toast.success(t("common.success"));
+                          } catch {
+                            toast.error(t("common.error"));
+                          }
+                        }}
+                        title={locale === "en" ? "Reset" : "پیش‌فرض"}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="overflow-hidden border-primary/15 shadow-sm gap-0 py-0">
-          <div
-            className="h-24 bg-cover bg-center relative"
-            style={{ backgroundImage: 'url("/appearance-mesh.jpg")' }}
-          >
+          <div className="h-24 relative overflow-hidden">
+            {(() => {
+              const r = resolveHero("settings");
+              const src = r.hidden ? PAGE_HEROES.settings : r.src;
+              return src.startsWith("/api/") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={src}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover object-center"
+                />
+              ) : (
+                <Image
+                  src={src}
+                  alt=""
+                  fill
+                  className="object-cover object-center"
+                  sizes="640px"
+                />
+              );
+            })()}
             <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
             <div className="absolute bottom-3 right-4 left-4 flex items-center gap-2">
               <Palette className="h-5 w-5 text-primary" />
@@ -531,58 +824,156 @@ export default function SettingsPage() {
             <p className="text-sm text-muted-foreground">
               {t("settings.pages.hint")}
             </p>
-            {NAV_GROUPS.map((group) => (
-              <div key={group.titleKey} className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground">
-                  {t(group.titleKey as MessageKey)}
-                </p>
-                <div className="space-y-1.5">
-                  {group.items.map((item) => {
-                    const locked = (LOCKED_NAV_HREFS as readonly string[]).includes(
-                      item.href
-                    );
-                    const on = visibleNav.includes(item.href);
-                    return (
-                      <button
-                        key={item.href}
+            <div className="space-y-1.5">
+              {visibleNav.map((href, index) => {
+                const locked = (LOCKED_NAV_HREFS as readonly string[]).includes(
+                  href
+                );
+                return (
+                  <div
+                    key={href}
+                    className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-2 py-2"
+                  >
+                    <div className="flex flex-col shrink-0">
+                      <Button
                         type="button"
-                        disabled={locked}
-                        onClick={() => toggleNavHref(item.href)}
-                        className={cn(
-                          "w-full flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm transition-colors",
-                          on
-                            ? "border-primary/40 bg-primary/5"
-                            : "opacity-70 hover:bg-muted/40",
-                          locked && "cursor-not-allowed opacity-90"
-                        )}
+                        size="icon-sm"
+                        variant="ghost"
+                        disabled={index === 0}
+                        onClick={() => moveVisible(index, -1)}
+                        aria-label="up"
                       >
-                        <span className="font-medium">
-                          {t(item.labelKey as MessageKey)}
-                        </span>
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          {locked ? (
-                            <>
-                              <Lock className="h-3.5 w-3.5" />
-                              {t("settings.locked")}
-                            </>
-                          ) : on ? (
-                            <>
-                              <Eye className="h-3.5 w-3.5 text-primary" />
-                              {t("settings.visible")}
-                            </>
-                          ) : (
-                            <>
-                              <EyeOff className="h-3.5 w-3.5" />
-                              {t("settings.hidden")}
-                            </>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        disabled={index === visibleNav.length - 1}
+                        onClick={() => moveVisible(index, 1)}
+                        aria-label="down"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {index + 1}. {navLabel(href)}
+                      </p>
+                      {locked && (
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Lock className="h-3 w-3" />
+                          {t("settings.locked")}
+                        </p>
+                      )}
+                    </div>
+                    {!locked && (
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={() => toggleNavHref(href)}
+                        title={t("settings.hidden")}
+                      >
+                        <EyeOff className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {hiddenNavHrefs.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {locale === "en" ? "Hidden — tap to show" : "مخفی — برای نمایش بزن"}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {hiddenNavHrefs.map((href) => (
+                    <button
+                      key={href}
+                      type="button"
+                      onClick={() => toggleNavHref(href)}
+                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs hover:bg-muted"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      {navLabel(href)}
+                    </button>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Smartphone className="h-5 w-5 text-primary" />
+              {t("settings.mobileTabs")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {t("settings.mobileTabs.hint")}
+            </p>
+            <div className="space-y-2">
+              {mobileNav.map((href, index) => (
+                <div
+                  key={`m-${index}-${href}`}
+                  className="flex items-center gap-2 rounded-xl border px-2 py-2"
+                >
+                  <div className="flex flex-col shrink-0">
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      disabled={index === 0}
+                      onClick={() => moveMobile(index, -1)}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      disabled={index === mobileNav.length - 1}
+                      onClick={() => moveMobile(index, 1)}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-[11px] text-muted-foreground">
+                      {locale === "en" ? `Tab ${index + 1}` : `تب ${index + 1}`}
+                    </p>
+                    <Select
+                      value={href}
+                      onValueChange={(v) => {
+                        if (v) setMobileSlot(index, v);
+                      }}
+                      items={Object.fromEntries(
+                        visibleNav
+                          .filter((h) => h !== "/settings")
+                          .map((h) => [h, navLabel(h)])
+                      )}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {visibleNav
+                          .filter((h) => h !== "/settings")
+                          .map((h) => (
+                            <SelectItem key={h} value={h}>
+                              {navLabel(h)}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 

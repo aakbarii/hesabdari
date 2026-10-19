@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { toISODate } from "@/lib/format";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card,   } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,27 +164,21 @@ export default function FitnessPage() {
       <Header title="ورزش و تناسب اندام" />
 
       <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
-        {/* Top Action Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-              <Dumbbell className="h-6 w-6" />
+        <PageHero
+          heroKey="fitness"
+          title="ورزش و تناسب اندام"
+          subtitle="ثبت تمرینات بدنسازی، هوازی و ترکینگ تغییرات وزن"
+          action={
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => setOpenWeight(true)} className="gap-1.5">
+                <Scale className="h-4 w-4" /> ثبت وزن
+              </Button>
+              <Button size="sm" onClick={() => setOpenWorkout(true)} className="gap-1.5">
+                <Plus className="h-4 w-4" /> ثبت تمرین جدید
+              </Button>
             </div>
-            <div>
-              <h2 className="font-bold text-lg">باشگاه و وزن روزانه</h2>
-              <p className="text-xs text-muted-foreground">ثبت تمرینات بدنسازی، هوازی و ترکینگ تغییرات وزن</p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setOpenWeight(true)} className="gap-1.5">
-              <Scale className="h-4 w-4" /> ثبت وزن
-            </Button>
-            <Button size="sm" onClick={() => setOpenWorkout(true)} className="gap-1.5">
-              <Plus className="h-4 w-4" /> ثبت تمرین جدید
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Overview Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

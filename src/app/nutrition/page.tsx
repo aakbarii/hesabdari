@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { toISODate } from "@/lib/format";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,38 +232,33 @@ export default function NutritionPage() {
 
       <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
         {loading && <p role="status" className="text-sm text-muted-foreground">در حال دریافت اطلاعات تغذیه…</p>}
-        {/* Top bar with quick date */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
-              <Utensils className="h-6 w-6" />
+        <PageHero
+          heroKey="nutrition"
+          title="مدیریت تغذیه و کالری"
+          subtitle="ثبت هوشمند غذاها، ماکروها و مصرف آب"
+          action={
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant={currentDate === todayStr ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentDate(todayStr)}
+              >
+                امروز
+              </Button>
+              <Button
+                className="gap-2"
+                size="sm"
+                onClick={() => {
+                  setSelectedMealType("lunch");
+                  setOpenAddMeal(true);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                ثبت وعده غذایی
+              </Button>
             </div>
-            <div>
-              <h2 className="font-bold text-lg">کالری‌شمار و رژیم روزانه</h2>
-              <p className="text-xs text-muted-foreground">ثبت هوشمند غذاها، ماکروها و مصرف آب</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant={currentDate === todayStr ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCurrentDate(todayStr)}
-            >
-              امروز
-            </Button>
-            <Button
-              className="gap-2"
-              onClick={() => {
-                setSelectedMealType("lunch");
-                setOpenAddMeal(true);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              ثبت وعده غذایی
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Overview Cards: Calories, Macros, Water */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

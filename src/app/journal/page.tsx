@@ -1,15 +1,16 @@
-"use client";
+﻿"use client";
 
 import { toISODate } from "@/lib/format";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card,   } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Smile, Sparkles, HeartHandshake, Trophy, Calendar,  BookMarked } from "lucide-react";
+import { Sparkles, HeartHandshake, Trophy, Calendar, BookMarked } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -95,22 +96,16 @@ export default function JournalPage() {
       <Header title="ژورنال روزانه و حال روحی" />
 
       <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-5xl mx-auto w-full">
-        {/* Banner */}
-        <div className="flex items-center justify-between bg-card p-4 rounded-xl border">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-pink-500/10 text-pink-600">
-              <Smile className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="font-bold text-lg">دفترچه روزانه و شکرگزاری</h2>
-              <p className="text-xs text-muted-foreground">ثبت حس و حال، ۳ شکرگزاری امروز و پیروزی‌های کوچک زندگی</p>
-            </div>
-          </div>
-
-          <Badge variant="outline" className="text-xs font-mono">
-            {date === todayStr ? "امروز" : date}
-          </Badge>
-        </div>
+        <PageHero
+          heroKey="journal"
+          title="ژورنال روزانه و حال روحی"
+          subtitle="ثبت حس و حال، شکرگزاری و پیروزی‌های کوچک زندگی"
+          action={
+            <Badge variant="outline" className="text-xs font-mono">
+              {date === todayStr ? "امروز" : date}
+            </Badge>
+          }
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Journal Form (2 cols) */}

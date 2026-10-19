@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -284,21 +285,11 @@ export default function GroupsPage() {
     <>
       <Header title={t("groups.title")} />
       <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
-        <Card className="border-primary/15 overflow-hidden">
-          <div className="p-5 bg-gradient-to-l from-sky-500/15 via-teal-400/10 to-transparent">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                <Users className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg">{t("groups.title")}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {t("groups.subtitle")}
-                </p>
-              </div>
-            </div>
-          </div>
-        </Card>
+        <PageHero
+          heroKey="groups"
+          title={t("groups.title")}
+          subtitle={t("groups.subtitle")}
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Card>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
@@ -9,6 +9,7 @@ import { Flame, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
+import { PageHero } from "@/components/layout/page-hero";
 
 type Habit = {
   id: string;
@@ -73,22 +74,16 @@ export default function HabitsPage() {
     <>
       <Header title={t("nav.habits")} />
       <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6 motion-stagger">
+        <PageHero
+          heroKey="habits"
+          title={t("nav.habits")}
+          subtitle={
+            locale === "en"
+              ? "Simple habits with streaks"
+              : "عادت‌ساز ساده با استریک"
+          }
+        />
         <Card className="border-primary/15 overflow-hidden">
-          <div className="p-5 bg-gradient-to-l from-orange-500/15 via-amber-400/10 to-transparent">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                <Flame className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg">{t("nav.habits")}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {locale === "en"
-                    ? "Simple habits with streaks"
-                    : "عادت‌ساز ساده با استریک"}
-                </p>
-              </div>
-            </div>
-          </div>
           <CardContent className="flex gap-2 pt-5">
             <Input
               value={title}

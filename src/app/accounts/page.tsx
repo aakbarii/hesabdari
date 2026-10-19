@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,15 +149,20 @@ export default function AccountsPage() {
     <>
       <Header title="حساب‌ها" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">مجموع موجودی</p>
-            <p className="text-2xl font-bold">{formatToman(total)}</p>
-          </div>
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 ml-2" />
-            حساب جدید
-          </Button>
+        <PageHero
+          heroKey="accounts"
+          title="حساب‌ها"
+          subtitle="مدیریت حساب‌های بانکی، نقد و کیف پول"
+          action={
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4 ml-2" />
+              حساب جدید
+            </Button>
+          }
+        />
+        <div>
+          <p className="text-sm text-muted-foreground">مجموع موجودی</p>
+          <p className="text-2xl font-bold">{formatToman(total)}</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

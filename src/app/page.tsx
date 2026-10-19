@@ -43,7 +43,11 @@ import {
   type DashboardWidgetId,
 } from "@/lib/constants";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { toast } from "sonner";
+import { useHeroSrc, useHeroes } from "@/components/hero-provider";
+import { HeroCustomizeMenu } from "@/components/layout/hero-customize-menu";
+import { Image as ImageIcon } from "lucide-react";
 
 const ExpenseCategoryChart = dynamic(
   () =>
@@ -125,6 +129,8 @@ const CHART_COLORS = [
 
 export default function DashboardPage() {
   const { t, locale } = useLocale();
+  const hero = useHeroSrc("dashboard");
+  const { show: showHeroBanner } = useHeroes();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [widgets, setWidgets] = useState<DashboardWidgetId[]>([]);
@@ -217,7 +223,51 @@ export default function DashboardPage() {
     <>
       <Header title="داشبورد" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
-        <section className="dashboard-welcome relative overflow-hidden rounded-3xl p-6 sm:p-8">
+        {hero.hidden ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-4">
+            <div>
+              <p className="font-bold">امروز را با خیال آسوده شروع کن.</p>
+              <p className="text-sm text-muted-foreground">دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.</p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                showHeroBanner("dashboard").then(() =>
+                  toast.success(locale === "en" ? "Hero shown" : "تصویر نمایش داده شد")
+                )
+              }
+            >
+              <ImageIcon className="h-3.5 w-3.5 me-1" />
+              {locale === "en" ? "Show image" : "نمایش تصویر"}
+            </Button>
+          </div>
+        ) : (
+        <section className="dashboard-welcome relative overflow-hidden rounded-3xl p-6 sm:p-8 min-h-[220px]">
+          {hero.src.startsWith("/api/") ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={hero.src}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover object-center"
+            />
+          ) : (
+            <Image
+              src={hero.src}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-center"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-l from-emerald-950/85 via-emerald-950/70 to-emerald-900/55" />
+          <HeroCustomizeMenu
+            heroKey="dashboard"
+            light
+            className="absolute top-4 end-4 z-20"
+          />
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
             <div className="max-w-xl space-y-3">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-emerald-50"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> فضای شخصی روال</span>
@@ -235,6 +285,7 @@ export default function DashboardPage() {
             </div>}
           </div>
         </section>
+        )}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex gap-2">
             <Link

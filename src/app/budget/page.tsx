@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
 import moment from "jalali-moment";
@@ -25,6 +25,7 @@ import { Plus, ChevronRight, ChevronLeft, Trash2, Sparkles } from "lucide-react"
 import { formatToman, getJalaliMonthName } from "@/lib/format";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/amount-input";
+import { PageHero } from "@/components/layout/page-hero";
 
 interface Category {
   id: string;
@@ -146,6 +147,11 @@ export default function BudgetPage() {
     <>
       <Header title="بودجه" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
+        <PageHero
+          heroKey="budget"
+          title="بودجه ماهانه"
+          subtitle="سقف خرج هر دسته را از رفتار واقعی خودت تنظیم کن"
+        />
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={prevMonth}>

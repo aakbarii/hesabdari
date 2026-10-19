@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { toISODate } from "@/lib/format";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card,   } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,22 +126,16 @@ export default function MaintenancePage() {
       <Header title="نگهداری و سرویس‌های خودرو" />
 
       <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
-        {/* Banner */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600">
-              <Wrench className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="font-bold text-lg">دفترچه سرویس و نگهداری خودرو</h2>
-              <p className="text-xs text-muted-foreground">ثبت کیلومتر، تعویض روغن، بیمه، لنت و هشدارهای سررسید</p>
-            </div>
-          </div>
-
-          <Button size="sm" onClick={() => setOpenAdd(true)} className="gap-1.5">
-            <Plus className="h-4 w-4" /> ثبت سرویس جدید
-          </Button>
-        </div>
+        <PageHero
+          heroKey="maintenance"
+          title="نگهداری و سرویس‌های خودرو"
+          subtitle="ثبت کیلومتر، تعویض روغن، بیمه، لنت و هشدارهای سررسید"
+          action={
+            <Button size="sm" onClick={() => setOpenAdd(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" /> ثبت سرویس جدید
+            </Button>
+          }
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

@@ -354,6 +354,15 @@ async function repairSchema(client: Client) {
       "ALTER TABLE `user_settings` ADD `sms_ingest_token` text"
     );
   }
+  if (tableExists("user_settings") && !columnExists("user_settings", "gender")) {
+    await client.executeMultiple("ALTER TABLE `user_settings` ADD `gender` text");
+  }
+  if (tableExists("user_settings") && !columnExists("user_settings", "page_heroes")) {
+    await client.executeMultiple("ALTER TABLE `user_settings` ADD `page_heroes` text");
+  }
+  if (tableExists("user_settings") && !columnExists("user_settings", "mobile_nav")) {
+    await client.executeMultiple("ALTER TABLE `user_settings` ADD `mobile_nav` text");
+  }
 
   await client.executeMultiple(`
     CREATE TABLE IF NOT EXISTS \`cycle_settings\` (

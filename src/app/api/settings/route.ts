@@ -7,6 +7,7 @@ import {
   updateUserCurrency,
   updateUserAppearance,
   updateUserLocale,
+  updateUserGender,
 } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 import { isCurrencyUnit } from "@/lib/currency";
@@ -16,21 +17,27 @@ import {
   getAllNavHrefs,
 } from "@/lib/appearance";
 
-export async function GET() {
-  await ensureDb();
-  const auth = await requireUserId();
-  if (auth instanceof NextResponse) return auth;
-
-  const settings = await getUserSettings(auth);
-  return NextResponse.json({
+function settingsPayload(settings: Awaited<ReturnType<typeof getUserSettings>>) {
+  return {
     currencyUnit: settings.currencyUnit,
     widgets: settings.widgets,
     anomalyThreshold: settings.anomalyThreshold,
     appearanceMood: settings.appearanceMood,
     accentColor: settings.accentColor,
     visibleNav: settings.visibleNav,
+    mobileNav: settings.mobileNav,
     locale: settings.locale,
-  });
+    gender: settings.gender,
+  };
+}
+
+export async function GET() {
+  await ensureDb();
+  const auth = await requireUserId();
+  if (auth instanceof NextResponse) return auth;
+
+  const settings = await getUserSettings(auth);
+  return NextResponse.json(settingsPayload(settings));
 }
 
 const patchSchema = z.object({
@@ -51,7 +58,9 @@ const patchSchema = z.object({
     .enum(ACCENT_COLORS.map((c) => c.id) as [string, ...string[]])
     .optional(),
   visibleNav: z.array(z.string()).optional(),
+  mobileNav: z.array(z.string()).optional(),
   locale: z.enum(["fa", "en"]).optional(),
+  gender: z.enum(["male", "female"]).optional(),
 });
 
 export async function PATCH(request: Request) {
@@ -66,15 +75,24 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
-  const { currencyUnit, appearanceMood, accentColor, visibleNav, locale } =
-    parsed.data;
+  const {
+    currencyUnit,
+    appearanceMood,
+    accentColor,
+    visibleNav,
+    mobileNav,
+    locale,
+    gender,
+  } = parsed.data;
 
   if (
     !currencyUnit &&
     !appearanceMood &&
     !accentColor &&
     visibleNav === undefined &&
-    !locale
+    mobileNav === undefined &&
+    !locale &&
+    !gender
   ) {
     return NextResponse.json({ error: "تغییری ارسال نشد" }, { status: 400 });
   }
@@ -87,10 +105,25 @@ export async function PATCH(request: Request) {
     await updateUserLocale(userId, locale);
   }
 
-  if (appearanceMood || accentColor || visibleNav !== undefined) {
+  if (gender) {
+    await updateUserGender(userId, gender);
+  }
+
+  if (
+    appearanceMood ||
+    accentColor ||
+    visibleNav !== undefined ||
+    mobileNav !== undefined
+  ) {
+    const allowed = new Set(getAllNavHrefs());
     if (visibleNav) {
-      const allowed = new Set(getAllNavHrefs());
       const invalid = visibleNav.some((h) => !allowed.has(h));
+      if (invalid) {
+        return NextResponse.json({ error: "مسیر نامعتبر" }, { status: 400 });
+      }
+    }
+    if (mobileNav) {
+      const invalid = mobileNav.some((h) => !allowed.has(h));
       if (invalid) {
         return NextResponse.json({ error: "مسیر نامعتبر" }, { status: 400 });
       }
@@ -99,17 +132,10 @@ export async function PATCH(request: Request) {
       appearanceMood: appearanceMood as keyof typeof APPEARANCE_MOODS | undefined,
       accentColor: accentColor as (typeof ACCENT_COLORS)[number]["id"] | undefined,
       visibleNav,
+      mobileNav,
     });
   }
 
   const settings = await getUserSettings(userId);
-  return NextResponse.json({
-    currencyUnit: settings.currencyUnit,
-    widgets: settings.widgets,
-    anomalyThreshold: settings.anomalyThreshold,
-    appearanceMood: settings.appearanceMood,
-    accentColor: settings.accentColor,
-    visibleNav: settings.visibleNav,
-    locale: settings.locale,
-  });
+  return NextResponse.json(settingsPayload(settings));
 }

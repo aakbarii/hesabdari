@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import moment from "jalali-moment";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -110,6 +111,11 @@ export default function ReportsPage() {
     <>
       <Header title="گزارش‌ها" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
+        <PageHero
+          heroKey="reports"
+          title="گزارش‌ها"
+          subtitle="گزارش ماهانه، مقایسه ماه‌ها و خلاصه سالانه"
+        />
         <Tabs defaultValue="monthly">
           <TabsList>
             <TabsTrigger value="monthly">ماهانه</TabsTrigger>

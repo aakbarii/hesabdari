@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plane } from "lucide-react";
 import { toast } from "sonner";
 import { toISODate, formatToman } from "@/lib/format";
 import { useLocale } from "@/components/locale-provider";
@@ -111,22 +111,16 @@ export default function TravelPage() {
     <>
       <Header title={t("nav.travel")} />
       <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
+        <PageHero
+          heroKey="travel"
+          title={t("nav.travel")}
+          subtitle={
+            locale === "en"
+              ? "Trips and travel spending vs budget"
+              : "سفرها و هزینهٔ سفر در برابر بودجه"
+          }
+        />
         <Card className="border-primary/15 overflow-hidden">
-          <div className="p-5 bg-gradient-to-l from-sky-500/15 via-cyan-400/10 to-transparent">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                <Plane className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg">{t("nav.travel")}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {locale === "en"
-                    ? "Trips and travel spending vs budget"
-                    : "سفرها و هزینهٔ سفر در برابر بودجه"}
-                </p>
-              </div>
-            </div>
-          </div>
           <CardContent className="grid gap-3 sm:grid-cols-3 pt-5">
             <div className="space-y-2 sm:col-span-1">
               <Label>{locale === "en" ? "Trip" : "سفر"}</Label>

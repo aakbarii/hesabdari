@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { toISODate } from "@/lib/format";
 
@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,6 +167,11 @@ export default function DebtsPage() {
     <>
       <Header title="بدهی و طلب" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
+        <PageHero
+          heroKey="debts"
+          title="بدهی و طلب"
+          subtitle="رهگیری بدهی‌ها و طلب‌های شما از دیگران"
+        />
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardContent className="pt-6">

@@ -1,11 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useLocale } from "@/components/locale-provider";
 import Link from "next/link";
@@ -85,36 +86,28 @@ export default function InsightsPage() {
     <>
       <Header title={locale === "en" ? "Smart insights" : "بینش هوشمند"} />
       <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
+        <PageHero
+          heroKey="insights"
+          title={locale === "en" ? "Smart insights" : "بینش هوشمند"}
+          subtitle={
+            locale === "en"
+              ? "Finance + mood via Gemini (or local fallback)"
+              : "خلاصه هفتگی مالی و حال با Gemini (یا نسخهٔ آفلاین)"
+          }
+          action={
+            <Button disabled={pending} onClick={generate}>
+              <RefreshCw className="h-4 w-4 me-1" />
+              {locale === "en" ? "Generate" : "تولید خلاصه"}
+            </Button>
+          }
+        />
         <Card className="border-primary/15 overflow-hidden">
-          <div className="p-5 bg-gradient-to-l from-violet-500/15 via-fuchsia-400/10 to-transparent">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                  <Sparkles className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-lg">
-                    {locale === "en" ? "Weekly summary" : "خلاصه هفتگی"}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {locale === "en"
-                      ? "Finance + mood via Gemini (or local fallback)"
-                      : "مالی و حال با Gemini (یا نسخهٔ آفلاین)"}
-                  </p>
-                </div>
-              </div>
-              <Button disabled={pending} onClick={generate}>
-                <RefreshCw className="h-4 w-4 me-1" />
-                {locale === "en" ? "Generate" : "تولید خلاصه"}
-              </Button>
-            </div>
+          <CardContent className="space-y-4 pt-5">
             {auto && (
-              <Badge variant="secondary" className="mt-3">
+              <Badge variant="secondary">
                 {auto.geminiEnabled ? "Gemini" : locale === "en" ? "Heuristic" : "ساده"}
               </Badge>
             )}
-          </div>
-          <CardContent className="space-y-4 pt-5">
             {insight ? (
               <>
                 <p className="text-sm leading-7 whitespace-pre-wrap">{insight.content}</p>

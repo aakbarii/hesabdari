@@ -249,7 +249,12 @@ export const userSettings = sqliteTable("user_settings", {
     .default("neutral"),
   accentColor: text("accent_color").notNull().default("emerald"),
   visibleNav: text("visible_nav"),
+  /** Ordered hrefs for bottom mobile tabs (up to 4) */
+  mobileNav: text("mobile_nav"),
   locale: text("locale", { enum: ["fa", "en"] }).notNull().default("fa"),
+  gender: text("gender", { enum: ["male", "female"] }),
+  /** JSON map of page hero customizations: { [heroKey]: { hidden?, fileId? } } */
+  pageHeroes: text("page_heroes"),
   smsIngestToken: text("sms_ingest_token"),
   onboardingCompleted: integer("onboarding_completed", { mode: "boolean" })
     .notNull()

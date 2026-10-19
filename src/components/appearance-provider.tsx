@@ -17,22 +17,32 @@ import {
   DEFAULT_APPEARANCE_MOOD,
   accentToCssVars,
   filterMobilePrimary,
+  filterNavForGender,
   filterNavGroups,
   getAccentHex,
   getDefaultVisibleNav,
+  isGender,
+  normalizeMobileNav,
+  normalizeVisibleNav,
   type AccentColorId,
   type AppearanceMood,
+  type Gender,
 } from "@/lib/appearance";
+
 type AppearanceContextValue = {
   mood: AppearanceMood;
   accent: AccentColorId;
   visibleNav: string[];
+  mobileNav: string[];
+  gender: Gender | null;
   loaded: boolean;
   navGroups: ReturnType<typeof filterNavGroups>;
   mobilePrimary: ReturnType<typeof filterMobilePrimary>;
   setMood: (mood: AppearanceMood) => Promise<void>;
   setAccent: (accent: AccentColorId) => Promise<void>;
   setVisibleNav: (hrefs: string[]) => Promise<void>;
+  setMobileNav: (hrefs: string[]) => Promise<void>;
+  setGender: (gender: Gender) => Promise<void>;
   isNavVisible: (href: string) => boolean;
 };
 
@@ -60,6 +70,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [mood, setMoodState] = useState<AppearanceMood>(DEFAULT_APPEARANCE_MOOD);
   const [accent, setAccentState] = useState<AccentColorId>(DEFAULT_ACCENT_COLOR);
   const [visibleNav, setVisibleNavState] = useState<string[]>(getDefaultVisibleNav());
+  const [mobileNav, setMobileNavState] = useState<string[]>(
+    normalizeMobileNav(null, getDefaultVisibleNav())
+  );
+  const [gender, setGenderState] = useState<Gender | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -85,12 +99,21 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         const nextAccent = ACCENT_COLORS.some((c) => c.id === data.accentColor)
           ? (data.accentColor as AccentColorId)
           : DEFAULT_ACCENT_COLOR;
-        const nextNav = Array.isArray(data.visibleNav)
-          ? (data.visibleNav as string[])
-          : getDefaultVisibleNav();
+        const nextGender = isGender(data.gender) ? data.gender : null;
+        const nextNav = filterNavForGender(
+          normalizeVisibleNav(
+            Array.isArray(data.visibleNav)
+              ? data.visibleNav
+              : getDefaultVisibleNav()
+          ),
+          nextGender
+        );
+        const nextMobile = normalizeMobileNav(data.mobileNav, nextNav);
         setMoodState(nextMood);
         setAccentState(nextAccent);
+        setGenderState(nextGender);
         setVisibleNavState(nextNav);
+        setMobileNavState(nextMobile);
         applyDomAppearance(nextMood, nextAccent);
       })
       .catch(() => {})
@@ -132,11 +155,39 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
 
   const setVisibleNav = useCallback(
     async (hrefs: string[]) => {
-      setVisibleNavState(hrefs);
-      const data = await patch({ visibleNav: hrefs });
+      const filtered = filterNavForGender(normalizeVisibleNav(hrefs), gender);
+      setVisibleNavState(filtered);
+      setMobileNavState((prev) => normalizeMobileNav(prev, filtered));
+      const data = await patch({ visibleNav: filtered });
       if (Array.isArray(data.visibleNav)) setVisibleNavState(data.visibleNav);
+      if (Array.isArray(data.mobileNav)) setMobileNavState(data.mobileNav);
     },
-    [patch]
+    [patch, gender]
+  );
+
+  const setMobileNav = useCallback(
+    async (hrefs: string[]) => {
+      const next = normalizeMobileNav(hrefs, visibleNav);
+      setMobileNavState(next);
+      const data = await patch({ mobileNav: next });
+      if (Array.isArray(data.mobileNav)) setMobileNavState(data.mobileNav);
+    },
+    [patch, visibleNav]
+  );
+
+  const setGender = useCallback(
+    async (next: Gender) => {
+      setGenderState(next);
+      const data = await patch({ gender: next });
+      if (isGender(data.gender)) setGenderState(data.gender);
+      if (Array.isArray(data.visibleNav)) setVisibleNavState(data.visibleNav);
+      if (Array.isArray(data.mobileNav)) setMobileNavState(data.mobileNav);
+      if (data.appearanceMood in APPEARANCE_MOODS) {
+        setMoodState(data.appearanceMood as AppearanceMood);
+        applyDomAppearance(data.appearanceMood as AppearanceMood, accent);
+      }
+    },
+    [patch, accent]
   );
 
   const value = useMemo<AppearanceContextValue>(
@@ -144,15 +195,31 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       mood,
       accent,
       visibleNav,
+      mobileNav,
+      gender,
       loaded,
       navGroups: filterNavGroups(visibleNav),
-      mobilePrimary: filterMobilePrimary(visibleNav),
+      mobilePrimary: filterMobilePrimary(visibleNav, mobileNav),
       setMood,
       setAccent,
       setVisibleNav,
+      setMobileNav,
+      setGender,
       isNavVisible: (href: string) => visibleNav.includes(href),
     }),
-    [mood, accent, visibleNav, loaded, setMood, setAccent, setVisibleNav]
+    [
+      mood,
+      accent,
+      visibleNav,
+      mobileNav,
+      gender,
+      loaded,
+      setMood,
+      setAccent,
+      setVisibleNav,
+      setMobileNav,
+      setGender,
+    ]
   );
 
   return (
@@ -166,16 +233,21 @@ export function useAppearance() {
   const ctx = useContext(AppearanceContext);
   if (!ctx) {
     const visibleNav = getDefaultVisibleNav();
+    const mobileNav = normalizeMobileNav(null, visibleNav);
     return {
       mood: DEFAULT_APPEARANCE_MOOD,
       accent: DEFAULT_ACCENT_COLOR,
       visibleNav,
+      mobileNav,
+      gender: null,
       loaded: true,
       navGroups: filterNavGroups(visibleNav),
-      mobilePrimary: filterMobilePrimary(visibleNav),
+      mobilePrimary: filterMobilePrimary(visibleNav, mobileNav),
       setMood: async () => {},
       setAccent: async () => {},
       setVisibleNav: async () => {},
+      setMobileNav: async () => {},
+      setGender: async () => {},
       isNavVisible: () => true,
     } satisfies AppearanceContextValue;
   }

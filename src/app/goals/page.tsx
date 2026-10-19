@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { toISODate } from "@/lib/format";
 
@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -157,6 +158,11 @@ export default function GoalsPage() {
     <>
       <Header title="اهداف" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
+        <PageHero
+          heroKey="goals"
+          title="اهداف"
+          subtitle="پس‌انداز و خریدهای برنامه‌ریزی‌شده با پیگیری پیشرفت"
+        />
         <Tabs value={tab} onValueChange={(v) => setTab(v as "savings" | "purchase")}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <TabsList>

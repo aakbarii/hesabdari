@@ -39,10 +39,20 @@ import {
   getDefaultVisibleNav,
   isAppearanceMood,
   isAccentColorId,
+  isGender,
+  filterNavForGender,
   normalizeVisibleNav,
+  normalizeMobileNav,
   type AppearanceMood,
   type AccentColorId,
+  type Gender,
 } from "../appearance";
+import {
+  parsePageHeroPrefs,
+  type HeroPref,
+  type PageHeroKey,
+  type PageHeroPrefs,
+} from "../page-heroes";
 import { nanoid } from "./nanoid";
 import { generateResetToken, hashResetToken } from "../tokens";
 
@@ -76,7 +86,10 @@ async function seedDefaultUser() {
   await seedUserDefaults(DEFAULT_USER_ID);
 }
 
-export async function seedUserDefaults(userId: string) {
+export async function seedUserDefaults(
+  userId: string,
+  opts?: { gender?: "male" | "female" }
+) {
   for (const [i, name] of DEFAULT_EXPENSE_CATEGORIES.entries()) {
     await db.insert(categories)
       .values({
@@ -101,12 +114,20 @@ export async function seedUserDefaults(userId: string) {
       .run();
   }
 
+  const gender = opts?.gender;
+  const nav = filterNavForGender(getDefaultVisibleNav(), gender);
+  const mood =
+    gender === "female" ? "feminine" : gender === "male" ? "masculine" : "neutral";
+
   await db.insert(userSettings)
     .values({
       userId,
       dashboardWidgets: JSON.stringify(DEFAULT_DASHBOARD_WIDGETS),
       anomalyThreshold: 30,
       currencyUnit: DEFAULT_CURRENCY_UNIT,
+      gender: gender ?? null,
+      appearanceMood: mood,
+      visibleNav: JSON.stringify(nav),
     })
     .run();
 
@@ -132,13 +153,14 @@ export async function anyUserHasPassword() {
 export async function createUserWithDefaults(
   email: string,
   passwordHash: string,
-  name: string
+  name: string,
+  gender?: Gender
 ) {
   const id = nanoid();
   await db.insert(users)
     .values({ id, email, passwordHash, name })
     .run();
-  await seedUserDefaults(id);
+  await seedUserDefaults(id, { gender });
   return id;
 }
 
@@ -518,6 +540,30 @@ export async function getUserSettings(userId: string = DEFAULT_USER_ID) {
     }
   }
 
+  const gender = isGender(settings.gender) ? settings.gender : null;
+  const visibleNav = filterNavForGender(
+    normalizeVisibleNav(visibleNavParsed),
+    gender
+  );
+
+  let pageHeroesParsed: unknown = null;
+  if (settings.pageHeroes) {
+    try {
+      pageHeroesParsed = JSON.parse(settings.pageHeroes);
+    } catch {
+      pageHeroesParsed = null;
+    }
+  }
+
+  let mobileNavParsed: unknown = null;
+  if (settings.mobileNav) {
+    try {
+      mobileNavParsed = JSON.parse(settings.mobileNav);
+    } catch {
+      mobileNavParsed = null;
+    }
+  }
+
   return {
     ...settings,
     widgets: JSON.parse(settings.dashboardWidgets) as DashboardWidgetId[],
@@ -528,10 +574,64 @@ export async function getUserSettings(userId: string = DEFAULT_USER_ID) {
     accentColor: isAccentColorId(settings.accentColor)
       ? settings.accentColor
       : DEFAULT_ACCENT_COLOR,
-    visibleNav: normalizeVisibleNav(visibleNavParsed),
+    visibleNav,
+    mobileNav: normalizeMobileNav(mobileNavParsed, visibleNav),
+    gender,
+    pageHeroes: parsePageHeroPrefs(pageHeroesParsed),
     locale: settings.locale === "en" ? "en" : "fa",
     onboardingCompleted: settings.onboardingCompleted,
   };
+}
+
+export async function updatePageHeroPref(
+  userId: string,
+  key: PageHeroKey,
+  patch: HeroPref | null
+) {
+  const settings = await getUserSettings(userId);
+  const next: PageHeroPrefs = { ...settings.pageHeroes };
+  if (patch === null) {
+    delete next[key];
+  } else {
+    const prev = next[key] ?? {};
+    const merged: HeroPref = {
+      hidden: patch.hidden ?? prev.hidden ?? false,
+      fileId:
+        patch.fileId === undefined ? (prev.fileId ?? null) : patch.fileId,
+    };
+    if (!merged.hidden && !merged.fileId) {
+      delete next[key];
+    } else {
+      next[key] = merged;
+    }
+  }
+  await db
+    .update(userSettings)
+    .set({ pageHeroes: JSON.stringify(next) })
+    .where(eq(userSettings.userId, userId))
+    .run();
+  return (await getUserSettings(userId)).pageHeroes;
+}
+
+export async function updateUserGender(userId: string, gender: Gender) {
+  const settings = await getUserSettings(userId);
+  let nextNav = [...settings.visibleNav];
+  if (gender === "female" && !nextNav.includes("/cycle")) {
+    nextNav.push("/cycle");
+  }
+  nextNav = filterNavForGender(nextNav, gender);
+  const mood = gender === "female" ? "feminine" : "masculine";
+
+  await db
+    .update(userSettings)
+    .set({
+      gender,
+      visibleNav: JSON.stringify(normalizeVisibleNav(nextNav)),
+      appearanceMood: mood,
+    })
+    .where(eq(userSettings.userId, userId))
+    .run();
+  return await getUserSettings(userId);
 }
 
 export async function updateUserLocale(userId: string, locale: "fa" | "en") {
@@ -549,13 +649,23 @@ export async function updateUserAppearance(
     appearanceMood?: AppearanceMood;
     accentColor?: AccentColorId;
     visibleNav?: string[];
+    mobileNav?: string[];
   }
 ) {
   const updates: Partial<typeof userSettings.$inferInsert> = {};
   if (data.appearanceMood) updates.appearanceMood = data.appearanceMood;
   if (data.accentColor) updates.accentColor = data.accentColor;
+  const current = await getUserSettings(userId);
   if (data.visibleNav) {
-    updates.visibleNav = JSON.stringify(normalizeVisibleNav(data.visibleNav));
+    updates.visibleNav = JSON.stringify(
+      filterNavForGender(normalizeVisibleNav(data.visibleNav), current.gender)
+    );
+  }
+  if (data.mobileNav) {
+    const vis = data.visibleNav
+      ? filterNavForGender(normalizeVisibleNav(data.visibleNav), current.gender)
+      : current.visibleNav;
+    updates.mobileNav = JSON.stringify(normalizeMobileNav(data.mobileNav, vis));
   }
   if (Object.keys(updates).length > 0) {
     await db

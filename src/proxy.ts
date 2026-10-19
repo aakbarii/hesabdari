@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import {
+  SESSION_COOKIE,
+  SESSION_COOKIE_OPTIONS,
+  signSession,
+  verifySession,
+} from "@/lib/auth";
 import { AUTH_ENABLED } from "@/lib/app-config";
+
+async function withRefreshedSession(response: NextResponse, userId: string) {
+  const token = await signSession(userId);
+  response.cookies.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
+  return response;
+}
 
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
@@ -37,12 +48,15 @@ export async function proxy(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "لطفاً وارد شوید" }, { status: 401 });
     }
-    return NextResponse.next();
+    return withRefreshedSession(NextResponse.next(), userId);
   }
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     if (userId && (pathname === "/login" || pathname === "/register")) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return withRefreshedSession(
+        NextResponse.redirect(new URL("/", request.url)),
+        userId
+      );
     }
     return NextResponse.next();
   }
@@ -53,7 +67,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
-  return NextResponse.next();
+  return withRefreshedSession(NextResponse.next(), userId);
 }
 
 export const config = {

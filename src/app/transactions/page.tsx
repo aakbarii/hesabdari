@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { toISODate } from "@/lib/format";
 
@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -391,6 +392,11 @@ export default function TransactionsPage() {
     <>
       <Header title="تراکنش‌ها" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
+        <PageHero
+          heroKey="transactions"
+          title="تراکنش‌ها"
+          subtitle="ثبت درآمد و خرج، انتقال بین حساب‌ها و تراکنش‌های تکراری"
+        />
         <div className="flex gap-2 flex-wrap">
           <Button onClick={() => openNewTx("expense")}>
             <Plus className="h-4 w-4 ml-2" />

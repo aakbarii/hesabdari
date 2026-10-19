@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { toISODate } from "@/lib/format";
 
 import { useState, useEffect, useRef, useEffectEvent } from "react";
 import { Header } from "@/components/layout/header";
+import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,7 +146,11 @@ export default function FocusPage() {
       <Header title="حالت تمرکز و پومودورو" />
 
       <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-4xl mx-auto w-full">
-        {/* Stats Row */}
+        <PageHero
+          heroKey="focus"
+          title="حالت تمرکز و پومودورو"
+          subtitle="تایمر پومودورو برای کار عمیق و استراحت‌های کوتاه"
+        />
         <div className="grid grid-cols-2 gap-4">
           <Card className="border shadow-sm text-center p-4">
             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
