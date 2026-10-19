@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CurrencyProvider } from "@/components/currency-provider";
+import { AppearanceProvider } from "@/components/appearance-provider";
+import { LocaleProvider } from "@/components/locale-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { PwaRegister } from "@/components/pwa-register";
@@ -60,9 +62,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <CurrencyProvider>
-          <AppChrome>{children}</AppChrome>
-          <Toaster position="top-center" dir="rtl" />
-          <PwaRegister />
+            <LocaleProvider>
+              <AppearanceProvider>
+                <AppChrome>{children}</AppChrome>
+                <Toaster position="top-center" />
+                <PwaRegister />
+              </AppearanceProvider>
+            </LocaleProvider>
           </CurrencyProvider>
         </ThemeProvider>
       </body>

@@ -38,7 +38,11 @@ const WORKOUT_TYPES = {
   walk: { label: "پیاده‌روی", icon: "🚶" },
   flexibility: { label: "انعطاف و یوگا", icon: "🧘" },
   other: { label: "سایر ورزش‌ها", icon: "⚽" },
-};
+} as const;
+
+const WORKOUT_TYPE_ITEMS = Object.fromEntries(
+  Object.entries(WORKOUT_TYPES).map(([id, meta]) => [id, `${meta.icon} ${meta.label}`])
+) as Record<keyof typeof WORKOUT_TYPES, string>;
 
 export default function FitnessPage() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -318,16 +322,17 @@ export default function FitnessPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="wType">نوع تمرین</Label>
                 <Select
+                  items={WORKOUT_TYPE_ITEMS}
                   value={workoutForm.type}
                   onValueChange={(v) => { if (v && v in WORKOUT_TYPES) setWorkoutForm({ ...workoutForm, type: v as Workout["type"] }); }}
                 >
-                  <SelectTrigger id="wType"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="wType" className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="strength">🏋️ بدنسازی و قدرتی</SelectItem>
-                    <SelectItem value="cardio">🏃 دویدن و هوازی</SelectItem>
-                    <SelectItem value="walk">🚶 پیاده‌روی</SelectItem>
-                    <SelectItem value="flexibility">🧘 یوگا و کشش</SelectItem>
-                    <SelectItem value="other">⚽ سایر</SelectItem>
+                    {(Object.keys(WORKOUT_TYPES) as (keyof typeof WORKOUT_TYPES)[]).map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {WORKOUT_TYPE_ITEMS[key]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

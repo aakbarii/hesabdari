@@ -233,9 +233,53 @@ export const userSettings = sqliteTable("user_settings", {
   currencyUnit: text("currency_unit", { enum: ["toman", "rial"] })
     .notNull()
     .default("toman"),
+  appearanceMood: text("appearance_mood", {
+    enum: [
+      "neutral",
+      "feminine",
+      "masculine",
+      "ocean",
+      "sunset",
+      "forest",
+      "minimal",
+      "cozy",
+    ],
+  })
+    .notNull()
+    .default("neutral"),
+  accentColor: text("accent_color").notNull().default("emerald"),
+  visibleNav: text("visible_nav"),
+  locale: text("locale", { enum: ["fa", "en"] }).notNull().default("fa"),
+  smsIngestToken: text("sms_ingest_token"),
   onboardingCompleted: integer("onboarding_completed", { mode: "boolean" })
     .notNull()
     .default(false),
+});
+
+/** Bank SMS / AI suggestions waiting for user confirmation */
+export const pendingBankImports = sqliteTable("pending_bank_imports", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  rawText: text("raw_text").notNull(),
+  sender: text("sender"),
+  suggestedType: text("suggested_type", { enum: ["income", "expense"] }),
+  suggestedAmount: integer("suggested_amount"),
+  suggestedTitle: text("suggested_title"),
+  suggestedDate: text("suggested_date"),
+  suggestedAccountId: text("suggested_account_id"),
+  suggestedCategoryId: text("suggested_category_id"),
+  confidence: integer("confidence").notNull().default(50),
+  status: text("status", {
+    enum: ["pending", "confirmed", "rejected"],
+  })
+    .notNull()
+    .default("pending"),
+  parseSource: text("parse_source").notNull().default("heuristic"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 export const recurringTransactions = sqliteTable("recurring_transactions", {
@@ -550,6 +594,294 @@ export const vehicleServices = sqliteTable("vehicle_services", {
     .$defaultFn(() => new Date()),
 });
 
+// --- CYCLE / PERIOD TRACKING ---
+export const cycleSettings = sqliteTable("cycle_settings", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  avgCycleLength: integer("avg_cycle_length").notNull().default(28),
+  avgPeriodLength: integer("avg_period_length").notNull().default(5),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const cycleEntries = sqliteTable("cycle_entries", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  kind: text("kind", {
+    enum: ["period_start", "period_end", "symptom", "note"],
+  }).notNull(),
+  symptoms: text("symptoms"),
+  flow: text("flow", { enum: ["light", "medium", "heavy", "spotting"] }),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// --- GROUPS & SHARED MOOD ---
+export const groups = sqliteTable("groups", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  inviteCode: text("invite_code").notNull().unique(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const groupMembers = sqliteTable("group_members", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: text("role", { enum: ["owner", "member"] }).notNull().default("member"),
+  joinedAt: integer("joined_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const groupMoodShares = sqliteTable("group_mood_shares", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  mood: text("mood", {
+    enum: ["great", "good", "neutral", "tired", "bad"],
+  }).notNull(),
+  note: text("note"),
+  date: text("date").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const groupShoppingItems = sqliteTable("group_shopping_items", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  qty: text("qty"),
+  done: integer("done", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const groupTasks = sqliteTable("group_tasks", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  done: integer("done", { mode: "boolean" }).notNull().default(false),
+  assigneeName: text("assignee_name"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const groupExpenses = sqliteTable("group_expenses", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  amount: integer("amount").notNull(),
+  category: text("category").notNull().default("عمومی"),
+  date: text("date").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/** Group petty cash (تنخواه) — monthly float with manager + receipted spends */
+export const groupPettyCash = sqliteTable("group_petty_cash", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  managerUserId: text("manager_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(),
+  monthlyBudget: integer("monthly_budget").notNull().default(0),
+  title: text("title").notNull().default("تنخواه"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const groupPettyCashItems = sqliteTable("group_petty_cash_items", {
+  id: text("id").primaryKey(),
+  pettyCashId: text("petty_cash_id")
+    .notNull()
+    .references(() => groupPettyCash.id, { onDelete: "cascade" }),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  amount: integer("amount").notNull(),
+  date: text("date").notNull(),
+  notes: text("notes"),
+  receiptPath: text("receipt_path"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const weeklyInsights = sqliteTable("weekly_insights", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  weekStart: text("week_start").notNull(),
+  locale: text("locale", { enum: ["fa", "en"] }).notNull().default("fa"),
+  content: text("content").notNull(),
+  suggestionsJson: text("suggestions_json"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const sleepLogs = sqliteTable("sleep_logs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  bedtime: text("bedtime"),
+  wakeTime: text("wake_time"),
+  hours: integer("hours"),
+  quality: integer("quality").notNull().default(3),
+  energy: integer("energy").notNull().default(3),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const medications = sqliteTable("medications", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  dose: text("dose"),
+  schedule: text("schedule", {
+    enum: ["daily", "twice_daily", "as_needed", "weekly"],
+  })
+    .notNull()
+    .default("daily"),
+  reminderHour: integer("reminder_hour").notNull().default(9),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const medicationLogs = sqliteTable("medication_logs", {
+  id: text("id").primaryKey(),
+  medicationId: text("medication_id")
+    .notNull()
+    .references(() => medications.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  taken: integer("taken", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const trips = sqliteTable("trips", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  place: text("place"),
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date"),
+  budget: integer("budget").notNull().default(0),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const tripExpenses = sqliteTable("trip_expenses", {
+  id: text("id").primaryKey(),
+  tripId: text("trip_id")
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  amount: integer("amount").notNull(),
+  category: text("category").notNull().default("سایر"),
+  date: text("date").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const habits = sqliteTable("habits", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  color: text("color").notNull().default("#10b981"),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const habitCompletions = sqliteTable("habit_completions", {
+  id: text("id").primaryKey(),
+  habitId: text("habit_id")
+    .notNull()
+    .references(() => habits.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export type Meal = typeof meals.$inferSelect;
 export type WaterLog = typeof waterLogs.$inferSelect;
 export type Workout = typeof workouts.$inferSelect;
@@ -559,4 +891,11 @@ export type Course = typeof courses.$inferSelect;
 export type FocusSession = typeof focusSessions.$inferSelect;
 export type DailyJournal = typeof dailyJournals.$inferSelect;
 export type VehicleService = typeof vehicleServices.$inferSelect;
+export type CycleEntry = typeof cycleEntries.$inferSelect;
+export type Group = typeof groups.$inferSelect;
+export type GroupMoodShare = typeof groupMoodShares.$inferSelect;
+export type SleepLog = typeof sleepLogs.$inferSelect;
+export type Medication = typeof medications.$inferSelect;
+export type Trip = typeof trips.$inferSelect;
+export type Habit = typeof habits.$inferSelect;
 

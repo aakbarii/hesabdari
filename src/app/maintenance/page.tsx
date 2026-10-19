@@ -34,7 +34,12 @@ const SERVICE_TYPES = {
   inspection: { label: "معاینه فنی", icon: "🔍" },
   tires: { label: "لاستیک و بالانس", icon: "🚗" },
   other: { label: "سایر تعمیرات", icon: "🔧" },
-};
+} as const;
+
+/** Labels for Base UI Select trigger (without this it shows raw slugs like oil_change) */
+const SERVICE_TYPE_ITEMS = Object.fromEntries(
+  Object.entries(SERVICE_TYPES).map(([id, meta]) => [id, `${meta.icon} ${meta.label}`])
+) as Record<keyof typeof SERVICE_TYPES, string>;
 
 export default function MaintenancePage() {
   const [services, setServices] = useState<VehicleService[]>([]);
@@ -253,18 +258,19 @@ export default function MaintenancePage() {
               <div className="space-y-1.5">
                 <Label htmlFor="sType">نوع سرویس</Label>
                 <Select
+                  items={SERVICE_TYPE_ITEMS}
                   value={form.serviceType}
                   onValueChange={(v) => { if (v && v in SERVICE_TYPES) setForm({ ...form, serviceType: v as VehicleService["serviceType"] }); }}
                 >
-                  <SelectTrigger id="sType"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="sType" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="oil_change">🛢️ تعویض روغن موتور</SelectItem>
-                    <SelectItem value="filter">💨 فیلترها (روغن/هوا/اتاق)</SelectItem>
-                    <SelectItem value="brake_pads">🛑 لنت و ترمز</SelectItem>
-                    <SelectItem value="insurance">📋 بیمه شخص ثالث / بدنه</SelectItem>
-                    <SelectItem value="inspection">🔍 معاینه فنی</SelectItem>
-                    <SelectItem value="tires">🚗 لاستیک و بالانس</SelectItem>
-                    <SelectItem value="other">🔧 سایر</SelectItem>
+                    {(Object.keys(SERVICE_TYPES) as (keyof typeof SERVICE_TYPES)[]).map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {SERVICE_TYPE_ITEMS[key]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

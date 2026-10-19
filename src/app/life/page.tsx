@@ -518,11 +518,55 @@ export default function LifePage() {
             )}
           </TabsContent>
 
-          <TabsContent value="routines" className="mt-4">
+          <TabsContent value="routines" className="mt-4 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const res = await fetch("/api/routines", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "complete-slot", slot: "morning" }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) return toast.error("خطا");
+                  toast.success(
+                    data.completed
+                      ? `${data.completed} روتین صبح تیک خورد`
+                      : "روتین صبحی مطابق نبود / قبلاً انجام شده"
+                  );
+                  refresh();
+                }}
+              >
+                <Sunrise className="h-4 w-4 ml-2" />
+                روتین صبح — همه
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const res = await fetch("/api/routines", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "complete-slot", slot: "night" }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) return toast.error("خطا");
+                  toast.success(
+                    data.completed
+                      ? `${data.completed} روتین شب تیک خورد`
+                      : "روتین شبی مطابق نبود / قبلاً انجام شده"
+                  );
+                  refresh();
+                }}
+              >
+                روتین شب — همه
+              </Button>
+            </div>
             {routines.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
                   هنوز عادتی تعریف نشده. ورزش، مطالعه، خواب منظم — از همین‌جا شروع کنید.
+                  برای دکمهٔ صبح/شب، در نام روتین «صبح» یا «شب» بگذار.
                 </CardContent>
               </Card>
             ) : (

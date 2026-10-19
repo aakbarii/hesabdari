@@ -19,6 +19,30 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
+        source: "/manifest.json",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=3600" },
+          { key: "Content-Type", value: "application/manifest+json" },
+        ],
+      },
+      {
+        source: "/(apple-touch-icon|icon-192|icon-512).png",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=604800, immutable" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

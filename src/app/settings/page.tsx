@@ -12,7 +12,7 @@ import { CURRENCY_UNITS, type CurrencyUnit } from "@/lib/currency";
 import { formatAmount } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Check,
@@ -23,9 +23,26 @@ import {
   Pencil,
   Trash2,
   Plus,
+  Palette,
+  LayoutGrid,
+  Eye,
+  EyeOff,
+  Lock,
+  Languages,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CATEGORY_COLORS } from "@/lib/constants";
+import { CATEGORY_COLORS, NAV_GROUPS } from "@/lib/constants";
+import {
+  ACCENT_COLORS,
+  APPEARANCE_MOODS,
+  LOCKED_NAV_HREFS,
+  type AccentColorId,
+  type AppearanceMood,
+} from "@/lib/appearance";
+import { useAppearance } from "@/components/appearance-provider";
+import { useLocale } from "@/components/locale-provider";
+import type { Locale, MessageKey } from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +75,15 @@ interface Category {
 export default function SettingsPage() {
   const confirm = useConfirm();
   const { currency, setCurrency } = useCurrency();
+  const {
+    mood,
+    accent,
+    visibleNav,
+    setMood,
+    setAccent,
+    setVisibleNav,
+  } = useAppearance();
+  const { locale, setLocale, t } = useLocale();
   const [, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -109,6 +135,48 @@ export default function SettingsPage() {
       toast.success(`واحد پول به ${CURRENCY_UNITS[unit].label} تغییر کرد`);
     } catch {
       toast.error("خطا در ذخیره تنظیمات");
+    }
+  };
+
+  const selectMood = async (next: AppearanceMood) => {
+    if (next === mood) return;
+    try {
+      await setMood(next);
+      toast.success(`تم ${APPEARANCE_MOODS[next].label} اعمال شد`);
+    } catch {
+      toast.error("خطا در ذخیره ظاهر");
+    }
+  };
+
+  const selectAccent = async (next: AccentColorId) => {
+    if (next === accent) return;
+    try {
+      await setAccent(next);
+      toast.success("رنگ اصلی به‌روز شد");
+    } catch {
+      toast.error("خطا در ذخیره رنگ");
+    }
+  };
+
+  const toggleNavHref = async (href: string) => {
+    if ((LOCKED_NAV_HREFS as readonly string[]).includes(href)) return;
+    const next = visibleNav.includes(href)
+      ? visibleNav.filter((h) => h !== href)
+      : [...visibleNav, href];
+    try {
+      await setVisibleNav(next);
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
+
+  const selectLocale = async (next: Locale) => {
+    if (next === locale) return;
+    try {
+      await setLocale(next);
+      toast.success(next === "en" ? "Language set to English" : "زبان فارسی شد");
+    } catch {
+      toast.error(t("common.error"));
     }
   };
 
@@ -251,8 +319,42 @@ export default function SettingsPage() {
 
   return (
     <>
-      <Header title="تنظیمات" />
+      <Header title={t("settings.title")} />
       <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6 motion-stagger">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Languages className="h-5 w-5 text-primary" />
+              {t("settings.language")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {t("settings.language.hint")}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {(["fa", "en"] as Locale[]).map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => selectLocale(code)}
+                  className={cn(
+                    "rounded-xl border p-3 text-sm font-medium transition-colors",
+                    locale === code
+                      ? "border-primary bg-primary/8"
+                      : "hover:bg-muted/50"
+                  )}
+                >
+                  {t(`settings.language.${code}` as MessageKey)}
+                  {locale === code && (
+                    <Check className="inline h-4 w-4 ms-2 text-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -303,6 +405,186 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+
+        <Card className="overflow-hidden border-primary/15 shadow-sm gap-0 py-0">
+          <div
+            className="h-24 bg-cover bg-center relative"
+            style={{ backgroundImage: 'url("/appearance-mesh.jpg")' }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
+            <div className="absolute bottom-3 right-4 left-4 flex items-center gap-2">
+              <Palette className="h-5 w-5 text-primary" />
+              <span className="text-lg font-semibold">{t("settings.appearance")}</span>
+            </div>
+          </div>
+          <CardContent className="space-y-6 py-5">
+            <div className="space-y-3">
+              <p className="text-sm font-medium">
+                {locale === "en" ? "Theme mood" : "حال‌وهوا"}
+              </p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {(Object.keys(APPEARANCE_MOODS) as AppearanceMood[]).map((key) => {
+                  const cfg = APPEARANCE_MOODS[key];
+                  const selected = mood === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => selectMood(key)}
+                      className={cn(
+                        "motion-soft rounded-2xl border p-3 text-start transition-colors",
+                        selected
+                          ? "border-primary bg-primary/8 shadow-sm"
+                          : "hover:bg-muted/50"
+                      )}
+                    >
+                      <p className="font-semibold text-sm">
+                        {locale === "en" ? cfg.labelEn : cfg.label}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                        {locale === "en" ? cfg.descriptionEn : cfg.description}
+                      </p>
+                      {selected && (
+                        <Check className="h-4 w-4 text-primary mt-2" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-medium">رنگ اصلی</p>
+              <div className="flex flex-wrap gap-2.5">
+                {ACCENT_COLORS.map((c) => {
+                  const selected = accent === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      title={c.label}
+                      onClick={() => selectAccent(c.id)}
+                      className={cn(
+                        "motion-soft motion-press relative h-10 w-10 rounded-full border-2 transition-transform",
+                        selected
+                          ? "border-foreground scale-110 shadow-md"
+                          : "border-transparent hover:scale-105"
+                      )}
+                      style={{ backgroundColor: c.hex }}
+                      aria-label={c.label}
+                    >
+                      {selected && (
+                        <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Download className="h-5 w-5 text-primary" />
+              {t("settings.backup")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t("settings.backup.hint")}</p>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="/api/export?format=json"
+                download
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                {t("settings.backup.json")}
+              </a>
+              <a
+                href="/api/export?format=csv"
+                download
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                {t("settings.backup.csv")}
+              </a>
+              <a
+                href="/api/export?format=html"
+                target="_blank"
+                rel="noreferrer"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                {t("settings.backup.pdf")}
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <LayoutGrid className="h-5 w-5 text-primary" />
+              {t("settings.pages")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <p className="text-sm text-muted-foreground">
+              {t("settings.pages.hint")}
+            </p>
+            {NAV_GROUPS.map((group) => (
+              <div key={group.titleKey} className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {t(group.titleKey as MessageKey)}
+                </p>
+                <div className="space-y-1.5">
+                  {group.items.map((item) => {
+                    const locked = (LOCKED_NAV_HREFS as readonly string[]).includes(
+                      item.href
+                    );
+                    const on = visibleNav.includes(item.href);
+                    return (
+                      <button
+                        key={item.href}
+                        type="button"
+                        disabled={locked}
+                        onClick={() => toggleNavHref(item.href)}
+                        className={cn(
+                          "w-full flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm transition-colors",
+                          on
+                            ? "border-primary/40 bg-primary/5"
+                            : "opacity-70 hover:bg-muted/40",
+                          locked && "cursor-not-allowed opacity-90"
+                        )}
+                      >
+                        <span className="font-medium">
+                          {t(item.labelKey as MessageKey)}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {locked ? (
+                            <>
+                              <Lock className="h-3.5 w-3.5" />
+                              {t("settings.locked")}
+                            </>
+                          ) : on ? (
+                            <>
+                              <Eye className="h-3.5 w-3.5 text-primary" />
+                              {t("settings.visible")}
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="h-3.5 w-3.5" />
+                              {t("settings.hidden")}
+                            </>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

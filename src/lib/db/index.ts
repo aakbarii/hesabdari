@@ -331,7 +331,242 @@ async function repairSchema(client: Client) {
     // Older SQLite / locked DB — migration 0009 may still apply later
   }
 
+  if (tableExists("user_settings") && !columnExists("user_settings", "appearance_mood")) {
+    await client.executeMultiple(
+      "ALTER TABLE `user_settings` ADD `appearance_mood` text DEFAULT 'neutral' NOT NULL"
+    );
+  }
+  if (tableExists("user_settings") && !columnExists("user_settings", "accent_color")) {
+    await client.executeMultiple(
+      "ALTER TABLE `user_settings` ADD `accent_color` text DEFAULT 'emerald' NOT NULL"
+    );
+  }
+  if (tableExists("user_settings") && !columnExists("user_settings", "visible_nav")) {
+    await client.executeMultiple("ALTER TABLE `user_settings` ADD `visible_nav` text");
+  }
+  if (tableExists("user_settings") && !columnExists("user_settings", "locale")) {
+    await client.executeMultiple(
+      "ALTER TABLE `user_settings` ADD `locale` text DEFAULT 'fa' NOT NULL"
+    );
+  }
+  if (tableExists("user_settings") && !columnExists("user_settings", "sms_ingest_token")) {
+    await client.executeMultiple(
+      "ALTER TABLE `user_settings` ADD `sms_ingest_token` text"
+    );
+  }
+
   await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS \`cycle_settings\` (
+      \`user_id\` text PRIMARY KEY NOT NULL,
+      \`avg_cycle_length\` integer DEFAULT 28 NOT NULL,
+      \`avg_period_length\` integer DEFAULT 5 NOT NULL,
+      \`updated_at\` integer NOT NULL,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`cycle_entries\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`date\` text NOT NULL,
+      \`kind\` text NOT NULL,
+      \`symptoms\` text,
+      \`flow\` text,
+      \`notes\` text,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`groups\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`name\` text NOT NULL,
+      \`invite_code\` text NOT NULL UNIQUE,
+      \`owner_id\` text NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`owner_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`group_members\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`group_id\` text NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`role\` text DEFAULT 'member' NOT NULL,
+      \`joined_at\` integer NOT NULL,
+      FOREIGN KEY (\`group_id\`) REFERENCES \`groups\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`group_mood_shares\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`group_id\` text NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`mood\` text NOT NULL,
+      \`note\` text,
+      \`date\` text NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`group_id\`) REFERENCES \`groups\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`group_shopping_items\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`group_id\` text NOT NULL,
+      \`created_by\` text NOT NULL,
+      \`title\` text NOT NULL,
+      \`qty\` text,
+      \`done\` integer DEFAULT 0 NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`group_id\`) REFERENCES \`groups\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`created_by\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`group_tasks\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`group_id\` text NOT NULL,
+      \`created_by\` text NOT NULL,
+      \`title\` text NOT NULL,
+      \`done\` integer DEFAULT 0 NOT NULL,
+      \`assignee_name\` text,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`group_id\`) REFERENCES \`groups\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`created_by\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`group_expenses\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`group_id\` text NOT NULL,
+      \`created_by\` text NOT NULL,
+      \`title\` text NOT NULL,
+      \`amount\` integer NOT NULL,
+      \`category\` text DEFAULT 'عمومی' NOT NULL,
+      \`date\` text NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`group_id\`) REFERENCES \`groups\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`created_by\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`sleep_logs\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`date\` text NOT NULL,
+      \`bedtime\` text,
+      \`wake_time\` text,
+      \`hours\` integer,
+      \`quality\` integer DEFAULT 3 NOT NULL,
+      \`energy\` integer DEFAULT 3 NOT NULL,
+      \`notes\` text,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`medications\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`name\` text NOT NULL,
+      \`dose\` text,
+      \`schedule\` text DEFAULT 'daily' NOT NULL,
+      \`reminder_hour\` integer DEFAULT 9 NOT NULL,
+      \`active\` integer DEFAULT 1 NOT NULL,
+      \`notes\` text,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`medication_logs\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`medication_id\` text NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`date\` text NOT NULL,
+      \`taken\` integer DEFAULT 1 NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`medication_id\`) REFERENCES \`medications\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`trips\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`title\` text NOT NULL,
+      \`place\` text,
+      \`start_date\` text NOT NULL,
+      \`end_date\` text,
+      \`budget\` integer DEFAULT 0 NOT NULL,
+      \`notes\` text,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`trip_expenses\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`trip_id\` text NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`title\` text NOT NULL,
+      \`amount\` integer NOT NULL,
+      \`category\` text DEFAULT 'سایر' NOT NULL,
+      \`date\` text NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`trip_id\`) REFERENCES \`trips\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`habits\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`title\` text NOT NULL,
+      \`color\` text DEFAULT '#10b981' NOT NULL,
+      \`active\` integer DEFAULT 1 NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`habit_completions\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`habit_id\` text NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`date\` text NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`habit_id\`) REFERENCES \`habits\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`pending_bank_imports\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`raw_text\` text NOT NULL,
+      \`sender\` text,
+      \`suggested_type\` text,
+      \`suggested_amount\` integer,
+      \`suggested_title\` text,
+      \`suggested_date\` text,
+      \`suggested_account_id\` text,
+      \`suggested_category_id\` text,
+      \`confidence\` integer DEFAULT 50 NOT NULL,
+      \`status\` text DEFAULT 'pending' NOT NULL,
+      \`parse_source\` text DEFAULT 'heuristic' NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`group_petty_cash\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`group_id\` text NOT NULL,
+      \`manager_user_id\` text NOT NULL,
+      \`year\` integer NOT NULL,
+      \`month\` integer NOT NULL,
+      \`monthly_budget\` integer DEFAULT 0 NOT NULL,
+      \`title\` text DEFAULT 'تنخواه' NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`group_id\`) REFERENCES \`groups\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`manager_user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`group_petty_cash_items\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`petty_cash_id\` text NOT NULL,
+      \`group_id\` text NOT NULL,
+      \`created_by\` text NOT NULL,
+      \`title\` text NOT NULL,
+      \`amount\` integer NOT NULL,
+      \`date\` text NOT NULL,
+      \`notes\` text,
+      \`receipt_path\` text,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`petty_cash_id\`) REFERENCES \`group_petty_cash\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`group_id\`) REFERENCES \`groups\`(\`id\`) ON DELETE cascade,
+      FOREIGN KEY (\`created_by\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
+    CREATE TABLE IF NOT EXISTS \`weekly_insights\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`week_start\` text NOT NULL,
+      \`locale\` text DEFAULT 'fa' NOT NULL,
+      \`content\` text NOT NULL,
+      \`suggestions_json\` text,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+    );
     CREATE INDEX IF NOT EXISTS \`transactions_user_date_idx\` ON \`transactions\` (\`user_id\`,\`date\`);
     CREATE INDEX IF NOT EXISTS \`transactions_user_type_cat_date_idx\` ON \`transactions\` (\`user_id\`,\`type\`,\`category_id\`,\`date\`);
     CREATE INDEX IF NOT EXISTS \`todos_user_status_idx\` ON \`todos\` (\`user_id\`,\`status\`);

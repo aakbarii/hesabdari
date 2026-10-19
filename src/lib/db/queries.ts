@@ -33,6 +33,16 @@ import {
   type DashboardWidgetId,
 } from "../constants";
 import { DEFAULT_CURRENCY_UNIT, type CurrencyUnit, isCurrencyUnit } from "../currency";
+import {
+  DEFAULT_APPEARANCE_MOOD,
+  DEFAULT_ACCENT_COLOR,
+  getDefaultVisibleNav,
+  isAppearanceMood,
+  isAccentColorId,
+  normalizeVisibleNav,
+  type AppearanceMood,
+  type AccentColorId,
+} from "../appearance";
 import { nanoid } from "./nanoid";
 import { generateResetToken, hashResetToken } from "../tokens";
 
@@ -483,6 +493,9 @@ export async function getUserSettings(userId: string = DEFAULT_USER_ID) {
         dashboardWidgets: JSON.stringify(DEFAULT_DASHBOARD_WIDGETS),
         anomalyThreshold: 30,
         currencyUnit: DEFAULT_CURRENCY_UNIT,
+        appearanceMood: "neutral",
+        accentColor: "emerald",
+        visibleNav: JSON.stringify(getDefaultVisibleNav()),
       })
       .run();
     settings = (await db
@@ -496,12 +509,62 @@ export async function getUserSettings(userId: string = DEFAULT_USER_ID) {
     ? settings.currencyUnit
     : DEFAULT_CURRENCY_UNIT;
 
+  let visibleNavParsed: unknown = null;
+  if (settings.visibleNav) {
+    try {
+      visibleNavParsed = JSON.parse(settings.visibleNav);
+    } catch {
+      visibleNavParsed = null;
+    }
+  }
+
   return {
     ...settings,
     widgets: JSON.parse(settings.dashboardWidgets) as DashboardWidgetId[],
     currencyUnit,
+    appearanceMood: isAppearanceMood(settings.appearanceMood)
+      ? settings.appearanceMood
+      : DEFAULT_APPEARANCE_MOOD,
+    accentColor: isAccentColorId(settings.accentColor)
+      ? settings.accentColor
+      : DEFAULT_ACCENT_COLOR,
+    visibleNav: normalizeVisibleNav(visibleNavParsed),
+    locale: settings.locale === "en" ? "en" : "fa",
     onboardingCompleted: settings.onboardingCompleted,
   };
+}
+
+export async function updateUserLocale(userId: string, locale: "fa" | "en") {
+  await db
+    .update(userSettings)
+    .set({ locale })
+    .where(eq(userSettings.userId, userId))
+    .run();
+  return await getUserSettings(userId);
+}
+
+export async function updateUserAppearance(
+  userId: string,
+  data: {
+    appearanceMood?: AppearanceMood;
+    accentColor?: AccentColorId;
+    visibleNav?: string[];
+  }
+) {
+  const updates: Partial<typeof userSettings.$inferInsert> = {};
+  if (data.appearanceMood) updates.appearanceMood = data.appearanceMood;
+  if (data.accentColor) updates.accentColor = data.accentColor;
+  if (data.visibleNav) {
+    updates.visibleNav = JSON.stringify(normalizeVisibleNav(data.visibleNav));
+  }
+  if (Object.keys(updates).length > 0) {
+    await db
+      .update(userSettings)
+      .set(updates)
+      .where(eq(userSettings.userId, userId))
+      .run();
+  }
+  return await getUserSettings(userId);
 }
 
 export async function completeOnboarding(userId: string) {
@@ -1041,7 +1104,143 @@ export async function getReminders(userId: string) {
     level: "due_today" as const,
   }));
 
-  return { budgetAlerts, debtAlerts, todoAlerts: [...todoAlerts, ...dueTodayTodos] };
+  // Cycle / period estimate within 3 days
+  const cycleAlerts: Array<{ id: string; message: string; level: string; href: string }> = [];
+  try {
+    const { cycleEntries, cycleSettings, vehicleServices, medications, medicationLogs } =
+      await import("@/lib/db/schema");
+    const cSettings = await db
+      .select()
+      .from(cycleSettings)
+      .where(eq(cycleSettings.userId, userId))
+      .get();
+    const starts = (
+      await db
+        .select()
+        .from(cycleEntries)
+        .where(
+          and(eq(cycleEntries.userId, userId), eq(cycleEntries.kind, "period_start"))
+        )
+        .all()
+    )
+      .map((e) => e.date)
+      .sort()
+      .reverse();
+    if (starts[0] && cSettings) {
+      const last = new Date(starts[0] + "T12:00:00");
+      const next = new Date(last);
+      next.setDate(next.getDate() + cSettings.avgCycleLength);
+      const days = Math.ceil((next.getTime() - now.getTime()) / 86400000);
+      if (days >= 0 && days <= 3) {
+        cycleAlerts.push({
+          id: `cycle-${starts[0]}`,
+          message: days === 0 ? "تخمین پریود: امروز" : `تخمین پریود تا ${days} روز`,
+          level: days === 0 ? "due_today" : "due_soon",
+          href: "/cycle",
+        });
+      }
+    }
+
+    // Vehicle service due by date or mileage proximity (date only here)
+    const maintenanceAlerts = (
+      await db
+        .select()
+        .from(vehicleServices)
+        .where(eq(vehicleServices.userId, userId))
+        .all()
+    )
+      .filter((s) => {
+        if (!s.nextDueDate) return false;
+        const due = new Date(s.nextDueDate + "T12:00:00");
+        const diff = (due.getTime() - now.getTime()) / 86400000;
+        return diff <= 14;
+      })
+      .slice(0, 3)
+      .map((s) => {
+        const due = new Date(s.nextDueDate! + "T12:00:00");
+        const overdue = due < now;
+        return {
+          id: s.id,
+          message: `${s.vehicleName}: سرویس نزدیک`,
+          level: overdue ? "overdue" : "due_soon",
+          href: "/maintenance",
+        };
+      });
+
+    // Meds not logged today
+    const todayKey = dateKey(now);
+    const meds = await db
+      .select()
+      .from(medications)
+      .where(and(eq(medications.userId, userId), eq(medications.active, true)))
+      .all();
+    const logsToday = await db
+      .select()
+      .from(medicationLogs)
+      .where(
+        and(eq(medicationLogs.userId, userId), eq(medicationLogs.date, todayKey))
+      )
+      .all();
+    const takenIds = new Set(logsToday.filter((l) => l.taken).map((l) => l.medicationId));
+    const medAlerts = meds
+      .filter((m) => !takenIds.has(m.id) && m.schedule !== "as_needed")
+      .slice(0, 3)
+      .map((m) => ({
+        id: m.id,
+        message: `دارو: ${m.name}`,
+        level: "due_today",
+        href: "/meds",
+      }));
+
+    const settings = await getUserSettings(userId);
+    const anomalies = await getAnomalies(
+      userId,
+      year,
+      month,
+      settings.anomalyThreshold ?? 30
+    );
+    const dayOfMonth = moment().jDate();
+    const daysInMonth = moment().endOf("jMonth").jDate();
+    const monthProgress = dayOfMonth / daysInMonth;
+    const anomalyAlerts = anomalies
+      .filter((a) => a.percentAbove >= (settings.anomalyThreshold ?? 30) && monthProgress < 0.95)
+      .slice(0, 3)
+      .map((a) => ({
+        id: `anomaly-${a.categoryId ?? a.categoryName}`,
+        message: `خرج غیرعادی: ${a.categoryName} (+${a.percentAbove}%)`,
+        level: "warning" as const,
+        href: "/insights",
+      }));
+
+    const debtTips = (await getDebtSettlementSuggestions(userId)).slice(0, 3).map((d) => ({
+      id: `debt-tip-${d.id}`,
+      message: d.suggestion,
+      level: "due_soon" as const,
+      href: "/debts",
+    }));
+
+    return {
+      budgetAlerts,
+      debtAlerts,
+      todoAlerts: [...todoAlerts, ...dueTodayTodos],
+      cycleAlerts,
+      maintenanceAlerts,
+      medAlerts,
+      anomalyAlerts,
+      debtTips,
+    };
+  } catch {
+    return {
+      budgetAlerts,
+      debtAlerts,
+      todoAlerts: [...todoAlerts, ...dueTodayTodos],
+      cycleAlerts: [],
+      maintenanceAlerts: [],
+      medAlerts: [],
+      anomalyAlerts: [],
+      debtTips: [],
+    };
+  }
 }
 
 function dateKey(d: Date = new Date()) {
@@ -1526,6 +1725,234 @@ export async function compareMonths(userId: string, year: number, month: number)
       balance: change(current.balance, previous.balance),
     },
   };
+}
+
+export async function learnCategoryRule(
+  userId: string,
+  description: string,
+  categoryId: string
+) {
+  const keyword = description
+    .replace(/[0-9۰-۹,.\-_/\\]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length >= 2)
+    .slice(0, 2)
+    .join(" ")
+    .slice(0, 40);
+  if (!keyword) return;
+  const existing = await db
+    .select()
+    .from(categoryRules)
+    .where(
+      and(
+        eq(categoryRules.userId, userId),
+        eq(categoryRules.keyword, keyword)
+      )
+    )
+    .get();
+  if (existing) {
+    await db
+      .update(categoryRules)
+      .set({ categoryId })
+      .where(eq(categoryRules.id, existing.id))
+      .run();
+    return;
+  }
+  await db
+    .insert(categoryRules)
+    .values({ id: nanoid(), userId, keyword, categoryId })
+    .run();
+}
+
+/** Average expense per category over previous 3 Jalali months */
+export async function suggestBudgetsFromAvg(
+  userId: string,
+  year: number,
+  month: number
+) {
+  const cats = await db
+    .select()
+    .from(categories)
+    .where(and(eq(categories.userId, userId), eq(categories.type, "expense")))
+    .all();
+
+  const suggestions: Array<{
+    categoryId: string;
+    categoryName: string;
+    amount: number;
+  }> = [];
+
+  for (const cat of cats) {
+    let total = 0;
+    for (let i = 1; i <= 3; i++) {
+      let m = month - i;
+      let y = year;
+      while (m < 1) {
+        m += 12;
+        y -= 1;
+      }
+      const { start, end } = getJalaliMonthRange(y, m);
+      const past =
+        (
+          await db
+            .select({
+              total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`,
+            })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.userId, userId),
+                eq(transactions.categoryId, cat.id),
+                eq(transactions.type, "expense"),
+                gte(transactions.date, start),
+                lte(transactions.date, end)
+              )
+            )
+            .get()
+        )?.total ?? 0;
+      total += past;
+    }
+    const avg = Math.round(total / 3);
+    if (avg >= 10000) {
+      suggestions.push({
+        categoryId: cat.id,
+        categoryName: cat.name,
+        amount: avg,
+      });
+    }
+  }
+
+  return suggestions.sort((a, b) => b.amount - a.amount);
+}
+
+export async function applyBudgetSuggestions(
+  userId: string,
+  year: number,
+  month: number
+) {
+  const suggestions = await suggestBudgetsFromAvg(userId, year, month);
+  const ids: string[] = [];
+  for (const s of suggestions) {
+    const existing = await db
+      .select()
+      .from(budgets)
+      .where(
+        and(
+          eq(budgets.userId, userId),
+          eq(budgets.categoryId, s.categoryId),
+          eq(budgets.year, year),
+          eq(budgets.month, month)
+        )
+      )
+      .get();
+    if (existing) {
+      await db
+        .update(budgets)
+        .set({ amount: s.amount })
+        .where(eq(budgets.id, existing.id))
+        .run();
+      ids.push(existing.id);
+    } else {
+      const id = nanoid();
+      await db
+        .insert(budgets)
+        .values({
+          id,
+          userId,
+          categoryId: s.categoryId,
+          year,
+          month,
+          amount: s.amount,
+        })
+        .run();
+      ids.push(id);
+    }
+  }
+  return { count: ids.length, suggestions };
+}
+
+/** Stub rate sync — updates gold/currency unit prices with built-in reference map */
+export async function syncAssetRates(userId: string) {
+  const rates: Record<string, number> = {
+    gold: 7_200_000, // approx toman / gram (placeholder)
+    currency_usd: 920_000,
+    currency_eur: 1_000_000,
+  };
+  const list = await db
+    .select()
+    .from(assets)
+    .where(eq(assets.userId, userId))
+    .all();
+  let updated = 0;
+  for (const a of list) {
+    let price: number | null = null;
+    if (a.type === "gold") price = rates.gold;
+    else if (a.type === "currency") {
+      const name = a.name.toLowerCase();
+      if (/دلار|usd|dollar/.test(name)) price = rates.currency_usd;
+      else if (/یورو|eur|euro/.test(name)) price = rates.currency_eur;
+    }
+    if (price && price !== a.unitPrice) {
+      await db
+        .update(assets)
+        .set({ unitPrice: price })
+        .where(eq(assets.id, a.id))
+        .run();
+      updated++;
+    }
+  }
+  return { updated, rates, note: "placeholder rates — replace with live feed later" };
+}
+
+export async function getDebtSettlementSuggestions(userId: string) {
+  const now = new Date();
+  const weekLater = new Date(now);
+  weekLater.setDate(weekLater.getDate() + 7);
+  const active = await db
+    .select()
+    .from(debts)
+    .where(and(eq(debts.userId, userId), eq(debts.status, "active")))
+    .all();
+  return active
+    .filter((d) => d.dueDate && new Date(d.dueDate) <= weekLater)
+    .map((d) => {
+      const remaining = d.totalAmount - d.paidAmount;
+      return {
+        id: d.id,
+        personName: d.personName,
+        type: d.type,
+        remaining,
+        dueDate: d.dueDate,
+        suggestion:
+          d.type === "owing"
+            ? `پیشنهاد پرداخت ${remaining.toLocaleString("fa-IR")} تومان به ${d.personName}`
+            : `پیگیری دریافت ${remaining.toLocaleString("fa-IR")} تومان از ${d.personName}`,
+      };
+    });
+}
+
+export async function completeRoutinesBySlot(
+  userId: string,
+  slot: "morning" | "night",
+  date?: string
+) {
+  const day = date ?? new Date().toISOString().slice(0, 10);
+  const list = await getRoutines(userId);
+  const morningRe = /صبح|morning|بیدار|breakfast/i;
+  const nightRe = /شب|night|خواب|sleep|evening/i;
+  const matched = list.filter((r) => {
+    const blob = `${r.name} ${r.description ?? ""} ${r.timeOfDay ?? ""}`;
+    return slot === "morning" ? morningRe.test(blob) : nightRe.test(blob);
+  });
+  let completed = 0;
+  for (const r of matched) {
+    if (!r.completedToday) {
+      await toggleRoutineCompletion(userId, r.id, day);
+      completed++;
+    }
+  }
+  return { matched: matched.length, completed, date: day };
 }
 
 export {

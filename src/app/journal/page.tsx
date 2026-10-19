@@ -184,7 +184,39 @@ export default function JournalPage() {
                   />
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex flex-wrap justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isPending}
+                    onClick={() => {
+                      const text = [notes, highlights, gratitude].filter(Boolean).join("\n");
+                      startTransition(async () => {
+                        try {
+                          const res = await fetch("/api/journal", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              action: "extract-tasks",
+                              text,
+                              create: true,
+                            }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error("fail");
+                          toast.success(
+                            data.tasks?.length
+                              ? `${data.tasks.length} تسک از ژورنال ساخته شد`
+                              : "تسکی پیدا نشد"
+                          );
+                        } catch {
+                          toast.error("استخراج تسک ناموفق بود");
+                        }
+                      });
+                    }}
+                  >
+                    ساخت تسک از متن
+                  </Button>
                   <Button type="submit" disabled={isPending} className="px-6 font-bold">
                     {isPending ? "در حال ذخیره..." : "ذخیره ژورنال"}
                   </Button>

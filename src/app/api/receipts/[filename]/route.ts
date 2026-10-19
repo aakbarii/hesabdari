@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { ensureDb, db, receiptFiles } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
+import { groupMembers, groupPettyCashItems } from "@/lib/db/schema";
 
 export async function GET(
   _request: Request,
@@ -13,11 +14,40 @@ export async function GET(
   const userId = auth;
 
   const { filename } = await params;
-  const row = await db
+  let row = await db
     .select()
     .from(receiptFiles)
     .where(and(eq(receiptFiles.id, filename), eq(receiptFiles.userId, userId)))
     .get();
+
+  if (!row) {
+    // Allow group members to view receipts attached to petty-cash items
+    const item = await db
+      .select()
+      .from(groupPettyCashItems)
+      .where(eq(groupPettyCashItems.receiptPath, filename))
+      .get();
+    if (item) {
+      const member = await db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupId, item.groupId),
+            eq(groupMembers.userId, userId)
+          )
+        )
+        .get();
+      if (member) {
+        row = await db
+          .select()
+          .from(receiptFiles)
+          .where(eq(receiptFiles.id, filename))
+          .get();
+      }
+    }
+  }
+
   if (!row) {
     return NextResponse.json({ error: "فایل یافت نشد" }, { status: 404 });
   }

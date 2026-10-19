@@ -8,6 +8,7 @@ import {
   getRoutines,
   getLifeSummary,
   toggleRoutineCompletion,
+  completeRoutinesBySlot,
 } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 import { nanoid } from "@/lib/db/nanoid";
@@ -45,6 +46,11 @@ export async function POST(request: Request) {
   if (auth instanceof NextResponse) return auth;
 
   const body = await readJsonObject(request);
+
+  if (body.action === "complete-slot") {
+    const slot = body.slot === "night" ? "night" : "morning";
+    return NextResponse.json(await completeRoutinesBySlot(auth, slot));
+  }
 
   if (body.routineId) {
     const parsed = completeSchema.safeParse(body);

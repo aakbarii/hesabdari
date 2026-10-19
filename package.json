@@ -18,6 +18,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "pwa:icons": "node scripts/generate-pwa-icons.mjs",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
     "share": "powershell -ExecutionPolicy Bypass -File scripts/share.ps1",
     "desktop:prepare": "node scripts/prepare-desktop.mjs",
     "desktop:node": "node scripts/ensure-portable-node.mjs",

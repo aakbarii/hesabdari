@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Header } from "@/components/layout/header";
@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Gem, Trash2, Pencil, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Gem, Trash2, Pencil, TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 import { formatToman } from "@/lib/format";
 import { ASSET_TYPES } from "@/lib/constants";
 import { JalaliDatePicker } from "@/components/jalali-date-picker";
@@ -60,6 +60,7 @@ export default function AssetsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Asset | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [syncing, startSync] = useTransition();
 
   const load = () =>
     fetch("/api/assets")
@@ -149,19 +150,47 @@ export default function AssetsPage() {
     load();
   };
 
+  const syncRates = () => {
+    startSync(async () => {
+      try {
+        const res = await fetch("/api/automations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "sync-assets" }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error("fail");
+        toast.success(
+          data.updated
+            ? `${data.updated} دارایی با نرخ مرجع به‌روز شد`
+            : "تغییری لازم نبود"
+        );
+        load();
+      } catch {
+        toast.error("همگام‌سازی نرخ ناموفق بود");
+      }
+    });
+  };
+
   return (
     <>
       <Header title="دارایی‌ها" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <p className="text-sm text-muted-foreground">ارزش کل دارایی‌ها</p>
             <p className="text-2xl font-bold">{formatToman(totalValue)}</p>
           </div>
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 ml-2" />
-            دارایی جدید
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" disabled={syncing} onClick={syncRates}>
+              <RefreshCw className="h-4 w-4 ml-2" />
+              همگام نرخ طلا/ارز
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4 ml-2" />
+              دارایی جدید
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

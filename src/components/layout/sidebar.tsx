@@ -23,12 +23,22 @@ import {
   Smile,
   Wrench,
   ShieldCheck,
+  HeartPulse,
+  Sparkles,
+  Users,
+  Moon,
+  Pill,
+  Plane,
+  Flame,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_GROUPS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/layout/app-logo";
 import { AUTH_ENABLED } from "@/lib/app-config";
+import { useAppearance } from "@/components/appearance-provider";
+import { useLocale } from "@/components/locale-provider";
+import type { MessageKey } from "@/lib/i18n";
 
 const iconMap = {
   "layout-dashboard": LayoutDashboard,
@@ -47,11 +57,21 @@ const iconMap = {
   "book-open": BookOpen,
   smile: Smile,
   wrench: Wrench,
+  "heart-pulse": HeartPulse,
+  sparkles: Sparkles,
+  users: Users,
+  moon: Moon,
+  pill: Pill,
+  plane: Plane,
+  flame: Flame,
+  inbox: Inbox,
 };
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { navGroups } = useAppearance();
+  const { t } = useLocale();
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -71,15 +91,15 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:right-0 border-l bg-card motion-slide-in-right">
-      <div className="flex h-16 items-center px-5 border-b">
+    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:right-0 border-l bg-card/90 backdrop-blur-xl supports-[backdrop-filter]:bg-card/75 motion-slide-in-right shadow-[-12px_0_40px_-28px_oklch(0.2_0.05_160/0.25)]">
+      <div className="flex h-16 items-center px-5 border-b border-border/70">
         <AppLogo size="md" subtitle="سامانه جامع زندگی و مالی" />
       </div>
       <nav aria-label="منوی اصلی" className="flex-1 p-4 space-y-5 overflow-y-auto">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.title}>
+        {navGroups.map((group) => (
+          <div key={group.titleKey}>
             <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-              {group.title}
+              {t(group.titleKey as MessageKey)}
             </p>
             <div className="space-y-1">
               {group.items.map((item) => {
@@ -94,14 +114,14 @@ export function Sidebar() {
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "motion-soft motion-press flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
+                      "motion-soft motion-press flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     )}
                   >
                     <Icon className="h-5 w-5" />
-                    {item.label}
+                    {t(item.labelKey as MessageKey)}
                   </Link>
                 );
               })}

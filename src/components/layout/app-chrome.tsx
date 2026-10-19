@@ -56,7 +56,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen bg-background">
         <a href="#main-content" className="skip-link">رفتن به محتوای اصلی</a>
         <Sidebar />
-        <div className="app-shell lg:mr-64">
+        <div className="app-shell lg:mr-64 min-h-screen">
           <RemindersBanner />
           <OnboardingDialog />
           <main id="main-content" tabIndex={-1} className="pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">

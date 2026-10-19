@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import moment from "jalali-moment";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, ChevronRight, ChevronLeft, Trash2 } from "lucide-react";
+import { Plus, ChevronRight, ChevronLeft, Trash2, Sparkles } from "lucide-react";
 import { formatToman, getJalaliMonthName } from "@/lib/format";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/amount-input";
@@ -50,6 +50,7 @@ export default function BudgetPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ categoryId: "", amount: "" });
+  const [pending, start] = useTransition();
 
   const load = () => {
     fetch(`/api/budgets?year=${year}&month=${month}`)
@@ -119,6 +120,28 @@ export default function BudgetPage() {
     load();
   };
 
+  const applySuggestions = () => {
+    start(async () => {
+      try {
+        const res = await fetch("/api/automations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "apply-budgets", year, month }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error("fail");
+        toast.success(
+          data.count
+            ? `${data.count} بودجه از میانگین ۳ ماه پیشنهاد و اعمال شد`
+            : "پیشنهادی یافت نشد"
+        );
+        load();
+      } catch {
+        toast.error("اعمال پیشنهاد بودجه ناموفق بود");
+      }
+    });
+  };
+
   return (
     <>
       <Header title="بودجه" />
@@ -135,6 +158,15 @@ export default function BudgetPage() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={applySuggestions}
+            >
+              <Sparkles className="h-4 w-4 ml-2" />
+              پیشنهاد از میانگین ۳ ماه
+            </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <Button onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4 ml-2" />
@@ -181,6 +213,7 @@ export default function BudgetPage() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {budgets.length > 0 && (

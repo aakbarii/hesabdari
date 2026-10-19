@@ -54,42 +54,56 @@ export const DEFAULT_INCOME_CATEGORIES = [
 
 export const NAV_GROUPS = [
   {
-    title: "نمای کلی",
-    items: [{ href: "/", label: "داشبورد", icon: "layout-dashboard" }],
+    titleKey: "nav.group.overview",
+    items: [{ href: "/", labelKey: "nav.dashboard", icon: "layout-dashboard" }],
   },
   {
-    title: "سلامت و فیتنس",
+    titleKey: "nav.group.health",
     items: [
-      { href: "/nutrition", label: "کالری و غذا", icon: "utensils" },
-      { href: "/fitness", label: "ورزش و وزن", icon: "dumbbell" },
+      { href: "/nutrition", labelKey: "nav.nutrition", icon: "utensils" },
+      { href: "/fitness", labelKey: "nav.fitness", icon: "dumbbell" },
     ],
   },
   {
-    title: "زندگی و رشد",
+    titleKey: "nav.group.wellness",
     items: [
-      { href: "/life", label: "تسک و روتین", icon: "sunrise" },
-      { href: "/focus", label: "تمرکز و پومودورو", icon: "timer" },
-      { href: "/growth", label: "کتاب و آموزش", icon: "book-open" },
-      { href: "/journal", label: "ژورنال و حال", icon: "smile" },
-      { href: "/maintenance", label: "نگهداری خودرو", icon: "wrench" },
+      { href: "/cycle", labelKey: "nav.cycle", icon: "heart-pulse" },
+      { href: "/selfcare", labelKey: "nav.selfcare", icon: "sparkles" },
+      { href: "/sleep", labelKey: "nav.sleep", icon: "moon" },
+      { href: "/meds", labelKey: "nav.meds", icon: "pill" },
     ],
   },
   {
-    title: "مالی و دارایی",
+    titleKey: "nav.group.life",
     items: [
-      { href: "/transactions", label: "تراکنش‌ها", icon: "arrow-left-right" },
-      { href: "/accounts", label: "حساب‌ها", icon: "wallet" },
-      { href: "/budget", label: "بودجه", icon: "piggy-bank" },
-      { href: "/debts", label: "بدهی و طلب", icon: "hand-coins" },
-      { href: "/assets", label: "دارایی‌ها", icon: "gem" },
-      { href: "/goals", label: "اهداف مالی", icon: "target" },
-      { href: "/reports", label: "گزارش‌ها", icon: "bar-chart-3" },
+      { href: "/life", labelKey: "nav.life", icon: "sunrise" },
+      { href: "/habits", labelKey: "nav.habits", icon: "flame" },
+      { href: "/focus", labelKey: "nav.focus", icon: "timer" },
+      { href: "/growth", labelKey: "nav.growth", icon: "book-open" },
+      { href: "/journal", labelKey: "nav.journal", icon: "smile" },
+      { href: "/travel", labelKey: "nav.travel", icon: "plane" },
+      { href: "/maintenance", labelKey: "nav.maintenance", icon: "wrench" },
     ],
   },
   {
-    title: "ابزار",
+    titleKey: "nav.group.finance",
     items: [
-      { href: "/settings", label: "تنظیمات", icon: "settings" },
+      { href: "/transactions", labelKey: "nav.transactions", icon: "arrow-left-right" },
+      { href: "/bank-inbox", labelKey: "nav.bankInbox", icon: "inbox" },
+      { href: "/insights", labelKey: "nav.insights", icon: "sparkles" },
+      { href: "/accounts", labelKey: "nav.accounts", icon: "wallet" },
+      { href: "/budget", labelKey: "nav.budget", icon: "piggy-bank" },
+      { href: "/debts", labelKey: "nav.debts", icon: "hand-coins" },
+      { href: "/assets", labelKey: "nav.assets", icon: "gem" },
+      { href: "/goals", labelKey: "nav.goals", icon: "target" },
+      { href: "/reports", labelKey: "nav.reports", icon: "bar-chart-3" },
+    ],
+  },
+  {
+    titleKey: "nav.group.tools",
+    items: [
+      { href: "/groups", labelKey: "nav.groups", icon: "users" },
+      { href: "/settings", labelKey: "nav.settings", icon: "settings" },
     ],
   },
 ] as const;
@@ -98,10 +112,10 @@ export const NAV_GROUPS = [
 export const NAV_ITEMS = NAV_GROUPS.flatMap((g) => [...g.items]);
 
 export const MOBILE_NAV_PRIMARY = [
-  { href: "/", label: "داشبورد", icon: "layout-dashboard" },
-  { href: "/transactions", label: "تراکنش‌ها", icon: "arrow-left-right" },
-  { href: "/life", label: "زندگی", icon: "sunrise" },
-  { href: "/budget", label: "بودجه", icon: "piggy-bank" },
+  { href: "/", labelKey: "nav.dashboard", icon: "layout-dashboard" },
+  { href: "/transactions", labelKey: "nav.transactions", icon: "arrow-left-right" },
+  { href: "/life", labelKey: "nav.life", icon: "sunrise" },
+  { href: "/budget", labelKey: "nav.budget", icon: "piggy-bank" },
 ] as const;
 
 export const TODO_AREAS = {
@@ -151,14 +165,14 @@ export const RECURRING_FREQUENCIES = {
 } as const;
 
 export const DASHBOARD_WIDGETS = {
-  balance: { label: "موجودی کل", default: true },
-  monthly: { label: "درآمد و هزینه ماه", default: true },
-  chart: { label: "نمودار دسته‌بندی", default: true },
-  recent: { label: "آخرین تراکنش‌ها", default: true },
-  goals: { label: "اهداف", default: true },
-  life: { label: "زندگی امروز", default: true },
-  forecast: { label: "پیش‌بینی ماهانه", default: true },
-  anomalies: { label: "هشدار ناهنجاری", default: true },
+  balance: { label: "موجودی کل", labelKey: "widget.balance", default: true },
+  monthly: { label: "درآمد و هزینه ماه", labelKey: "widget.monthly", default: true },
+  chart: { label: "نمودار دسته‌بندی", labelKey: "widget.chart", default: true },
+  recent: { label: "آخرین تراکنش‌ها", labelKey: "widget.recent", default: true },
+  goals: { label: "اهداف", labelKey: "widget.goals", default: true },
+  life: { label: "زندگی امروز", labelKey: "widget.life", default: true },
+  forecast: { label: "پیش‌بینی ماهانه", labelKey: "widget.forecast", default: true },
+  anomalies: { label: "هشدار ناهنجاری", labelKey: "widget.anomalies", default: true },
 } as const;
 
 export type DashboardWidgetId = keyof typeof DASHBOARD_WIDGETS;

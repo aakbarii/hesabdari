@@ -28,7 +28,11 @@ import {
   ArrowLeft,
   RefreshCw,
   Plus,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
+import { useLocale } from "@/components/locale-provider";
+import type { MessageKey } from "@/lib/i18n";
 import {
   formatToman,
   formatJalaliDate,
@@ -120,6 +124,7 @@ const CHART_COLORS = [
 ];
 
 export default function DashboardPage() {
+  const { t, locale } = useLocale();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [widgets, setWidgets] = useState<DashboardWidgetId[]>([]);
@@ -164,26 +169,41 @@ export default function DashboardPage() {
 
   const show = (id: DashboardWidgetId) => widgets.includes(id);
 
-  const toggleWidget = async (id: DashboardWidgetId) => {
+  const saveWidgets = async (next: DashboardWidgetId[]) => {
     if (savingWidgets) return;
-    const next = widgets.includes(id)
-      ? widgets.filter((w) => w !== id)
-      : [...widgets, id];
     setSavingWidgets(true);
+    setWidgets(next);
     try {
-    const response = await fetch("/api/dashboard", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ widgets: next }),
-    });
-    if (!response.ok) throw new Error("Save failed");
-    setReload((value) => value + 1);
-    toast.success("تنظیمات ذخیره شد");
+      const response = await fetch("/api/dashboard", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ widgets: next }),
+      });
+      if (!response.ok) throw new Error("Save failed");
+      setReload((value) => value + 1);
+      toast.success(t("common.success"));
     } catch {
-      toast.error("تنظیمات ذخیره نشد. دوباره تلاش کنید.");
+      toast.error(t("common.error"));
     } finally {
       setSavingWidgets(false);
     }
+  };
+
+  const toggleWidget = async (id: DashboardWidgetId) => {
+    const next = widgets.includes(id)
+      ? widgets.filter((w) => w !== id)
+      : [...widgets, id];
+    await saveWidgets(next);
+  };
+
+  const moveWidget = async (id: DashboardWidgetId, dir: -1 | 1) => {
+    const idx = widgets.indexOf(id);
+    if (idx < 0) return;
+    const next = [...widgets];
+    const swap = idx + dir;
+    if (swap < 0 || swap >= next.length) return;
+    [next[idx], next[swap]] = [next[swap], next[idx]];
+    await saveWidgets(next);
   };
 
   const chartData =
@@ -247,27 +267,54 @@ export default function DashboardPage() {
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader>
-                <SheetTitle>ویجت‌های داشبورد</SheetTitle>
+                <SheetTitle>
+                  {locale === "en" ? "Dashboard widgets" : "ویجت‌های داشبورد"}
+                </SheetTitle>
               </SheetHeader>
               <div className="space-y-2 mt-6">
                 {(Object.keys(DASHBOARD_WIDGETS) as DashboardWidgetId[]).map(
-                  (id) => (
-                    <label
-                      key={id}
-                      className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted"
-                    >
-                      <input
-                        disabled={savingWidgets}
-                        type="checkbox"
-                        checked={widgets.includes(id)}
-                        onChange={() => toggleWidget(id)}
-                        className="h-4 w-4"
-                      />
-                      <span className="text-sm">
-                        {DASHBOARD_WIDGETS[id].label}
-                      </span>
-                    </label>
-                  )
+                  (id) => {
+                    const on = widgets.includes(id);
+                    return (
+                      <div
+                        key={id}
+                        className="flex items-center gap-2 rounded-lg border p-3"
+                      >
+                        <input
+                          disabled={savingWidgets}
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => toggleWidget(id)}
+                          className="h-4 w-4"
+                        />
+                        <span className="text-sm flex-1">
+                          {t(DASHBOARD_WIDGETS[id].labelKey as MessageKey)}
+                        </span>
+                        {on && (
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              disabled={savingWidgets}
+                              className="rounded border p-1 hover:bg-muted"
+                              onClick={() => moveWidget(id, -1)}
+                              aria-label="up"
+                            >
+                              <ChevronUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={savingWidgets}
+                              className="rounded border p-1 hover:bg-muted"
+                              onClick={() => moveWidget(id, 1)}
+                              aria-label="down"
+                            >
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
                 )}
               </div>
             </SheetContent>
