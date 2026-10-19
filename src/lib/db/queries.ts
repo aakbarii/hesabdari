@@ -1,5 +1,5 @@
 import moment from "jalali-moment";
-import { eq, and, sql, desc, gte, lte, like, or, isNull } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte, like, or, } from "drizzle-orm";
 import { db, runMigrations } from "./index";
 import {
   users,
@@ -21,6 +21,7 @@ import {
   todos,
   routines,
   routineCompletions,
+  receiptFiles,
 } from "./schema";
 import {
   DEFAULT_USER_ID,
@@ -35,37 +36,39 @@ import { DEFAULT_CURRENCY_UNIT, type CurrencyUnit, isCurrencyUnit } from "../cur
 import { nanoid } from "./nanoid";
 import { generateResetToken, hashResetToken } from "../tokens";
 
-let initialized = false;
-
 declare global {
-  // eslint-disable-next-line no-var
-  var __hesabdari_initialized__: boolean | undefined;
+
+  var __hesabdari_init__: Promise<void> | undefined;
 }
 
-export function ensureDb() {
-  if (initialized || globalThis.__hesabdari_initialized__) return;
-  runMigrations();
-  seedDefaultUser();
-  initialized = true;
-  globalThis.__hesabdari_initialized__ = true;
+/** Runs migrations and default seeding once per process, even when requests race on cold start. */
+export function ensureDb(): Promise<void> {
+  globalThis.__hesabdari_init__ ??= (async () => {
+    await runMigrations();
+    await seedDefaultUser();
+  })().catch((error) => {
+    globalThis.__hesabdari_init__ = undefined;
+    throw error;
+  });
+  return globalThis.__hesabdari_init__;
 }
 
-function seedDefaultUser() {
-  const existing = db.select().from(users).where(eq(users.id, DEFAULT_USER_ID)).get();
+async function seedDefaultUser() {
+  const existing = await db.select().from(users).where(eq(users.id, DEFAULT_USER_ID)).get();
   if (existing) return;
-  db.insert(users)
+  await db.insert(users)
     .values({
       id: DEFAULT_USER_ID,
       email: "me@local.dev",
       name: "من",
     })
     .run();
-  seedUserDefaults(DEFAULT_USER_ID);
+  await seedUserDefaults(DEFAULT_USER_ID);
 }
 
-export function seedUserDefaults(userId: string) {
-  DEFAULT_EXPENSE_CATEGORIES.forEach((name, i) => {
-    db.insert(categories)
+export async function seedUserDefaults(userId: string) {
+  for (const [i, name] of DEFAULT_EXPENSE_CATEGORIES.entries()) {
+    await db.insert(categories)
       .values({
         id: nanoid(),
         userId,
@@ -74,10 +77,10 @@ export function seedUserDefaults(userId: string) {
         color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
       })
       .run();
-  });
+  }
 
-  DEFAULT_INCOME_CATEGORIES.forEach((name, i) => {
-    db.insert(categories)
+  for (const [i, name] of DEFAULT_INCOME_CATEGORIES.entries()) {
+    await db.insert(categories)
       .values({
         id: nanoid(),
         userId,
@@ -86,9 +89,9 @@ export function seedUserDefaults(userId: string) {
         color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
       })
       .run();
-  });
+  }
 
-  db.insert(userSettings)
+  await db.insert(userSettings)
     .values({
       userId,
       dashboardWidgets: JSON.stringify(DEFAULT_DASHBOARD_WIDGETS),
@@ -97,52 +100,52 @@ export function seedUserDefaults(userId: string) {
     })
     .run();
 
-  seedDefaultCategoryRules(userId);
+  await seedDefaultCategoryRules(userId);
 }
 
-export function getUserByEmail(email: string) {
-  return db.select().from(users).where(eq(users.email, email)).get();
+export async function getUserByEmail(email: string) {
+  return await db.select().from(users).where(eq(users.email, email)).get();
 }
 
-export function getUserById(userId: string) {
-  return db.select().from(users).where(eq(users.id, userId)).get();
+export async function getUserById(userId: string) {
+  return await db.select().from(users).where(eq(users.id, userId)).get();
 }
 
-export function anyUserHasPassword() {
-  return db
+export async function anyUserHasPassword() {
+  return (await db
     .select()
     .from(users)
-    .all()
+    .all())
     .some((u) => Boolean(u.passwordHash));
 }
 
-export function createUserWithDefaults(
+export async function createUserWithDefaults(
   email: string,
   passwordHash: string,
   name: string
 ) {
   const id = nanoid();
-  db.insert(users)
+  await db.insert(users)
     .values({ id, email, passwordHash, name })
     .run();
-  seedUserDefaults(id);
+  await seedUserDefaults(id);
   return id;
 }
 
-export function setupDefaultUserPassword(
+export async function setupDefaultUserPassword(
   email: string,
   passwordHash: string,
   name: string
 ) {
-  db.update(users)
+  await db.update(users)
     .set({ email, passwordHash, name })
     .where(eq(users.id, DEFAULT_USER_ID))
     .run();
   return DEFAULT_USER_ID;
 }
 
-function seedDefaultCategoryRules(userId: string) {
-  const expenseCats = db
+async function seedDefaultCategoryRules(userId: string) {
+  const expenseCats = await db
     .select()
     .from(categories)
     .where(eq(categories.userId, userId))
@@ -164,7 +167,7 @@ function seedDefaultCategoryRules(userId: string) {
   for (const [keyword, catName] of rules) {
     const cat = expenseCats.find((c) => c.name === catName);
     if (cat) {
-      const exists = db
+      const exists = await db
         .select()
         .from(categoryRules)
         .where(
@@ -175,7 +178,7 @@ function seedDefaultCategoryRules(userId: string) {
         )
         .get();
       if (!exists) {
-        db.insert(categoryRules)
+        await db.insert(categoryRules)
           .values({
             id: nanoid(),
             userId,
@@ -218,62 +221,64 @@ function addFrequency(date: Date, frequency: keyof typeof RECURRING_FREQUENCIES)
   }
 }
 
-export function processDueRecurring(userId: string = DEFAULT_USER_ID) {
-  const now = new Date();
-  const due = db
-    .select()
-    .from(recurringTransactions)
-    .where(
-      and(
-        eq(recurringTransactions.userId, userId),
-        eq(recurringTransactions.isActive, true),
-        lte(recurringTransactions.nextRunDate, now)
+export async function processDueRecurring(userId: string = DEFAULT_USER_ID) {
+  return await db.transaction(async (tx) => {
+    const now = new Date();
+    const due = await tx
+      .select()
+      .from(recurringTransactions)
+      .where(
+        and(
+          eq(recurringTransactions.userId, userId),
+          eq(recurringTransactions.isActive, true),
+          lte(recurringTransactions.nextRunDate, now)
+        )
       )
-    )
-    .all();
+      .all();
 
-  for (const rec of due) {
-    let next = new Date(rec.nextRunDate);
-    let iterations = 0;
+    for (const rec of due) {
+      let next = new Date(rec.nextRunDate);
+      let iterations = 0;
 
-    while (next <= now && iterations < 120) {
-      const txId = nanoid();
-      db.insert(transactions)
-        .values({
-          id: txId,
-          userId: rec.userId,
-          accountId: rec.accountId,
-          categoryId: rec.categoryId,
-          type: rec.type,
-          amount: rec.amount,
-          description: rec.description
-            ? `${rec.description} (تکراری)`
-            : "تراکنش تکراری",
-          date: new Date(next),
-        })
+      while (next <= now && iterations < 120) {
+        const txId = nanoid();
+        await tx.insert(transactions)
+          .values({
+            id: txId,
+            userId: rec.userId,
+            accountId: rec.accountId,
+            categoryId: rec.categoryId,
+            type: rec.type,
+            amount: rec.amount,
+            description: rec.description
+              ? `${rec.description} (تکراری)`
+              : "تراکنش تکراری",
+            date: new Date(next),
+          })
+          .run();
+        next = addFrequency(next, rec.frequency);
+        iterations++;
+      }
+
+      await tx.update(recurringTransactions)
+        .set({ nextRunDate: next })
+        .where(eq(recurringTransactions.id, rec.id))
         .run();
-      next = addFrequency(next, rec.frequency);
-      iterations++;
     }
 
-    db.update(recurringTransactions)
-      .set({ nextRunDate: next })
-      .where(eq(recurringTransactions.id, rec.id))
-      .run();
-  }
-
-  return due.length;
+    return due.length;
+  }, { behavior: "immediate" });
 }
 
-export function getAccountBalance(accountId: string): number {
-  const account = db
+export async function getAccountBalance(accountId: string): Promise<number> {
+  const account = await db
     .select()
     .from(accounts)
     .where(eq(accounts.id, accountId))
     .get();
   if (!account) return 0;
 
-  const income = db
+  const income = (await db
     .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
     .from(transactions)
     .where(
@@ -282,9 +287,9 @@ export function getAccountBalance(accountId: string): number {
         eq(transactions.type, "income")
       )
     )
-    .get()?.total ?? 0;
+    .get())?.total ?? 0;
 
-  const expense = db
+  const expense = (await db
     .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
     .from(transactions)
     .where(
@@ -293,35 +298,35 @@ export function getAccountBalance(accountId: string): number {
         eq(transactions.type, "expense")
       )
     )
-    .get()?.total ?? 0;
+    .get())?.total ?? 0;
 
-  const transferOut = db
+  const transferOut = (await db
     .select({ total: sql<number>`COALESCE(SUM(${transfers.amount}), 0)` })
     .from(transfers)
     .where(eq(transfers.fromAccountId, accountId))
-    .get()?.total ?? 0;
+    .get())?.total ?? 0;
 
-  const transferIn = db
+  const transferIn = (await db
     .select({ total: sql<number>`COALESCE(SUM(${transfers.amount}), 0)` })
     .from(transfers)
     .where(eq(transfers.toAccountId, accountId))
-    .get()?.total ?? 0;
+    .get())?.total ?? 0;
 
   return account.initialBalance + income - expense - transferOut + transferIn;
 }
 
-export function getTotalBalance(userId: string = DEFAULT_USER_ID): number {
+export async function getTotalBalance(userId: string = DEFAULT_USER_ID): Promise<number> {
   const initial =
-    db
+    (await db
       .select({
         total: sql<number>`COALESCE(SUM(${accounts.initialBalance}), 0)`,
       })
       .from(accounts)
       .where(and(eq(accounts.userId, userId), eq(accounts.isActive, true)))
-      .get()?.total ?? 0;
+      .get())?.total ?? 0;
 
   const income =
-    db
+    (await db
       .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
       .from(transactions)
       .innerJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -332,10 +337,10 @@ export function getTotalBalance(userId: string = DEFAULT_USER_ID): number {
           eq(transactions.type, "income")
         )
       )
-      .get()?.total ?? 0;
+      .get())?.total ?? 0;
 
   const expense =
-    db
+    (await db
       .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
       .from(transactions)
       .innerJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -346,29 +351,29 @@ export function getTotalBalance(userId: string = DEFAULT_USER_ID): number {
           eq(transactions.type, "expense")
         )
       )
-      .get()?.total ?? 0;
+      .get())?.total ?? 0;
 
   const transferOut =
-    db
+    (await db
       .select({ total: sql<number>`COALESCE(SUM(${transfers.amount}), 0)` })
       .from(transfers)
       .innerJoin(accounts, eq(transfers.fromAccountId, accounts.id))
       .where(and(eq(accounts.userId, userId), eq(accounts.isActive, true)))
-      .get()?.total ?? 0;
+      .get())?.total ?? 0;
 
   const transferIn =
-    db
+    (await db
       .select({ total: sql<number>`COALESCE(SUM(${transfers.amount}), 0)` })
       .from(transfers)
       .innerJoin(accounts, eq(transfers.toAccountId, accounts.id))
       .where(and(eq(accounts.userId, userId), eq(accounts.isActive, true)))
-      .get()?.total ?? 0;
+      .get())?.total ?? 0;
 
   return initial + income - expense - transferOut + transferIn;
 }
 
-export function getTotalAssetsValue(userId: string = DEFAULT_USER_ID): number {
-  const list = db
+export async function getTotalAssetsValue(userId: string = DEFAULT_USER_ID): Promise<number> {
+  const list = await db
     .select()
     .from(assets)
     .where(eq(assets.userId, userId))
@@ -376,7 +381,7 @@ export function getTotalAssetsValue(userId: string = DEFAULT_USER_ID): number {
   return list.reduce((sum, a) => sum + a.quantity * a.unitPrice, 0);
 }
 
-export function getMonthlyStats(
+export async function getMonthlyStats(
   userId: string,
   year: number,
   month: number
@@ -384,7 +389,7 @@ export function getMonthlyStats(
   const { start, end } = getJalaliMonthRange(year, month);
 
   const income =
-    db
+    (await db
       .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
       .from(transactions)
       .where(
@@ -395,10 +400,10 @@ export function getMonthlyStats(
           lte(transactions.date, end)
         )
       )
-      .get()?.total ?? 0;
+      .get())?.total ?? 0;
 
   const expense =
-    db
+    (await db
       .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
       .from(transactions)
       .where(
@@ -409,13 +414,13 @@ export function getMonthlyStats(
           lte(transactions.date, end)
         )
       )
-      .get()?.total ?? 0;
+      .get())?.total ?? 0;
 
   return { income, expense, balance: income - expense };
 }
 
-export function getRecentTransactions(userId: string, limit = 10) {
-  return db
+export async function getRecentTransactions(userId: string, limit = 10) {
+  return await db
     .select({
       id: transactions.id,
       type: transactions.type,
@@ -436,14 +441,14 @@ export function getRecentTransactions(userId: string, limit = 10) {
     .all();
 }
 
-export function getExpenseByCategory(
+export async function getExpenseByCategory(
   userId: string,
   year: number,
   month: number
 ) {
   const { start, end } = getJalaliMonthRange(year, month);
 
-  return db
+  return await db
     .select({
       categoryId: categories.id,
       categoryName: categories.name,
@@ -464,15 +469,15 @@ export function getExpenseByCategory(
     .all();
 }
 
-export function getUserSettings(userId: string = DEFAULT_USER_ID) {
-  let settings = db
+export async function getUserSettings(userId: string = DEFAULT_USER_ID) {
+  let settings = await db
     .select()
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .get();
 
   if (!settings) {
-    db.insert(userSettings)
+    await db.insert(userSettings)
       .values({
         userId,
         dashboardWidgets: JSON.stringify(DEFAULT_DASHBOARD_WIDGETS),
@@ -480,11 +485,11 @@ export function getUserSettings(userId: string = DEFAULT_USER_ID) {
         currencyUnit: DEFAULT_CURRENCY_UNIT,
       })
       .run();
-    settings = db
+    settings = (await db
       .select()
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
-      .get()!;
+      .get())!;
   }
 
   const currencyUnit = isCurrencyUnit(settings.currencyUnit)
@@ -499,8 +504,8 @@ export function getUserSettings(userId: string = DEFAULT_USER_ID) {
   };
 }
 
-export function completeOnboarding(userId: string) {
-  db.update(userSettings)
+export async function completeOnboarding(userId: string) {
+  await db.update(userSettings)
     .set({ onboardingCompleted: true })
     .where(eq(userSettings.userId, userId))
     .run();
@@ -511,11 +516,11 @@ export async function createPending2faToken(userId: string) {
   const tokenHash = await hashResetToken(token);
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-  db.delete(pending2faTokens)
+  await db.delete(pending2faTokens)
     .where(eq(pending2faTokens.userId, userId))
     .run();
 
-  db.insert(pending2faTokens)
+  await db.insert(pending2faTokens)
     .values({
       id: nanoid(),
       userId,
@@ -528,8 +533,16 @@ export async function createPending2faToken(userId: string) {
 }
 
 export async function consumePending2faToken(token: string) {
+  return resolvePending2faToken(token, true);
+}
+
+export async function getPending2faUserId(token: string) {
+  return resolvePending2faToken(token, false);
+}
+
+async function resolvePending2faToken(token: string, consume: boolean) {
   const tokenHash = await hashResetToken(token);
-  const row = db
+  const row = await db
     .select()
     .from(pending2faTokens)
     .where(eq(pending2faTokens.tokenHash, tokenHash))
@@ -537,24 +550,27 @@ export async function consumePending2faToken(token: string) {
 
   if (!row || row.expiresAt < new Date()) return null;
 
-  db.delete(pending2faTokens)
-    .where(eq(pending2faTokens.id, row.id))
-    .run();
+  if (consume) {
+    const deleted = await db.delete(pending2faTokens)
+      .where(eq(pending2faTokens.id, row.id))
+      .run();
+    if (deleted.rowsAffected === 0) return null;
+  }
 
   return row.userId;
 }
 
-export function setTotpPendingSecret(userId: string, secret: string) {
-  db.update(users)
+export async function setTotpPendingSecret(userId: string, secret: string) {
+  await db.update(users)
     .set({ totpPendingSecret: secret })
     .where(eq(users.id, userId))
     .run();
 }
 
-export function enableTotp(userId: string) {
-  const user = getUserById(userId);
+export async function enableTotp(userId: string) {
+  const user = await getUserById(userId);
   if (!user?.totpPendingSecret) return false;
-  db.update(users)
+  await db.update(users)
     .set({
       totpSecret: user.totpPendingSecret,
       totpPendingSecret: null,
@@ -565,8 +581,8 @@ export function enableTotp(userId: string) {
   return true;
 }
 
-export function disableTotp(userId: string) {
-  db.update(users)
+export async function disableTotp(userId: string) {
+  await db.update(users)
     .set({
       totpSecret: null,
       totpPendingSecret: null,
@@ -576,24 +592,24 @@ export function disableTotp(userId: string) {
     .run();
 }
 
-export function updateUserCurrency(
+export async function updateUserCurrency(
   userId: string,
   currencyUnit: CurrencyUnit
 ) {
-  db.update(userSettings)
+  await db.update(userSettings)
     .set({ currencyUnit })
     .where(eq(userSettings.userId, userId))
     .run();
-  return getUserSettings(userId);
+  return await getUserSettings(userId);
 }
 
-export function autoCategorize(
+export async function autoCategorize(
   userId: string,
   description: string | undefined | null,
   type: "income" | "expense"
-): string | null {
+): Promise<string | null> {
   if (!description) return null;
-  const rules = db
+  const rules = await db
     .select({
       keyword: categoryRules.keyword,
       categoryId: categoryRules.categoryId,
@@ -616,7 +632,7 @@ export function autoCategorize(
   return null;
 }
 
-export function getMonthlyForecast(userId: string, year: number, month: number) {
+export async function getMonthlyForecast(userId: string, year: number, month: number) {
   const { start, end } = getJalaliMonthRange(year, month);
   const now = new Date();
   const monthEnd = end < now ? end : now;
@@ -629,7 +645,7 @@ export function getMonthlyForecast(userId: string, year: number, month: number) 
     moment(monthEnd).diff(moment(start), "days") + 1
   );
 
-  const current = getMonthlyStats(userId, year, month);
+  const current = await getMonthlyStats(userId, year, month);
 
   const last3Income: number[] = [];
   const last3Expense: number[] = [];
@@ -640,7 +656,7 @@ export function getMonthlyForecast(userId: string, year: number, month: number) 
       m += 12;
       y -= 1;
     }
-    const stats = getMonthlyStats(userId, y, m);
+    const stats = await getMonthlyStats(userId, y, m);
     last3Income.push(stats.income);
     last3Expense.push(stats.expense);
   }
@@ -671,13 +687,13 @@ export function getMonthlyForecast(userId: string, year: number, month: number) 
   };
 }
 
-export function getAnomalies(
+export async function getAnomalies(
   userId: string,
   year: number,
   month: number,
   threshold = 30
 ) {
-  const currentExpenses = getExpenseByCategory(userId, year, month);
+  const currentExpenses = await getExpenseByCategory(userId, year, month);
   const anomalies: Array<{
     categoryId: string;
     categoryName: string;
@@ -700,7 +716,7 @@ export function getAnomalies(
         y -= 1;
       }
       const { start, end } = getJalaliMonthRange(y, m);
-      const past = db
+      const past = (await db
         .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
         .from(transactions)
         .where(
@@ -712,7 +728,7 @@ export function getAnomalies(
             lte(transactions.date, end)
           )
         )
-        .get()?.total ?? 0;
+        .get())?.total ?? 0;
       totalPast += past;
       count++;
     }
@@ -733,13 +749,13 @@ export function getAnomalies(
   return anomalies.sort((a, b) => b.percentAbove - a.percentAbove);
 }
 
-export function getAnnualReport(userId: string, year: number) {
+export async function getAnnualReport(userId: string, year: number) {
   const months = [];
   let totalIncome = 0;
   let totalExpense = 0;
 
   for (let m = 1; m <= 12; m++) {
-    const stats = getMonthlyStats(userId, year, m);
+    const stats = await getMonthlyStats(userId, year, m);
     totalIncome += stats.income;
     totalExpense += stats.expense;
     months.push({
@@ -764,16 +780,16 @@ export function getAnnualReport(userId: string, year: number) {
   };
 }
 
-export function getGoals(userId: string, type?: "savings" | "purchase") {
+export async function getGoals(userId: string, type?: "savings" | "purchase") {
   const conditions = [eq(goals.userId, userId)];
   if (type) conditions.push(eq(goals.type, type));
 
-  return db
+  return (await db
     .select()
     .from(goals)
     .where(and(...conditions))
     .orderBy(desc(goals.createdAt))
-    .all()
+    .all())
     .map((g) => ({
       ...g,
       percent: Math.min(
@@ -784,7 +800,7 @@ export function getGoals(userId: string, type?: "savings" | "purchase") {
     }));
 }
 
-export function globalSearch(userId: string, query: string) {
+export async function globalSearch(userId: string, query: string) {
   const q = query.trim();
   if (!q) return [];
 
@@ -797,7 +813,7 @@ export function globalSearch(userId: string, query: string) {
     href: string;
   }> = [];
 
-  const txs = db
+  const txs = await db
     .select({
       id: transactions.id,
       description: transactions.description,
@@ -828,7 +844,7 @@ export function globalSearch(userId: string, query: string) {
     });
   }
 
-  const accs = db
+  const accs = await db
     .select()
     .from(accounts)
     .where(and(eq(accounts.userId, userId), like(accounts.name, pattern)))
@@ -843,7 +859,7 @@ export function globalSearch(userId: string, query: string) {
     });
   }
 
-  const goalRows = db
+  const goalRows = await db
     .select()
     .from(goals)
     .where(and(eq(goals.userId, userId), like(goals.name, pattern)))
@@ -858,7 +874,7 @@ export function globalSearch(userId: string, query: string) {
     });
   }
 
-  const debtRows = db
+  const debtRows = await db
     .select()
     .from(debts)
     .where(and(eq(debts.userId, userId), like(debts.personName, pattern)))
@@ -874,7 +890,7 @@ export function globalSearch(userId: string, query: string) {
     });
   }
 
-  const cats = db
+  const cats = await db
     .select()
     .from(categories)
     .where(and(eq(categories.userId, userId), like(categories.name, pattern)))
@@ -889,7 +905,7 @@ export function globalSearch(userId: string, query: string) {
     });
   }
 
-  const todoRows = db
+  const todoRows = await db
     .select()
     .from(todos)
     .where(and(eq(todos.userId, userId), like(todos.title, pattern)))
@@ -905,7 +921,7 @@ export function globalSearch(userId: string, query: string) {
     });
   }
 
-  const routineRows = db
+  const routineRows = await db
     .select()
     .from(routines)
     .where(and(eq(routines.userId, userId), like(routines.name, pattern)))
@@ -924,7 +940,7 @@ export function globalSearch(userId: string, query: string) {
   return results;
 }
 
-export function getReminders(userId: string) {
+export async function getReminders(userId: string) {
   const year = moment().jYear();
   const month = moment().jMonth() + 1;
   const start = moment()
@@ -938,7 +954,7 @@ export function getReminders(userId: string) {
     .endOf("jMonth")
     .toDate();
 
-  const budgetList = db
+  const budgetList = await db
     .select({
       id: budgets.id,
       categoryId: budgets.categoryId,
@@ -952,7 +968,7 @@ export function getReminders(userId: string) {
     )
     .all();
 
-  const expenses = db
+  const expenses = await db
     .select()
     .from(transactions)
     .where(and(eq(transactions.userId, userId), eq(transactions.type, "expense")))
@@ -987,11 +1003,11 @@ export function getReminders(userId: string) {
   const weekLater = new Date(now);
   weekLater.setDate(weekLater.getDate() + 7);
 
-  const debtAlerts = db
+  const debtAlerts = (await db
     .select()
     .from(debts)
     .where(and(eq(debts.userId, userId), eq(debts.status, "active")))
-    .all()
+    .all())
     .filter((d) => {
       if (!d.dueDate) return false;
       const due = new Date(d.dueDate);
@@ -1011,14 +1027,14 @@ export function getReminders(userId: string) {
       };
     });
 
-  const todoAlerts = getTodos(userId, "overdue").map((t) => ({
+  const todoAlerts = (await getTodos(userId, "overdue")).map((t) => ({
     id: t.id,
     title: t.title,
     dueDate: t.dueDate,
     level: "overdue" as const,
   }));
 
-  const dueTodayTodos = getTodos(userId, "today").map((t) => ({
+  const dueTodayTodos = (await getTodos(userId, "today")).map((t) => ({
     id: t.id,
     title: t.title,
     dueDate: t.dueDate,
@@ -1042,7 +1058,7 @@ function parseWeeklyDays(raw: string | null): number[] {
   }
 }
 
-function isRoutineDueToday(routine: typeof routines.$inferSelect) {
+async function isRoutineDueToday(routine: typeof routines.$inferSelect) {
   if (!routine.isActive) return false;
   const today = new Date();
   if (routine.frequency === "daily") return true;
@@ -1050,7 +1066,7 @@ function isRoutineDueToday(routine: typeof routines.$inferSelect) {
     return parseWeeklyDays(routine.weeklyDays).includes(today.getDay());
   }
   const monthPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-  const doneThisMonth = db
+  const doneThisMonth = await db
     .select()
     .from(routineCompletions)
     .where(
@@ -1063,12 +1079,12 @@ function isRoutineDueToday(routine: typeof routines.$inferSelect) {
   return !doneThisMonth;
 }
 
-function getRoutineStreak(routineId: string, frequency: string) {
+async function getRoutineStreak(routineId: string, frequency: string) {
   if (frequency !== "daily") return 0;
   let streak = 0;
   const cursor = new Date();
   const today = dateKey();
-  const doneToday = db
+  const doneToday = await db
     .select()
     .from(routineCompletions)
     .where(
@@ -1083,7 +1099,7 @@ function getRoutineStreak(routineId: string, frequency: string) {
   }
   for (let i = 0; i < 365; i++) {
     const key = dateKey(cursor);
-    const done = db
+    const done = await db
       .select()
       .from(routineCompletions)
       .where(
@@ -1100,7 +1116,7 @@ function getRoutineStreak(routineId: string, frequency: string) {
   return streak;
 }
 
-export function getTodos(
+export async function getTodos(
   userId: string,
   filter: "all" | "active" | "done" | "today" | "overdue" = "all"
 ) {
@@ -1117,7 +1133,7 @@ export function getTodos(
     conditions.push(eq(todos.status, "done"));
   }
 
-  const rows = db
+  const rows = await db
     .select()
     .from(todos)
     .where(and(...conditions))
@@ -1153,7 +1169,7 @@ export function getTodos(
 }
 
 /** Persian week: Saturday → Friday */
-export function getTodosWeek(userId: string, offsetWeeks = 0) {
+export async function getTodosWeek(userId: string, offsetWeeks = 0) {
   const PERSIAN_WEEKDAYS = [
     "شنبه",
     "یکشنبه",
@@ -1175,7 +1191,7 @@ export function getTodosWeek(userId: string, offsetWeeks = 0) {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
 
-  const rows = getTodos(userId, "all");
+  const rows = await getTodos(userId, "all");
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(weekStart);
@@ -1225,20 +1241,20 @@ export function getTodosWeek(userId: string, offsetWeeks = 0) {
   };
 }
 
-export function getRoutines(userId: string, includeInactive = false) {
-  const rows = db
+export async function getRoutines(userId: string, includeInactive = false) {
+  const rows = (await db
     .select()
     .from(routines)
     .where(eq(routines.userId, userId))
     .orderBy(desc(routines.createdAt))
-    .all()
+    .all())
     .filter((r) => includeInactive || r.isActive);
 
   const today = dateKey();
 
-  return rows.map((routine) => {
+  return Promise.all(rows.map(async (routine) => {
     const completedToday = Boolean(
-      db
+      await db
         .select()
         .from(routineCompletions)
         .where(
@@ -1253,14 +1269,14 @@ export function getRoutines(userId: string, includeInactive = false) {
       ...routine,
       weeklyDays: parseWeeklyDays(routine.weeklyDays),
       completedToday,
-      dueToday: isRoutineDueToday(routine),
-      streak: getRoutineStreak(routine.id, routine.frequency),
+      dueToday: await isRoutineDueToday(routine),
+      streak: await getRoutineStreak(routine.id, routine.frequency),
     };
-  });
+  }));
 }
 
-export function getLifeSummary(userId: string) {
-  const allTodos = getTodos(userId, "all");
+export async function getLifeSummary(userId: string) {
+  const allTodos = await getTodos(userId, "all");
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date();
@@ -1284,7 +1300,7 @@ export function getLifeSummary(userId: string) {
     }
   }
 
-  const routineRows = getRoutines(userId);
+  const routineRows = await getRoutines(userId);
   const dueToday = routineRows.filter((r) => r.dueToday);
   const completedToday = dueToday.filter((r) => r.completedToday);
 
@@ -1308,15 +1324,15 @@ export function getLifeSummary(userId: string) {
   };
 }
 
-export function toggleRoutineCompletion(
+export async function toggleRoutineCompletion(
   userId: string,
   routineId: string,
   date = dateKey()
 ) {
-  const routine = db.select().from(routines).where(eq(routines.id, routineId)).get();
+  const routine = await db.select().from(routines).where(eq(routines.id, routineId)).get();
   if (!routine || routine.userId !== userId) return null;
 
-  const existing = db
+  const existing = await db
     .select()
     .from(routineCompletions)
     .where(
@@ -1328,13 +1344,13 @@ export function toggleRoutineCompletion(
     .get();
 
   if (existing) {
-    db.delete(routineCompletions)
+    await db.delete(routineCompletions)
       .where(eq(routineCompletions.id, existing.id))
       .run();
     return { completed: false };
   }
 
-  db.insert(routineCompletions)
+  await db.insert(routineCompletions)
     .values({
       id: nanoid(),
       routineId,
@@ -1346,7 +1362,7 @@ export function toggleRoutineCompletion(
   return { completed: true };
 }
 
-export function updateUserProfile(
+export async function updateUserProfile(
   userId: string,
   data: {
     name?: string;
@@ -1356,11 +1372,11 @@ export function updateUserProfile(
     passwordHash?: string;
   }
 ) {
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user) return { error: "کاربر یافت نشد" as const };
 
   if (data.email && data.email !== user.email) {
-    if (getUserByEmail(data.email)) {
+    if (await getUserByEmail(data.email)) {
       return { error: "این ایمیل قبلاً استفاده شده" as const };
     }
   }
@@ -1371,10 +1387,10 @@ export function updateUserProfile(
   if (data.passwordHash) updates.passwordHash = data.passwordHash;
 
   if (Object.keys(updates).length > 0) {
-    db.update(users).set(updates).where(eq(users.id, userId)).run();
+    await db.update(users).set(updates).where(eq(users.id, userId)).run();
   }
 
-  return { user: getUserById(userId)! };
+  return { user: (await getUserById(userId))! };
 }
 
 export async function createPasswordResetToken(userId: string) {
@@ -1382,11 +1398,11 @@ export async function createPasswordResetToken(userId: string) {
   const tokenHash = await hashResetToken(token);
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-  db.delete(passwordResetTokens)
+  await db.delete(passwordResetTokens)
     .where(eq(passwordResetTokens.userId, userId))
     .run();
 
-  db.insert(passwordResetTokens)
+  await db.insert(passwordResetTokens)
     .values({
       id: nanoid(),
       userId,
@@ -1400,7 +1416,7 @@ export async function createPasswordResetToken(userId: string) {
 
 export async function consumePasswordResetToken(token: string) {
   const tokenHash = await hashResetToken(token);
-  const row = db
+  const row = await db
     .select()
     .from(passwordResetTokens)
     .where(eq(passwordResetTokens.tokenHash, tokenHash))
@@ -1408,33 +1424,33 @@ export async function consumePasswordResetToken(token: string) {
 
   if (!row || row.expiresAt < new Date()) return null;
 
-  db.delete(passwordResetTokens)
+  await db.delete(passwordResetTokens)
     .where(eq(passwordResetTokens.id, row.id))
     .run();
 
   return row.userId;
 }
 
-export function deleteBudget(userId: string, budgetId: string) {
-  const budget = db.select().from(budgets).where(eq(budgets.id, budgetId)).get();
+export async function deleteBudget(userId: string, budgetId: string) {
+  const budget = await db.select().from(budgets).where(eq(budgets.id, budgetId)).get();
   if (!budget) return { error: "بودجه یافت نشد" as const };
 
   if (budget.userId !== userId) {
     return { error: "دسترسی ندارید" as const };
   }
 
-  db.delete(budgets).where(eq(budgets.id, budgetId)).run();
+  await db.delete(budgets).where(eq(budgets.id, budgetId)).run();
   return { ok: true as const };
 }
 
-export function getBudgetsWithSpent(
+export async function getBudgetsWithSpent(
   userId: string,
   year: number,
   month: number
 ) {
   const { start, end } = getJalaliMonthRange(year, month);
 
-  const rows = db
+  const rows = await db
     .select({
       id: budgets.id,
       categoryId: budgets.categoryId,
@@ -1453,7 +1469,7 @@ export function getBudgetsWithSpent(
     )
     .all();
 
-  const spentByCategory = db
+  const spentByCategory = await db
     .select({
       categoryId: transactions.categoryId,
       total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`,
@@ -1487,12 +1503,12 @@ export function getBudgetsWithSpent(
   });
 }
 
-export function compareMonths(userId: string, year: number, month: number) {
+export async function compareMonths(userId: string, year: number, month: number) {
   const prevMonth = month === 1 ? 12 : month - 1;
   const prevYear = month === 1 ? year - 1 : year;
 
-  const current = getMonthlyStats(userId, year, month);
-  const previous = getMonthlyStats(userId, prevYear, prevMonth);
+  const current = await getMonthlyStats(userId, year, month);
+  const previous = await getMonthlyStats(userId, prevYear, prevMonth);
 
   const change = (curr: number, prev: number) =>
     prev === 0 ? null : Math.round(((curr - prev) / prev) * 100);
@@ -1531,5 +1547,6 @@ export {
   todos,
   routines,
   routineCompletions,
+  receiptFiles,
 };
 export { DEFAULT_USER_ID } from "../constants";

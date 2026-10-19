@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensureDb, getUserByEmail, createPasswordResetToken } from "@/lib/db/queries";
@@ -12,14 +13,14 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  ensureDb();
-  const body = await request.json();
+  await ensureDb();
+  const body = await readJsonObject(request);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "ایمیل نامعتبر" }, { status: 400 });
   }
 
-  const user = getUserByEmail(parsed.data.email);
+  const user = await getUserByEmail(parsed.data.email);
   const genericMessage =
     "اگر این ایمیل ثبت شده باشد، لینک بازیابی ارسال می‌شود.";
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { toISODate } from "@/lib/format";
+
 import { useEffect, useState } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
@@ -51,7 +53,7 @@ export default function GoalsPage() {
   const [form, setForm] = useState(emptyForm);
   const [contrib, setContrib] = useState({
     amount: "",
-    date: new Date().toISOString().split("T")[0],
+    date: toISODate(new Date()),
   });
 
   const load = () =>
@@ -144,7 +146,7 @@ export default function GoalsPage() {
     if (res.ok) {
       toast.success("واریز ثبت شد");
       setContribOpen(null);
-      setContrib({ amount: "", date: new Date().toISOString().split("T")[0] });
+      setContrib({ amount: "", date: toISODate(new Date()) });
       load();
     }
   };

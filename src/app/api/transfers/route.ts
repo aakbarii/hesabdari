@@ -1,3 +1,6 @@
+import { readJsonObject } from "@/lib/validation";
+import { validateFinancialReferences } from "@/lib/financial-validation";
+import { dateInput, moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
 import {
@@ -13,18 +16,18 @@ import { z } from "zod";
 const transferSchema = z.object({
   fromAccountId: z.string(),
   toAccountId: z.string(),
-  amount: z.number().positive(),
+  amount: moneyInput,
   description: z.string().optional(),
-  date: z.string(),
+  date: dateInput,
 });
 
 export async function GET() {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const list = db
+  const list = await db
     .select({
       id: transfers.id,
       amount: transfers.amount,
@@ -39,7 +42,7 @@ export async function GET() {
     .all();
 
   const accountsMap = Object.fromEntries(
-    db.select().from(accounts).all().map((a) => [a.id, a])
+    (await db.select().from(accounts).where(eq(accounts.userId, userId)).all()).map((a) => [a.id, a])
   );
 
   const enriched = list.map((t) => ({
@@ -52,12 +55,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = transferSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
@@ -73,8 +76,13 @@ export async function POST(request: Request) {
     );
   }
 
+  for (const accountId of [fromAccountId, toAccountId]) {
+    const referenceError = await validateFinancialReferences(userId, { accountId });
+    if (referenceError) return referenceError;
+  }
+
   const id = nanoid();
-  db.insert(transfers)
+  await db.insert(transfers)
     .values({
       id,
       userId,

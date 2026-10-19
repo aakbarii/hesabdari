@@ -6,12 +6,12 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
-  const result = deleteBudget(auth, id);
+  const result = await deleteBudget(auth, id);
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

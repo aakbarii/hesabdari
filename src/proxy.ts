@@ -1,21 +1,32 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { AUTH_ENABLED } from "@/lib/app-config";
 
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // Keep the original authentication flow below for re-enabling it later.
+  if (!AUTH_ENABLED) {
+    if (PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    if (pathname.startsWith("/api/auth/") && pathname !== "/api/auth/me") {
+      return NextResponse.json({ error: "ورود و مدیریت رمز فعلاً غیرفعال است" }, { status: 403 });
+    }
+    return NextResponse.next();
+  }
 
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
-    pathname.includes(".")
+    (!pathname.startsWith("/api/") && /\.(?:png|jpg|jpeg|svg|webp|ico|woff2?|json|js|html)$/.test(pathname))
   ) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith("/api/auth")) {
+  if (pathname === "/api/health" || pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
 
@@ -38,7 +49,7 @@ export async function proxy(request: NextRequest) {
 
   if (!userId) {
     const login = new URL("/login", request.url);
-    login.searchParams.set("from", pathname);
+    login.searchParams.set("from", pathname + request.nextUrl.search);
     return NextResponse.redirect(login);
   }
 

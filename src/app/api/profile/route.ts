@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -7,6 +8,7 @@ import {
   updateUserProfile,
 } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
+import { AUTH_ENABLED } from "@/lib/app-config";
 
 const schema = z.object({
   name: z.string().min(1).optional(),
@@ -16,11 +18,11 @@ const schema = z.object({
 });
 
 export async function GET() {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const user = getUserById(auth);
+  const user = await getUserById(auth);
   if (!user) {
     return NextResponse.json({ error: "کاربر یافت نشد" }, { status: 404 });
   }
@@ -33,22 +35,25 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
-  const user = getUserById(auth);
+  const user = await getUserById(auth);
   if (!user) {
     return NextResponse.json({ error: "کاربر یافت نشد" }, { status: 404 });
   }
 
   const { name, email, currentPassword, newPassword } = parsed.data;
+  if (!AUTH_ENABLED && (currentPassword || newPassword)) {
+    return NextResponse.json({ error: "مدیریت رمز فعلاً غیرفعال است" }, { status: 403 });
+  }
 
   if (newPassword) {
     if (!currentPassword) {
@@ -70,7 +75,7 @@ export async function PATCH(request: Request) {
     ? await bcrypt.hash(newPassword, 10)
     : undefined;
 
-  const result = updateUserProfile(auth, {
+  const result = await updateUserProfile(auth, {
     name,
     email,
     passwordHash,

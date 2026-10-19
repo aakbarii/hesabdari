@@ -4,7 +4,7 @@ import { ensureDb, compareMonths } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
@@ -14,5 +14,5 @@ export async function GET(request: Request) {
     searchParams.get("month") ?? String(moment().jMonth() + 1)
   );
 
-  return NextResponse.json(compareMonths(auth, year, month));
+  return NextResponse.json(await compareMonths(auth, year, month));
 }

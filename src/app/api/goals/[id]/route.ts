@@ -1,3 +1,5 @@
+import { readJsonObject } from "@/lib/validation";
+import { dateInput, moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -6,8 +8,8 @@ import { requireUserId } from "@/lib/api-auth";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
-  targetAmount: z.number().positive().optional(),
-  deadline: z.string().optional().nullable(),
+  targetAmount: moneyInput.optional(),
+  deadline: dateInput.optional().nullable(),
   color: z.string().optional(),
   status: z.enum(["active", "completed"]).optional(),
 });
@@ -16,19 +18,19 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
+  if (!parsed.success || Object.keys(parsed.data).length === 0) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
-  const existing = db.select().from(goals).where(eq(goals.id, id)).get();
+  const existing = await db.select().from(goals).where(eq(goals.id, id)).get();
   if (!existing || existing.userId !== userId) {
     return NextResponse.json({ error: "هدف یافت نشد" }, { status: 404 });
   }
@@ -46,7 +48,7 @@ export async function PATCH(
       : null;
   }
 
-  db.update(goals).set(updates).where(eq(goals.id, id)).run();
+  await db.update(goals).set(updates).where(eq(goals.id, id)).run();
   return NextResponse.json({ success: true });
 }
 
@@ -54,17 +56,17 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
   const { id } = await params;
-  const existing = db.select().from(goals).where(eq(goals.id, id)).get();
+  const existing = await db.select().from(goals).where(eq(goals.id, id)).get();
   if (!existing || existing.userId !== userId) {
     return NextResponse.json({ error: "هدف یافت نشد" }, { status: 404 });
   }
 
-  db.delete(goals).where(eq(goals.id, id)).run();
+  await db.delete(goals).where(eq(goals.id, id)).run();
   return NextResponse.json({ success: true });
 }

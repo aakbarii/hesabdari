@@ -1,3 +1,6 @@
+import { readJsonObject } from "@/lib/validation";
+import { validateFinancialReferences } from "@/lib/financial-validation";
+import { dateInput, moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -8,28 +11,28 @@ const updateSchema = z.object({
   accountId: z.string().optional(),
   categoryId: z.string().optional().nullable(),
   type: z.enum(["income", "expense"]).optional(),
-  amount: z.number().positive().optional(),
+  amount: moneyInput.optional(),
   description: z.string().optional().nullable(),
-  date: z.string().optional(),
+  date: dateInput.optional(),
 });
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
+  if (!parsed.success || Object.keys(parsed.data).length === 0) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
-  const existing = db
+  const existing = await db
     .select()
     .from(transactions)
     .where(eq(transactions.id, id))
@@ -46,7 +49,7 @@ export async function PATCH(
     (parsed.data.categoryId === undefined || parsed.data.categoryId === null)
   ) {
     const type = parsed.data.type ?? existing.type;
-    const auto = autoCategorize(
+    const auto = await autoCategorize(
       userId,
       parsed.data.description,
       type
@@ -54,7 +57,14 @@ export async function PATCH(
     if (auto) updates.categoryId = auto;
   }
 
-  db.update(transactions)
+  const referenceError = await validateFinancialReferences(userId, {
+    accountId: parsed.data.accountId ?? existing.accountId,
+    categoryId: (updates.categoryId !== undefined ? updates.categoryId : existing.categoryId) as string | null,
+    type: parsed.data.type ?? existing.type,
+  });
+  if (referenceError) return referenceError;
+
+  await db.update(transactions)
     .set(updates as Partial<typeof transactions.$inferInsert>)
     .where(eq(transactions.id, id))
     .run();
@@ -66,13 +76,13 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
   const { id } = await params;
-  const existing = db
+  const existing = await db
     .select()
     .from(transactions)
     .where(eq(transactions.id, id))
@@ -81,6 +91,6 @@ export async function DELETE(
     return NextResponse.json({ error: "تراکنش یافت نشد" }, { status: 404 });
   }
 
-  db.delete(transactions).where(eq(transactions.id, id)).run();
+  await db.delete(transactions).where(eq(transactions.id, id)).run();
   return NextResponse.json({ success: true });
 }

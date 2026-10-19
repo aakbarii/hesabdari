@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -17,11 +18,11 @@ const serviceSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-export async function GET(request: Request) {
+export async function GET() {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const services = db
+  const services = await db
     .select()
     .from(vehicleServices)
     .where(eq(vehicleServices.userId, auth))
@@ -35,14 +36,14 @@ export async function POST(request: Request) {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = serviceSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "اطلاعات سرویس نامعتبر است" }, { status: 400 });
   }
 
   const id = nanoid();
-  db.insert(vehicleServices)
+  await db.insert(vehicleServices)
     .values({
       id,
       userId: auth,

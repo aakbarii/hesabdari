@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -16,8 +17,8 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  ensureDb();
-  const body = await request.json();
+  await ensureDb();
+  const body = await readJsonObject(request);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
@@ -31,13 +32,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user) {
     return NextResponse.json({ error: "کاربر یافت نشد" }, { status: 404 });
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
-  db.update(users).set({ passwordHash }).where(eq(users.id, userId)).run();
+  await db.update(users).set({ passwordHash }).where(eq(users.id, userId)).run();
 
   return NextResponse.json({ ok: true });
 }

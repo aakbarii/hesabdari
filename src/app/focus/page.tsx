@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { toISODate } from "@/lib/format";
+
+import { useState, useEffect, useRef, useEffectEvent } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Timer, Play, Pause, RotateCcw, CheckCircle2, Flame, Brain, Code2, BookOpen, Coffee } from "lucide-react";
+import {  Play, Pause, RotateCcw, CheckCircle2, Flame, Brain,   } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+
 
 const MODES = {
   work: { label: "کار عمیق", minutes: 25, color: "text-primary" },
@@ -25,14 +27,14 @@ export default function FocusPage() {
   const [category, setCategory] = useState<"coding" | "work" | "study" | "personal">("coding");
 
   const [stats, setStats] = useState({ sessionCount: 0, totalMinutes: 0 });
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<Array<{ id: string; taskName: string; durationMinutes: number; category: string; createdAt: string }>>([]);
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const todayStr = toISODate(new Date());
+  const deadlineRef = useRef<number | null>(null);
 
   const playBeep = () => {
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const ctx = new AudioContext();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
@@ -44,6 +46,7 @@ export default function FocusPage() {
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 0.6);
+      osc.onended = () => { void ctx.close(); };
     } catch {}
   };
 
@@ -59,10 +62,16 @@ export default function FocusPage() {
   };
 
   useEffect(() => {
-    loadStats();
-  }, []);
+    const controller = new AbortController();
+    fetch(`/api/focus?date=${todayStr}`, { signal: controller.signal })
+      .then((res) => { if (!res.ok) throw new Error("Load failed"); return res.json(); })
+      .then((json) => { setStats({ sessionCount: json.sessionCount, totalMinutes: json.totalMinutes }); setSessions(json.sessions); })
+      .catch(() => { if (!controller.signal.aborted) toast.error("دریافت جلسات تمرکز انجام نشد"); });
+    return () => controller.abort();
+  }, [todayStr]);
 
   const switchMode = (newMode: keyof typeof MODES) => {
+    deadlineRef.current = null;
     setIsRunning(false);
     setMode(newMode);
     setTimeLeft(MODES[newMode].minutes * 60);
@@ -72,7 +81,7 @@ export default function FocusPage() {
     playBeep();
     if (mode === "work") {
       try {
-        await fetch("/api/focus", {
+        const response = await fetch("/api/focus", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -82,9 +91,10 @@ export default function FocusPage() {
             date: todayStr,
           }),
         });
+        if (!response.ok) throw new Error("Save failed");
         toast.success("آفرین! یک پومودوروی ۲۵ دقیقه‌ای ثبت شد 🎯");
         loadStats();
-      } catch {}
+      } catch { toast.error("ثبت جلسه انجام نشد. اتصال به سرور را بررسی کنید."); }
       switchMode("shortBreak");
     } else {
       toast.info("استراحت تمام شد، بریم برای پومودوروی بعدی!");
@@ -92,28 +102,36 @@ export default function FocusPage() {
     }
   };
 
-  useEffect(() => {
-    if (isRunning) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            handleCompleteSession();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isRunning, mode, taskName, category]);
+  const onComplete = useEffectEvent(() => { void handleCompleteSession(); });
 
-  const toggleTimer = () => setIsRunning(!isRunning);
+  useEffect(() => {
+    if (!isRunning) return;
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil(((deadlineRef.current ?? Date.now()) - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining === 0) {
+        clearInterval(timer);
+        deadlineRef.current = null;
+        setIsRunning(false);
+        onComplete();
+      }
+    };
+    const timer = setInterval(tick, 250);
+    return () => clearInterval(timer);
+  }, [isRunning]);
+
+  const toggleTimer = () => {
+    if (isRunning) {
+      setTimeLeft(Math.max(0, Math.ceil(((deadlineRef.current ?? Date.now()) - Date.now()) / 1000)));
+      deadlineRef.current = null;
+      setIsRunning(false);
+    } else {
+      deadlineRef.current = Date.now() + timeLeft * 1000;
+      setIsRunning(true);
+    }
+  };
   const resetTimer = () => {
+    deadlineRef.current = null;
     setIsRunning(false);
     setTimeLeft(MODES[mode].minutes * 60);
   };
@@ -148,7 +166,7 @@ export default function FocusPage() {
         {/* Main Pomodoro Clock Card */}
         <Card className="border shadow-md overflow-hidden text-center p-6 sm:p-10 relative">
           {/* Mode Tabs */}
-          <div className="flex justify-center gap-2 mb-8">
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
             <Button
               size="sm"
               variant={mode === "work" ? "default" : "outline"}
@@ -210,7 +228,7 @@ export default function FocusPage() {
                 placeholder="عنوان کار متمرکز..."
                 className="text-center sm:text-right"
               />
-              <Select value={category} onValueChange={(v: any) => setCategory(v)}>
+              <Select value={category} onValueChange={(v) => { if (v === "coding" || v === "work" || v === "study" || v === "personal") setCategory(v); }}>
                 <SelectTrigger className="w-full sm:w-36">
                   <SelectValue />
                 </SelectTrigger>

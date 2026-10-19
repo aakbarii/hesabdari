@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# روال — مدیریت زندگی و دارایی
 
-## Getting Started
+برنامهٔ فارسی و راست‌به‌چپ برای حساب‌ها، تراکنش‌ها، انتقال، بودجه، بدهی و هدف‌های مالی؛ همراه با کارها، عادت‌ها، تغذیه، ورزش، تمرکز، مطالعه، ژورنال و نگهداری خودرو.
 
-First, run the development server:
+## اجرای محلی
 
-```bash
+Node.js 22 و npm لازم است. دیتابیس SQLite خودکار ساخته و مهاجرت داده می‌شود.
+
+```sh
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+برای ورود، ابتدا ثبت‌نام کنید. هر حساب داده‌های جدا خودش را دارد. دیتابیس محلی پیش‌فرض یک فایل SQLite در `data` است؛ با تنظیم `TURSO_DATABASE_URL` همان برنامه به دیتابیس ابری متصل می‌شود.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```sh
+npm run build
+npm start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+فونت وزیرمتن محلی است؛ ساخت و نمایش برنامه به Google Fonts وابسته نیست. مجوز فونت در `public/fonts/OFL.txt` قرار دارد. در استقرار مستقیم خروجی standalone، پوشه‌های `public`، `.next/static` و `drizzle` را نیز توزیع کنید. `desktop:prepare` این کار را برای بستهٔ دسکتاپ انجام می‌دهد.
 
-## Learn More
+## تنظیمات و نگهداری داده‌ها
 
-To learn more about Next.js, take a look at the following resources:
+متغیرهای اختیاری را در `.env.local` تنظیم کنید:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```dotenv
+HESABDARI_DATA_DIR=D:/my-private-data/ravaal
+SESSION_SECRET=replace-with-a-long-random-private-value
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+پیش‌فرض داده‌ها پوشهٔ `data` پروژه است. بدون `SESSION_SECRET` یک کلید تصادفی پایدار در فایل `.session-secret` پوشهٔ داده‌ها ساخته می‌شود. چند نمونهٔ سرور باید کلید یکسان و خصوصی داشته باشند. تغییر کلید، نشست‌های قبلی را خارج می‌کند.
 
-## Deploy on Vercel
+برای بازیابی رمز از راه ایمیل، `SMTP_HOST`، `SMTP_FROM` و در صورت نیاز `SMTP_PORT`، `SMTP_SECURE`، `SMTP_USER` و `SMTP_PASS` را تنظیم کنید.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+برای پشتیبان‌گیری، برنامه را ببندید و کل پوشهٔ داده‌ها، شامل دیتابیس، فایل‌های WAL احتمالی، رسیدها و کلید نشست را کپی کنید. داده‌ها و فایل‌های محیطی در Git ثبت نمی‌شوند.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## بررسی کیفیت
+
+```sh
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run test:smoke
+```
+
+تست‌های واحد، مبلغ و تاریخ، نشست ورود، مالکیت داده‌ها، تراکنش دوره‌ای و یک‌بارمصرف بودن چالش دومرحله‌ای را بررسی می‌کنند. تست HTTP یک سرور با دیتابیس موقت مستقل اجرا می‌کند، سناریوهای ورود غیرفعال، مالکیت داده‌ها و ماژول‌های اصلی را بررسی و داده‌های خودش را پاک می‌کند. پورت آن 3117 است و با `SMOKE_PORT` تغییر می‌کند. تست HTTP را پس از Build اجرا کنید.
+
+`npm audit --omit=dev` وابستگی‌های اجرایی را بررسی می‌کند. گزارش کامل توسعه هنوز شامل هشدارهای ابزارهای ساخت و Electron است. ارتقای عمدهٔ Electron و بررسی نصاب ویندوز جداگانه لازم است. از `npm audit fix --force` بدون بررسی تغییرات ناسازگار استفاده نکنید.
+
+## دسکتاپ
+
+```sh
+npm run desktop
+npm run desktop:build
+```
+
+ساخت نصاب Windows شامل آماده‌سازی سرور standalone و Node قابل‌حمل است. موفقیت Build وب به‌تنهایی تأیید عملکرد نصاب دسکتاپ یا ارسال واقعی ایمیل نیست.
+
+## استقرار ابری (هاست رایگان + دیتابیس مشترک)
+
+دیتابیس روی Turso (libSQL) است و برنامه روی Vercel اجرا می‌شود. هر دو سرویس نسخهٔ رایگان دارند.
+
+1. در [turso.tech](https://turso.tech) یک دیتابیس بسازید و آدرس `libsql://…` و یک توکن بگیرید.
+2. پروژه را روی GitHub داشته باشید، سپس در Vercel آن را Import کنید.
+3. در تنظیمات Vercel این متغیرها را وارد کنید: `TURSO_DATABASE_URL`، `TURSO_AUTH_TOKEN`، `SESSION_SECRET` (یک رشتهٔ تصادفی بلند) و `ADMIN_EMAIL` (ایمیل مدیر).
+4. اگر داده‌های محلی دارید، یک بار اجرا کنید (روی دیتابیس خالی):
+
+```sh
+TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… npx tsx scripts/migrate-local-to-turso.mts
+```
+
+5. با ایمیل `ADMIN_EMAIL` وارد شوید؛ اگر داده‌های محلی را کپی کرده‌اید، از همین صفحهٔ راه‌اندازی رمز انتخاب کنید. پنل مدیریت در مسیر `/admin` است و فقط برای مدیر باز می‌شود.
+
+توجه: مدیر می‌تواند اطلاعات همهٔ کاربران را ببیند. رمز عبور و کلیدهای 2FA در پنل نمایش داده نمی‌شوند.

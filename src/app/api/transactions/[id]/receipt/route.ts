@@ -1,20 +1,31 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { eq } from "drizzle-orm";
-import { ensureDb, db, transactions } from "@/lib/db/queries";
+import { eq, and } from "drizzle-orm";
+import { ensureDb, db, transactions, receiptFiles } from "@/lib/db/queries";
+import { requireUserId } from "@/lib/api-auth";
+
+const MIME_BY_EXT: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  pdf: "application/pdf",
+};
+const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
+  const auth = await requireUserId();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth;
   const { id } = await params;
 
-  const tx = db
+  const tx = await db
     .select()
     .from(transactions)
-    .where(eq(transactions.id, id))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
     .get();
   if (!tx) {
     return NextResponse.json({ error: "تراکنش یافت نشد" }, { status: 404 });
@@ -27,22 +38,38 @@ export async function POST(
   }
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-  const allowed = ["jpg", "jpeg", "png", "webp", "pdf"];
-  if (!allowed.includes(ext)) {
+  const mimeType = MIME_BY_EXT[ext];
+  if (!mimeType) {
     return NextResponse.json({ error: "فرمت مجاز نیست" }, { status: 400 });
   }
-
-  const dir = path.join(process.cwd(), "data", "receipts");
-  await mkdir(dir, { recursive: true });
+  if (file.size > MAX_RECEIPT_BYTES) {
+    return NextResponse.json({ error: "حجم فایل بیش از ۵ مگابایت است" }, { status: 413 });
+  }
 
   const filename = `${id}.${ext}`;
-  const filepath = path.join(dir, filename);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filepath, buffer);
+  const data = Buffer.from(await file.arrayBuffer());
 
-  db.update(transactions)
+  await db
+    .insert(receiptFiles)
+    .values({ id: filename, userId, mimeType, data, createdAt: new Date() })
+    .onConflictDoUpdate({
+      target: receiptFiles.id,
+      set: { mimeType, data, createdAt: new Date() },
+    })
+    .run();
+
+  // Replace an older receipt stored under a different extension.
+  if (tx.receiptPath && tx.receiptPath !== filename) {
+    await db
+      .delete(receiptFiles)
+      .where(and(eq(receiptFiles.id, tx.receiptPath), eq(receiptFiles.userId, userId)))
+      .run();
+  }
+
+  await db
+    .update(transactions)
     .set({ receiptPath: filename })
-    .where(eq(transactions.id, id))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
     .run();
 
   return NextResponse.json({ receiptPath: filename });

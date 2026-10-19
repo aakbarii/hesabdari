@@ -19,7 +19,7 @@ export const CURRENCY_UNITS: Record<
 };
 
 export function isCurrencyUnit(value: string): value is CurrencyUnit {
-  return value in CURRENCY_UNITS;
+  return value === "toman" || value === "rial";
 }
 
 /** مبالغ در دیتابیس همیشه به تومان ذخیره می‌شوند */
@@ -38,9 +38,12 @@ export function getCurrencyLabel(unit: CurrencyUnit = DEFAULT_CURRENCY_UNIT): st
 
 export function parseRawNumber(value: string): number {
   const cleaned = value
-    .replace(/[,\s]/g, "")
-    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
-  return parseInt(cleaned, 10) || 0;
+    .replace(/[,٬\s]/g, "")
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  if (!/^-?\d+$/.test(cleaned)) return 0;
+  const number = Number(cleaned);
+  return Number.isSafeInteger(number) ? number : 0;
 }
 
 export function parseAmountInput(

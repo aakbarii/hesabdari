@@ -1,11 +1,9 @@
+import { getSessionSecret } from "./session-secret";
+
 export const SESSION_COOKIE = "hesabdari_session";
 const SESSION_DAYS = 30;
 
-function getSecret() {
-  return (
-    process.env.SESSION_SECRET ?? "hesabdari-dev-secret-change-in-production"
-  );
-}
+const getSecret = getSessionSecret;
 
 function bytesToBase64Url(bytes: Uint8Array): string {
   if (typeof Buffer !== "undefined") {
@@ -53,27 +51,29 @@ export async function signSession(userId: string): Promise<string> {
 }
 
 export async function verifySession(token: string): Promise<string | null> {
-  const dot = token.lastIndexOf(".");
-  if (dot <= 0) return null;
-
-  const payload = token.slice(0, dot);
-  const sig = token.slice(dot + 1);
-  const key = await getHmacKey(getSecret());
-
-  const sigBytes = Uint8Array.from(base64UrlToBytes(sig));
-  const valid = await crypto.subtle.verify(
-    "HMAC",
-    key,
-    sigBytes,
-    new TextEncoder().encode(payload)
-  );
-  if (!valid) return null;
-
   try {
+    if (token.length > 4096) return null;
+    const dot = token.lastIndexOf(".");
+    if (dot <= 0) return null;
+
+    const payload = token.slice(0, dot);
+    const sig = token.slice(dot + 1);
+    const key = await getHmacKey(getSecret());
+
+    const sigBytes = Uint8Array.from(base64UrlToBytes(sig));
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      sigBytes,
+      new TextEncoder().encode(payload)
+    );
+    if (!valid) return null;
+
     const data = JSON.parse(
       new TextDecoder().decode(base64UrlToBytes(payload))
     ) as { userId?: string; exp?: number };
-    if (!data.userId || !data.exp || data.exp < Date.now()) return null;
+    if (typeof data.userId !== "string" || !data.userId ||
+      typeof data.exp !== "number" || !Number.isFinite(data.exp) || data.exp <= Date.now()) return null;
     return data.userId;
   } catch {
     return null;

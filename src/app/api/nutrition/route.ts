@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -29,13 +30,13 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
 
-  const userMeals = db
+  const userMeals = await db
     .select()
     .from(meals)
     .where(and(eq(meals.userId, auth), eq(meals.date, date)))
     .all();
 
-  const userWater = db
+  const userWater = await db
     .select()
     .from(waterLogs)
     .where(and(eq(waterLogs.userId, auth), eq(waterLogs.date, date)))
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
 
   if (body.type === "water") {
     const parsed = logWaterSchema.safeParse(body);
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "اطلاعات آب نامعتبر است" }, { status: 400 });
     }
     const id = nanoid();
-    db.insert(waterLogs)
+    await db.insert(waterLogs)
       .values({
         id,
         userId: auth,
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
   }
 
   const id = nanoid();
-  db.insert(meals)
+  await db.insert(meals)
     .values({
       id,
       userId: auth,

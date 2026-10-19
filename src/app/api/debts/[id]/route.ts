@@ -1,3 +1,5 @@
+import { readJsonObject } from "@/lib/validation";
+import { dateInput, moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -7,9 +9,9 @@ import { requireUserId } from "@/lib/api-auth";
 const updateSchema = z.object({
   personName: z.string().min(1).optional(),
   type: z.enum(["owed", "owing"]).optional(),
-  totalAmount: z.number().positive().optional(),
+  totalAmount: moneyInput.optional(),
   description: z.string().optional().nullable(),
-  dueDate: z.string().optional().nullable(),
+  dueDate: dateInput.optional().nullable(),
   status: z.enum(["active", "settled"]).optional(),
 });
 
@@ -17,19 +19,19 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
-  const existing = db.select().from(debts).where(eq(debts.id, id)).get();
+  const existing = await db.select().from(debts).where(eq(debts.id, id)).get();
   if (!existing || existing.userId !== auth) {
     return NextResponse.json({ error: "یافت نشد" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
+  if (!parsed.success || Object.keys(parsed.data).length === 0) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
@@ -50,7 +52,7 @@ export async function PATCH(
     );
   }
 
-  db.update(debts).set(updates).where(eq(debts.id, id)).run();
+  await db.update(debts).set(updates).where(eq(debts.id, id)).run();
   return NextResponse.json({ ok: true });
 }
 
@@ -58,16 +60,16 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
-  const existing = db.select().from(debts).where(eq(debts.id, id)).get();
+  const existing = await db.select().from(debts).where(eq(debts.id, id)).get();
   if (!existing || existing.userId !== auth) {
     return NextResponse.json({ error: "یافت نشد" }, { status: 404 });
   }
 
-  db.delete(debts).where(eq(debts.id, id)).run();
+  await db.delete(debts).where(eq(debts.id, id)).run();
   return NextResponse.json({ ok: true });
 }

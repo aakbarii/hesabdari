@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { cookies } from "next/headers";
@@ -8,7 +9,7 @@ import {
   setTotpPendingSecret,
   enableTotp,
   disableTotp,
-  createPending2faToken,
+  getPending2faUserId,
   consumePending2faToken,
 } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
@@ -20,11 +21,11 @@ import {
 } from "@/lib/auth";
 
 export async function GET() {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const user = getUserById(auth);
+  const user = await getUserById(auth);
   if (!user) {
     return NextResponse.json({ error: "کاربر یافت نشد" }, { status: 404 });
   }
@@ -34,12 +35,12 @@ export async function GET() {
   });
 }
 
-export async function POST(request: Request) {
-  ensureDb();
+export async function POST() {
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const user = getUserById(auth);
+  const user = await getUserById(auth);
   if (!user) {
     return NextResponse.json({ error: "کاربر یافت نشد" }, { status: 404 });
   }
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   const setup = createTotpSetup(user.email);
-  setTotpPendingSecret(auth, setup.secret);
+  await setTotpPendingSecret(auth, setup.secret);
 
   return NextResponse.json({
     secret: setup.secret,
@@ -62,16 +63,16 @@ const enableSchema = z.object({
 });
 
 export async function PUT(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const user = getUserById(auth);
+  const user = await getUserById(auth);
   if (!user?.totpPendingSecret) {
     return NextResponse.json({ error: "ابتدا راه‌اندازی را شروع کنید" }, { status: 400 });
   }
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = enableSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "کد نامعتبر" }, { status: 400 });
@@ -81,7 +82,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "کد تأیید اشتباه است" }, { status: 400 });
   }
 
-  enableTotp(auth);
+  await enableTotp(auth);
   return NextResponse.json({ ok: true, enabled: true });
 }
 
@@ -91,16 +92,16 @@ const disableSchema = z.object({
 });
 
 export async function DELETE(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const user = getUserById(auth);
+  const user = await getUserById(auth);
   if (!user?.totpEnabled || !user.totpSecret) {
     return NextResponse.json({ error: "۲FA فعال نیست" }, { status: 400 });
   }
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = disableSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
@@ -119,7 +120,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "کد تأیید اشتباه است" }, { status: 400 });
   }
 
-  disableTotp(auth);
+  await disableTotp(auth);
   return NextResponse.json({ ok: true, enabled: false });
 }
 
@@ -129,14 +130,14 @@ const verifyLoginSchema = z.object({
 });
 
 export async function PATCH(request: Request) {
-  ensureDb();
-  const body = await request.json();
+  await ensureDb();
+  const body = await readJsonObject(request);
   const parsed = verifyLoginSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
-  const userId = await consumePending2faToken(parsed.data.pendingToken);
+  const userId = await getPending2faUserId(parsed.data.pendingToken);
   if (!userId) {
     return NextResponse.json(
       { error: "نشست منقضی شده. دوباره وارد شوید." },
@@ -144,7 +145,7 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user?.totpSecret || !user.totpEnabled) {
     return NextResponse.json({ error: "۲FA فعال نیست" }, { status: 400 });
   }
@@ -153,6 +154,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "کد تأیید اشتباه است" }, { status: 401 });
   }
 
+  if (await consumePending2faToken(parsed.data.pendingToken) !== user.id) {
+    return NextResponse.json({ error: "نشست منقضی شده. دوباره وارد شوید." }, { status: 401 });
+  }
   const token = await signSession(user.id);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);

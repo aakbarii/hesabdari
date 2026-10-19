@@ -14,12 +14,12 @@ export async function DELETE(
   const { id } = await params;
 
   // Try deleting from meals
-  db.delete(meals)
+  await db.delete(meals)
     .where(and(eq(meals.id, id), eq(meals.userId, auth)))
     .run();
 
   // Try deleting from water
-  db.delete(waterLogs)
+  await db.delete(waterLogs)
     .where(and(eq(waterLogs.id, id), eq(waterLogs.userId, auth)))
     .run();
 

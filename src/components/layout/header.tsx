@@ -11,12 +11,12 @@ export function Header({ title }: { title: string }) {
         <div className="lg:hidden shrink-0">
           <AppLogo size="sm" showText={false} />
         </div>
-        <h2 key={title} className="text-lg lg:text-xl font-bold motion-fade-in truncate">
+        <h1 key={title} className="text-lg lg:text-xl font-bold motion-fade-in truncate">
           {title}
-        </h2>
+        </h1>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        <div className="lg:hidden">
+        <div>
           <GlobalSearch />
         </div>
         <ThemeToggle />

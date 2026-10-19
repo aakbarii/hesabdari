@@ -1,35 +1,31 @@
 import { NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import path from "path";
-
-const MIME: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  pdf: "application/pdf",
-};
+import { and, eq } from "drizzle-orm";
+import { ensureDb, db, receiptFiles } from "@/lib/db/queries";
+import { requireUserId } from "@/lib/api-auth";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ filename: string }> }
 ) {
-  const { filename } = await params;
-  if (filename.includes("..") || filename.includes("/")) {
-    return NextResponse.json({ error: "نامعتبر" }, { status: 400 });
-  }
+  await ensureDb();
+  const auth = await requireUserId();
+  if (auth instanceof NextResponse) return auth;
+  const userId = auth;
 
-  const filepath = path.join(process.cwd(), "data", "receipts", filename);
-  try {
-    const buffer = await readFile(filepath);
-    const ext = filename.split(".").pop() ?? "jpg";
-    return new NextResponse(buffer, {
-      headers: {
-        "Content-Type": MIME[ext] ?? "application/octet-stream",
-        "Cache-Control": "private, max-age=3600",
-      },
-    });
-  } catch {
+  const { filename } = await params;
+  const row = await db
+    .select()
+    .from(receiptFiles)
+    .where(and(eq(receiptFiles.id, filename), eq(receiptFiles.userId, userId)))
+    .get();
+  if (!row) {
     return NextResponse.json({ error: "فایل یافت نشد" }, { status: 404 });
   }
+
+  return new NextResponse(new Uint8Array(row.data), {
+    headers: {
+      "Content-Type": row.mimeType,
+      "Cache-Control": "private, max-age=3600",
+    },
+  });
 }

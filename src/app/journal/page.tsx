@@ -1,13 +1,15 @@
 "use client";
 
+import { toISODate } from "@/lib/format";
+
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card,   } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Smile, Sparkles, HeartHandshake, Trophy, Calendar, Check, BookMarked } from "lucide-react";
+import { Smile, Sparkles, HeartHandshake, Trophy, Calendar,  BookMarked } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -20,35 +22,15 @@ const MOODS = [
 ];
 
 export default function JournalPage() {
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = toISODate(new Date());
   const [date, setDate] = useState(todayStr);
   const [mood, setMood] = useState<string>("good");
   const [gratitude, setGratitude] = useState("");
   const [highlights, setHighlights] = useState("");
   const [notes, setNotes] = useState("");
 
-  const [pastEntries, setPastEntries] = useState<any[]>([]);
+  const [pastEntries, setPastEntries] = useState<Array<{ id: string; date: string; mood: string; gratitude: string | null; highlights: string | null; notes: string | null }>>([]);
   const [isPending, startTransition] = useTransition();
-
-  const loadJournal = async (d: string) => {
-    try {
-      const res = await fetch(`/api/journal?date=${d}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.entry) {
-          setMood(json.entry.mood);
-          setGratitude(json.entry.gratitude || "");
-          setHighlights(json.entry.highlights || "");
-          setNotes(json.entry.notes || "");
-        } else {
-          setMood("good");
-          setGratitude("");
-          setHighlights("");
-          setNotes("");
-        }
-      }
-    } catch {}
-  };
 
   const loadAll = async () => {
     try {
@@ -61,9 +43,25 @@ export default function JournalPage() {
   };
 
   useEffect(() => {
-    loadJournal(date);
-    loadAll();
+    const controller = new AbortController();
+    fetch(`/api/journal?date=${date}`, { signal: controller.signal })
+      .then((res) => { if (!res.ok) throw new Error("Load failed"); return res.json(); })
+      .then((json) => {
+        setMood(json.entry?.mood ?? "good"); setGratitude(json.entry?.gratitude ?? "");
+        setHighlights(json.entry?.highlights ?? ""); setNotes(json.entry?.notes ?? "");
+      }).catch(() => { if (!controller.signal.aborted) toast.error("دریافت ژورنال انجام نشد"); });
+    return () => controller.abort();
   }, [date]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/journal", { signal: controller.signal }).then((res) => {
+      if (!res.ok) throw new Error("Load failed"); return res.json();
+    }).then((json) => setPastEntries(json.entries ?? [])).catch(() => {
+      if (!controller.signal.aborted) toast.error("دریافت یادداشت‌ها انجام نشد");
+    });
+    return () => controller.abort();
+  }, []);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();

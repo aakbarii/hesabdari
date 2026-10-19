@@ -1,5 +1,7 @@
 "use client";
 
+import { toISODate } from "@/lib/format";
+
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,10 +33,10 @@ import {
   Dumbbell,
   Wheat,
   PieChart,
-  Calendar,
+
   Sparkles,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 
 interface Meal {
   id: string;
@@ -93,7 +95,7 @@ export default function NutritionPage() {
     note: "",
   });
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = toISODate(new Date());
   const [currentDate, setCurrentDate] = useState(todayStr);
 
   const loadData = async (date: string) => {
@@ -112,7 +114,13 @@ export default function NutritionPage() {
   };
 
   useEffect(() => {
-    loadData(currentDate);
+    const controller = new AbortController();
+    fetch(`/api/nutrition?date=${currentDate}`, { signal: controller.signal })
+      .then((res) => { if (!res.ok) throw new Error("Load failed"); return res.json(); })
+      .then((json) => setData(json))
+      .catch(() => { if (!controller.signal.aborted) toast.error("دریافت اطلاعات تغذیه انجام نشد"); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, [currentDate]);
 
   const handleAddMeal = async (e: React.FormEvent) => {
@@ -222,6 +230,7 @@ export default function NutritionPage() {
       <Header title="مدیریت تغذیه و کالری" />
 
       <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        {loading && <p role="status" className="text-sm text-muted-foreground">در حال دریافت اطلاعات تغذیه…</p>}
         {/* Top bar with quick date */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border">
           <div className="flex items-center gap-3">

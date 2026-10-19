@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
 
-  const sessions = db
+  const sessions = await db
     .select()
     .from(focusSessions)
     .where(and(eq(focusSessions.userId, auth), eq(focusSessions.date, date)))
@@ -40,14 +41,14 @@ export async function POST(request: Request) {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = sessionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "اطلاعات نامعتبر است" }, { status: 400 });
   }
 
   const id = nanoid();
-  db.insert(focusSessions)
+  await db.insert(focusSessions)
     .values({
       id,
       userId: auth,

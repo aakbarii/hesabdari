@@ -4,7 +4,7 @@
  */
 import fs from "fs";
 import path from "path";
-import { execFileSync } from "child_process";
+import { cleanDesktopBundle } from "./clean-desktop-bundle.mjs";
 
 const root = process.cwd();
 const srcNm = path.join(root, ".next", "standalone", "node_modules");
@@ -51,4 +51,5 @@ for (const junk of ["dist-desktop", "dist", ".git"]) {
   }
 }
 
-console.log("Pack fix complete.");
+cleanDesktopBundle(destServer);
+console.log("Pack fix complete (local data excluded).");

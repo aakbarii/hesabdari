@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { toISODate } from "@/lib/format";
+
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Header } from "@/components/layout/header";
@@ -96,11 +98,13 @@ const emptyTxForm = {
   categoryId: "",
   amount: "",
   description: "",
-  date: new Date().toISOString().split("T")[0],
+  date: toISODate(new Date()),
 };
 
 export default function TransactionsPage() {
   const confirm = useConfirm();
+  const requestVersion = useRef(0);
+  const [loadError, setLoadError] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -121,14 +125,14 @@ export default function TransactionsPage() {
     amount: "",
     description: "",
     frequency: "monthly" as keyof typeof RECURRING_FREQUENCIES,
-    nextRunDate: new Date().toISOString().split("T")[0],
+    nextRunDate: toISODate(new Date()),
   });
   const [transferForm, setTransferForm] = useState({
     fromAccountId: "",
     toAccountId: "",
     amount: "",
     description: "",
-    date: new Date().toISOString().split("T")[0],
+    date: toISODate(new Date()),
   });
   const [filters, setFilters] = useState({
     q: "",
@@ -151,24 +155,49 @@ export default function TransactionsPage() {
     return p.toString();
   }, [filters]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
+    const version = ++requestVersion.current;
     const qs = buildQuery();
-    const [accs, cats, txs, trs, rec] = await Promise.all([
-      fetch("/api/accounts").then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
-      fetch(`/api/transactions${qs ? `?${qs}` : ""}`).then((r) => r.json()),
-      fetch("/api/transfers").then((r) => r.json()),
-      fetch("/api/recurring").then((r) => r.json()),
-    ]);
-    setAccounts(accs);
-    setCategories(cats);
-    setTransactions(txs);
-    setTransfers(trs);
-    setRecurring(rec);
+    const getList = async (url: string) => {
+      const response = await fetch(url, { signal });
+      if (!response.ok) throw new Error("Load failed");
+      const result = await response.json();
+      if (!Array.isArray(result)) throw new Error("Invalid response");
+      return result;
+    };
+    try {
+      // Process recurring entries before reading transactions and balances.
+      const rec = await getList("/api/recurring");
+      const [accs, cats, txs, trs] = await Promise.all([
+        getList("/api/accounts"), getList("/api/categories"),
+        getList(`/api/transactions${qs ? `?${qs}` : ""}`), getList("/api/transfers"),
+      ]);
+      if (signal?.aborted || version !== requestVersion.current) return;
+      setLoadError(false);
+      setAccounts(accs); setCategories(cats); setTransactions(txs); setTransfers(trs); setRecurring(rec);
+      const params = new URLSearchParams(window.location.search);
+      const type = params.get("new");
+      if ((type === "income" || type === "expense") && accs.length) {
+        const last = localStorage.getItem("hesabdari:lastAccountId");
+        setTxForm({ ...emptyTxForm, date: toISODate(new Date()), type, accountId: accs.find((a: Account) => a.id === last)?.id ?? accs[0].id });
+        setReceiptFile(null); setTxOpen(true);
+        params.delete("new");
+        window.history.replaceState({}, "", `/transactions${params.size ? `?${params}` : ""}`);
+      }
+    } catch {
+      if (!signal?.aborted && version === requestVersion.current) {
+        setLoadError(true);
+        toast.error("دریافت تراکنش‌ها انجام نشد. دوباره تلاش کنید.");
+      }
+    }
   }, [buildQuery]);
 
   useEffect(() => {
-    load();
+    const controller = new AbortController();
+    const timer = setTimeout(() => { void load(controller.signal); }, 200);
+    const refresh = () => { void load(controller.signal); };
+    window.addEventListener("hesabdari:tx-created", refresh);
+    return () => { clearTimeout(timer); controller.abort(); window.removeEventListener("hesabdari:tx-created", refresh); };
   }, [load]);
 
   const openNewTx = (type: "income" | "expense" = "expense") => {
@@ -179,22 +208,12 @@ export default function TransactionsPage() {
     setTxForm({
       ...emptyTxForm,
       type,
-      accountId: last || accounts[0]?.id || "",
+      date: toISODate(new Date()),
+      accountId: accounts.find((account) => account.id === last)?.id || accounts[0]?.id || "",
     });
     setReceiptFile(null);
     setTxOpen(true);
   };
-
-  useEffect(() => {
-    if (typeof window === "undefined" || accounts.length === 0) return;
-    const params = new URLSearchParams(window.location.search);
-    const neu = params.get("new");
-    if (neu === "expense" || neu === "income") {
-      openNewTx(neu);
-      window.history.replaceState({}, "", "/transactions");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts]);
 
   const filteredCategories = categories.filter((c) => c.type === txForm.type);
   const editCategories = categories.filter(
@@ -223,6 +242,7 @@ export default function TransactionsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...txForm,
+        categoryId: txForm.categoryId || null,
         amount: parseInt(txForm.amount.replace(/,/g, "")),
       }),
     });
@@ -259,6 +279,7 @@ export default function TransactionsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...recurringForm,
+        categoryId: recurringForm.categoryId || null,
         amount: parseInt(recurringForm.amount.replace(/,/g, "")),
       }),
     });
@@ -310,7 +331,7 @@ export default function TransactionsPage() {
         type: editTx.type,
         amount: editTx.amount,
         description: editTx.description,
-        date: new Date(editTx.date).toISOString().split("T")[0],
+        date: toISODate(new Date(editTx.date)),
       }),
     });
     if (res.ok) {
@@ -457,7 +478,7 @@ export default function TransactionsPage() {
                 <JalaliDatePicker value={filters.toDate} onChange={(d) => setFilters({ ...filters, toDate: d })} />
               </div>
               <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
-                <Button onClick={load}>اعمال فیلتر</Button>
+                <Button onClick={() => { void load(); }}>اعمال فیلتر</Button>
                 <Button variant="outline" onClick={() => setFilters({ q: "", accountId: "", categoryId: "", minAmount: "", maxAmount: "", fromDate: "", toDate: "" })}>
                   پاک کردن
                 </Button>
@@ -466,8 +487,9 @@ export default function TransactionsPage() {
           </Card>
         )}
 
+        {loadError && <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm"><p>بارگذاری اطلاعات انجام نشد.</p><Button variant="outline" onClick={() => { void load(); }}>تلاش دوباره</Button></div>}
         <Tabs defaultValue="all">
-          <TabsList>
+          <TabsList className="max-w-full overflow-x-auto">
             <TabsTrigger value="all">همه ({transactions.length + transfers.length})</TabsTrigger>
             <TabsTrigger value="income">درآمد</TabsTrigger>
             <TabsTrigger value="expense">هزینه</TabsTrigger>
@@ -627,13 +649,13 @@ export default function TransactionsPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label>مبلغ</Label>
+                  <Label>مبلغ (تومان)</Label>
                   <AmountInput value={String(editTx.amount || "")} onValueChange={(v) => setEditTx({ ...editTx, amount: parseInt(v || "0", 10) || 0 })} />
                 </div>
                 <div>
                   <Label>تاریخ</Label>
                   <JalaliDatePicker
-                    value={new Date(editTx.date).toISOString().split("T")[0]}
+                    value={toISODate(new Date(editTx.date))}
                     onChange={(d) => setEditTx({ ...editTx, date: d })}
                   />
                 </div>
@@ -673,7 +695,7 @@ export default function TransactionsPage() {
                 </Select>
               </div>
               <div>
-                <Label>مبلغ</Label>
+                <Label>مبلغ (تومان)</Label>
                 <AmountInput value={recurringForm.amount} onValueChange={(v) => setRecurringForm({ ...recurringForm, amount: v })} required />
               </div>
               <div>
@@ -720,7 +742,7 @@ export default function TransactionsPage() {
                 </Select>
               </div>
               <div>
-                <Label>مبلغ</Label>
+                <Label>مبلغ (تومان)</Label>
                 <AmountInput value={transferForm.amount} onValueChange={(v) => setTransferForm({ ...transferForm, amount: v })} required />
               </div>
               <div>

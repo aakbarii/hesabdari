@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import {
@@ -23,19 +24,19 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
+  if (!parsed.success || Object.keys(parsed.data).length === 0) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
-  const existing = db
+  const existing = await db
     .select()
     .from(accounts)
     .where(eq(accounts.id, id))
@@ -51,7 +52,7 @@ export async function PATCH(
   if (parsed.data.isActive !== undefined) updates.isActive = parsed.data.isActive;
 
   if (parsed.data.balance !== undefined) {
-    const current = getAccountBalance(id);
+    const current = await getAccountBalance(id);
     const delta = parsed.data.balance - current;
     updates.initialBalance = existing.initialBalance + delta;
   } else if (parsed.data.initialBalance !== undefined) {
@@ -59,24 +60,24 @@ export async function PATCH(
   }
 
   if (Object.keys(updates).length > 0) {
-    db.update(accounts).set(updates).where(eq(accounts.id, id)).run();
+    await db.update(accounts).set(updates).where(eq(accounts.id, id)).run();
   }
 
-  const updated = db.select().from(accounts).where(eq(accounts.id, id)).get();
-  return NextResponse.json({ ...updated, balance: getAccountBalance(id) });
+  const updated = await db.select().from(accounts).where(eq(accounts.id, id)).get();
+  return NextResponse.json({ ...updated, balance: await getAccountBalance(id) });
 }
 
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
   const { id } = await params;
-  const existing = db
+  const existing = await db
     .select()
     .from(accounts)
     .where(eq(accounts.id, id))
@@ -85,6 +86,6 @@ export async function DELETE(
     return NextResponse.json({ error: "حساب یافت نشد" }, { status: 404 });
   }
 
-  db.delete(accounts).where(eq(accounts.id, id)).run();
+  await db.delete(accounts).where(eq(accounts.id, id)).run();
   return NextResponse.json({ success: true });
 }

@@ -5,7 +5,7 @@ import moment from "jalali-moment";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -61,7 +61,13 @@ export default function BudgetPage() {
   };
 
   useEffect(() => {
-    load();
+    const controller = new AbortController();
+    Promise.all([
+      fetch(`/api/budgets?year=${year}&month=${month}`, { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error("Load failed"); return r.json(); }),
+      fetch("/api/categories?type=expense", { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error("Load failed"); return r.json(); }),
+    ]).then(([budgetData, categoryData]) => { setBudgets(budgetData.budgets ?? []); setCategories(categoryData); })
+      .catch(() => { if (!controller.signal.aborted) toast.error("دریافت بودجه انجام نشد"); });
+    return () => controller.abort();
   }, [year, month]);
 
   const prevMonth = () => {

@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import {
@@ -16,7 +17,7 @@ const categorySchema = z.object({
 });
 
 export async function GET(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
@@ -24,12 +25,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
 
-  let query = db
+  const query = await db
     .select()
     .from(categories)
     .where(eq(categories.userId, userId));
 
-  const list = query.all();
+  const list = query;
   const filtered =
     type === "income" || type === "expense"
       ? list.filter((c) => c.type === type)
@@ -39,12 +40,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = categorySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
   const id = nanoid();
   const { name, type, color } = parsed.data;
 
-  db.insert(categories)
+  await db.insert(categories)
     .values({
       id,
       userId,

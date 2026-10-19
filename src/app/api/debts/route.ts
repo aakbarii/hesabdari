@@ -1,3 +1,6 @@
+import { readJsonObject } from "@/lib/validation";
+import { validateFinancialReferences } from "@/lib/financial-validation";
+import { dateInput, moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
 import {
@@ -13,26 +16,26 @@ import { z } from "zod";
 const debtSchema = z.object({
   personName: z.string().min(1),
   type: z.enum(["owed", "owing"]),
-  totalAmount: z.number().positive(),
-  description: z.string().optional(),
-  dueDate: z.string().optional().nullable(),
+  totalAmount: moneyInput,
+  description: z.string().optional().nullable(),
+  dueDate: dateInput.optional().nullable(),
 });
 
 const paymentSchema = z.object({
   debtId: z.string(),
-  amount: z.number().positive(),
+  amount: moneyInput,
   accountId: z.string().optional().nullable(),
-  date: z.string(),
+  date: dateInput,
   note: z.string().optional(),
 });
 
 export async function GET() {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const list = db
+  const list = await db
     .select()
     .from(debts)
     .where(eq(debts.userId, userId))
@@ -43,12 +46,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
 
   if (body.debtId) {
     const parsed = paymentSchema.safeParse(body);
@@ -57,29 +60,37 @@ export async function POST(request: Request) {
     }
 
     const { debtId, amount, accountId, date, note } = parsed.data;
-    const debt = db.select().from(debts).where(eq(debts.id, debtId)).get();
+    const debt = await db.select().from(debts).where(eq(debts.id, debtId)).get();
     if (!debt || debt.userId !== userId) {
       return NextResponse.json({ error: "بدهی یافت نشد" }, { status: 404 });
     }
 
-    const paymentId = nanoid();
-    db.insert(debtPayments)
-      .values({
-        id: paymentId,
-        debtId,
-        accountId: accountId ?? null,
-        amount,
-        date: new Date(date),
-        note,
-      })
-      .run();
+    const referenceError = await validateFinancialReferences(userId, { accountId });
+    if (referenceError) return referenceError;
+    if (amount > debt.totalAmount - debt.paidAmount) {
+      return NextResponse.json({ error: "مبلغ پرداخت از مانده بدهی بیشتر است" }, { status: 400 });
+    }
 
-    const newPaid = debt.paidAmount + amount;
-    const status = newPaid >= debt.totalAmount ? "settled" : "active";
-    db.update(debts)
-      .set({ paidAmount: newPaid, status })
-      .where(eq(debts.id, debtId))
-      .run();
+    const paymentId = nanoid();
+    await db.transaction(async (tx) => {
+      await tx.insert(debtPayments)
+        .values({
+          id: paymentId,
+          debtId,
+          accountId: accountId ?? null,
+          amount,
+          date: new Date(date),
+          note,
+        })
+        .run();
+
+      const newPaid = debt.paidAmount + amount;
+      const status = newPaid >= debt.totalAmount ? "settled" : "active";
+      await tx.update(debts)
+        .set({ paidAmount: newPaid, status })
+        .where(eq(debts.id, debtId))
+        .run();
+    });
 
     return NextResponse.json({ id: paymentId });
   }
@@ -92,7 +103,7 @@ export async function POST(request: Request) {
   const id = nanoid();
   const { personName, type, totalAmount, description, dueDate } = parsed.data;
 
-  db.insert(debts)
+  await db.insert(debts)
     .values({
       id,
       userId,

@@ -1,6 +1,6 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { createClient, type Client } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
+import { migrate } from "drizzle-orm/libsql/migrator";
 import fs from "fs";
 import path from "path";
 import * as schema from "./schema";
@@ -11,80 +11,93 @@ const dataDir =
     /* turbopackIgnore: true */ process.env.HESABDARI_ROOT || process.cwd(),
     "data"
   );
-const dbPath = path.join(dataDir, "hesabdari.db");
 const appRoot =
   /* turbopackIgnore: true */ process.env.HESABDARI_ROOT || process.cwd();
 
+type Database = ReturnType<typeof drizzle<typeof schema>>;
+
 declare global {
-  // eslint-disable-next-line no-var
-  var __hesabdari_sqlite__: Database.Database | undefined;
-  // eslint-disable-next-line no-var
-  var __hesabdari_db__: ReturnType<typeof drizzle<typeof schema>> | undefined;
+  var __hesabdari_client__: Client | undefined;
+
+  var __hesabdari_db__: Database | undefined;
 }
 
-function createConnection() {
+/**
+ * TURSO_DATABASE_URL (libsql://…) points at the shared cloud database.
+ * Without it, a local SQLite file in the data directory is used.
+ */
+function databaseUrl(): string {
+  const remote = process.env.TURSO_DATABASE_URL?.trim();
+  if (remote) return remote;
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
-  const sqlite = new Database(dbPath);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-  sqlite.pragma("busy_timeout = 5000");
-  sqlite.pragma("synchronous = NORMAL");
-  sqlite.pragma("temp_store = MEMORY");
-  sqlite.pragma("cache_size = -32000");
-  return { sqlite, db: drizzle(sqlite, { schema }) };
+  return `file:${path.join(dataDir, "hesabdari.db").split(path.sep).join("/")}`;
 }
 
-function getConnection() {
-  if (globalThis.__hesabdari_sqlite__ && globalThis.__hesabdari_db__) {
-    return {
-      sqlite: globalThis.__hesabdari_sqlite__,
-      db: globalThis.__hesabdari_db__,
-    };
+function getConnection(): { client: Client; db: Database } {
+  if (globalThis.__hesabdari_client__ && globalThis.__hesabdari_db__) {
+    return { client: globalThis.__hesabdari_client__, db: globalThis.__hesabdari_db__ };
   }
 
-  const { sqlite, db } = createConnection();
+  const client = createClient({
+    url: databaseUrl(),
+    authToken: process.env.TURSO_AUTH_TOKEN?.trim() || undefined,
+  });
+  const db = drizzle(client, { schema });
 
-  globalThis.__hesabdari_sqlite__ = sqlite;
+  globalThis.__hesabdari_client__ = client;
   globalThis.__hesabdari_db__ = db;
 
-  return { sqlite, db };
+  return { client, db };
 }
 
-export function getDb() {
+export function getDb(): Database {
   return getConnection().db;
 }
 
-export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
+export function getClient(): Client {
+  return getConnection().client;
+}
+
+export const db = new Proxy({} as Database, {
   get(_target, prop, receiver) {
     const value = Reflect.get(getDb() as object, prop, receiver);
     return typeof value === "function" ? value.bind(getDb()) : value;
   },
 });
 
-function tableExists(sqlite: Database.Database, name: string) {
-  return Boolean(
-    sqlite
-      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
-      .get(name)
+/** Creates or patches tables the migration journal does not cover. */
+async function repairSchema(client: Client) {
+  const schemaRows = await client.execute(
+    "SELECT m.name AS table_name, p.name AS column_name FROM sqlite_master m JOIN pragma_table_info(m.name) p WHERE m.type = 'table'"
   );
-}
-
-function columnExists(sqlite: Database.Database, table: string, column: string) {
-  return sqlite
-    .prepare(`PRAGMA table_info(${table})`)
-    .all()
-    .some((c) => (c as { name: string }).name === column);
-}
-
-/** Patch schema gaps when a migration was skipped (e.g. journal hole). */
-function repairSchema(sqlite: Database.Database) {
-  if (tableExists(sqlite, "transactions") && !columnExists(sqlite, "transactions", "receipt_path")) {
-    sqlite.exec("ALTER TABLE `transactions` ADD `receipt_path` text");
+  const tableSet = new Set<string>();
+  const columnSet = new Set<string>();
+  for (const row of schemaRows.rows) {
+    tableSet.add(String(row.table_name));
+    columnSet.add(`${row.table_name}.${row.column_name}`);
   }
-  if (!tableExists(sqlite, "assets")) {
-    sqlite.exec(`
+  const tableExists = (name: string) => tableSet.has(name);
+  const columnExists = (table: string, column: string) => columnSet.has(`${table}.${column}`);
+
+  if (tableExists("transactions") && !columnExists("transactions", "receipt_path")) {
+    await client.executeMultiple("ALTER TABLE `transactions` ADD `receipt_path` text");
+  }
+  if (!tableExists("receipt_files")) {
+    await client.executeMultiple(`
+      CREATE TABLE IF NOT EXISTS \`receipt_files\` (
+        \`id\` text PRIMARY KEY NOT NULL,
+        \`user_id\` text NOT NULL,
+        \`mime_type\` text NOT NULL,
+        \`data\` blob NOT NULL,
+        \`created_at\` integer NOT NULL,
+        FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON UPDATE no action ON DELETE cascade
+      )
+    `);
+  }
+  if (!tableExists("assets")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`assets\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -101,8 +114,8 @@ function repairSchema(sqlite: Database.Database) {
       )
     `);
   }
-  if (!tableExists(sqlite, "recurring_transactions")) {
-    sqlite.exec(`
+  if (!tableExists("recurring_transactions")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`recurring_transactions\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -122,8 +135,8 @@ function repairSchema(sqlite: Database.Database) {
     `);
   }
 
-  if (!tableExists(sqlite, "meals")) {
-    sqlite.exec(`
+  if (!tableExists("meals")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`meals\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -142,8 +155,8 @@ function repairSchema(sqlite: Database.Database) {
     `);
   }
 
-  if (!tableExists(sqlite, "water_logs")) {
-    sqlite.exec(`
+  if (!tableExists("water_logs")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`water_logs\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -156,8 +169,8 @@ function repairSchema(sqlite: Database.Database) {
     `);
   }
 
-  if (!tableExists(sqlite, "workouts")) {
-    sqlite.exec(`
+  if (!tableExists("workouts")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`workouts\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -174,8 +187,8 @@ function repairSchema(sqlite: Database.Database) {
     `);
   }
 
-  if (!tableExists(sqlite, "body_metrics")) {
-    sqlite.exec(`
+  if (!tableExists("body_metrics")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`body_metrics\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -189,8 +202,8 @@ function repairSchema(sqlite: Database.Database) {
     `);
   }
 
-  if (!tableExists(sqlite, "books")) {
-    sqlite.exec(`
+  if (!tableExists("books")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`books\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -208,8 +221,8 @@ function repairSchema(sqlite: Database.Database) {
     `);
   }
 
-  if (!tableExists(sqlite, "courses")) {
-    sqlite.exec(`
+  if (!tableExists("courses")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`courses\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -225,8 +238,8 @@ function repairSchema(sqlite: Database.Database) {
     `);
   }
 
-  if (!tableExists(sqlite, "focus_sessions")) {
-    sqlite.exec(`
+  if (!tableExists("focus_sessions")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`focus_sessions\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -240,8 +253,8 @@ function repairSchema(sqlite: Database.Database) {
     `);
   }
 
-  if (!tableExists(sqlite, "daily_journals")) {
-    sqlite.exec(`
+  if (!tableExists("daily_journals")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`daily_journals\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -257,8 +270,8 @@ function repairSchema(sqlite: Database.Database) {
     `);
   }
 
-  if (!tableExists(sqlite, "vehicle_services")) {
-    sqlite.exec(`
+  if (!tableExists("vehicle_services")) {
+    await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`vehicle_services\` (
         \`id\` text PRIMARY KEY NOT NULL,
         \`user_id\` text NOT NULL,
@@ -278,17 +291,17 @@ function repairSchema(sqlite: Database.Database) {
 
   // Drop Flow protocol leftovers (safe if already gone)
   try {
-    if (tableExists(sqlite, "flow_day_tasks")) {
-      sqlite.exec("DROP TABLE IF EXISTS `flow_day_tasks`");
+    if (tableExists("flow_day_tasks")) {
+      await client.executeMultiple("DROP TABLE IF EXISTS `flow_day_tasks`");
     }
-    if (tableExists(sqlite, "flow_focus_sessions")) {
-      sqlite.exec("DROP TABLE IF EXISTS `flow_focus_sessions`");
+    if (tableExists("flow_focus_sessions")) {
+      await client.executeMultiple("DROP TABLE IF EXISTS `flow_focus_sessions`");
     }
-    if (tableExists(sqlite, "flow_mind_inbox")) {
-      sqlite.exec("DROP TABLE IF EXISTS `flow_mind_inbox`");
+    if (tableExists("flow_mind_inbox")) {
+      await client.executeMultiple("DROP TABLE IF EXISTS `flow_mind_inbox`");
     }
-    if (tableExists(sqlite, "flow_days")) {
-      sqlite.exec("DROP TABLE IF EXISTS `flow_days`");
+    if (tableExists("flow_days")) {
+      await client.executeMultiple("DROP TABLE IF EXISTS `flow_days`");
     }
   } catch {
     // ignore
@@ -296,42 +309,43 @@ function repairSchema(sqlite: Database.Database) {
 
   // Remove legacy household feature leftovers (safe if already gone)
   try {
-    if (tableExists(sqlite, "transaction_splits")) {
-      sqlite.exec("DROP TABLE IF EXISTS `transaction_splits`");
+    if (tableExists("transaction_splits")) {
+      await client.executeMultiple("DROP TABLE IF EXISTS `transaction_splits`");
     }
-    if (tableExists(sqlite, "household_members")) {
-      sqlite.exec("DROP TABLE IF EXISTS `household_members`");
+    if (tableExists("household_members")) {
+      await client.executeMultiple("DROP TABLE IF EXISTS `household_members`");
     }
-    if (columnExists(sqlite, "transactions", "household_id")) {
-      sqlite.exec("ALTER TABLE `transactions` DROP COLUMN `household_id`");
+    if (columnExists("transactions", "household_id")) {
+      await client.executeMultiple("ALTER TABLE `transactions` DROP COLUMN `household_id`");
     }
-    if (columnExists(sqlite, "transactions", "is_shared")) {
-      sqlite.exec("ALTER TABLE `transactions` DROP COLUMN `is_shared`");
+    if (columnExists("transactions", "is_shared")) {
+      await client.executeMultiple("ALTER TABLE `transactions` DROP COLUMN `is_shared`");
     }
-    if (columnExists(sqlite, "budgets", "household_id")) {
-      sqlite.exec("ALTER TABLE `budgets` DROP COLUMN `household_id`");
+    if (columnExists("budgets", "household_id")) {
+      await client.executeMultiple("ALTER TABLE `budgets` DROP COLUMN `household_id`");
     }
-    if (tableExists(sqlite, "households")) {
-      sqlite.exec("DROP TABLE IF EXISTS `households`");
+    if (tableExists("households")) {
+      await client.executeMultiple("DROP TABLE IF EXISTS `households`");
     }
   } catch {
     // Older SQLite / locked DB — migration 0009 may still apply later
   }
 
-  sqlite.exec(`
+  await client.executeMultiple(`
     CREATE INDEX IF NOT EXISTS \`transactions_user_date_idx\` ON \`transactions\` (\`user_id\`,\`date\`);
     CREATE INDEX IF NOT EXISTS \`transactions_user_type_cat_date_idx\` ON \`transactions\` (\`user_id\`,\`type\`,\`category_id\`,\`date\`);
     CREATE INDEX IF NOT EXISTS \`todos_user_status_idx\` ON \`todos\` (\`user_id\`,\`status\`);
   `);
 }
 
-export function runMigrations() {
-  const { sqlite } = getConnection();
-  migrate(db, {
+
+export async function runMigrations() {
+  const { client } = getConnection();
+  await migrate(db, {
     migrationsFolder: path.join(
       /* turbopackIgnore: true */ appRoot,
       "drizzle"
     ),
   });
-  repairSchema(sqlite);
+  await repairSchema(client);
 }

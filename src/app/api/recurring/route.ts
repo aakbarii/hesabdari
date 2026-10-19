@@ -1,3 +1,6 @@
+import { readJsonObject } from "@/lib/validation";
+import { validateFinancialReferences } from "@/lib/financial-validation";
+import { dateInput, moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
@@ -16,21 +19,21 @@ const schema = z.object({
   accountId: z.string(),
   categoryId: z.string().optional().nullable(),
   type: z.enum(["income", "expense"]),
-  amount: z.number().positive(),
+  amount: moneyInput,
   description: z.string().optional(),
   frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
-  nextRunDate: z.string(),
+  nextRunDate: dateInput,
 });
 
 export async function GET() {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  processDueRecurring(userId);
+  await processDueRecurring(userId);
 
-  const list = db
+  const list = await db
     .select({
       id: recurringTransactions.id,
       type: recurringTransactions.type,
@@ -53,12 +56,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
@@ -68,7 +71,10 @@ export async function POST(request: Request) {
   const { accountId, categoryId, type, amount, description, frequency, nextRunDate } =
     parsed.data;
 
-  db.insert(recurringTransactions)
+  const referenceError = await validateFinancialReferences(userId, { accountId, categoryId, type });
+  if (referenceError) return referenceError;
+
+  await db.insert(recurringTransactions)
     .values({
       id,
       userId,

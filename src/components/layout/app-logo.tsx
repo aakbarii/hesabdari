@@ -40,7 +40,7 @@ export function AppLogo({
       >
         <Image
           src="/icon.svg"
-          alt="لوگوی سامان"
+          alt="لوگوی روال"
           width={currentSize.icon}
           height={currentSize.icon}
           className="h-full w-full object-contain drop-shadow"
@@ -52,7 +52,7 @@ export function AppLogo({
         <div className="flex flex-col text-right leading-none">
           <div className="flex items-center gap-1.5">
             <span className={cn("font-black tracking-tight text-foreground", currentSize.text)}>
-              سامان
+              روال
             </span>
             <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               Life OS

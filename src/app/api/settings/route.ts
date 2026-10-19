@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -9,12 +10,12 @@ import { requireUserId } from "@/lib/api-auth";
 import { isCurrencyUnit } from "@/lib/currency";
 
 export async function GET() {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const settings = getUserSettings(userId);
+  const settings = await getUserSettings(userId);
   return NextResponse.json({
     currencyUnit: settings.currencyUnit,
     widgets: settings.widgets,
@@ -27,19 +28,19 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
   if (parsed.data.currencyUnit && isCurrencyUnit(parsed.data.currencyUnit)) {
-    const settings = updateUserCurrency(
+    const settings = await updateUserCurrency(
       userId,
       parsed.data.currencyUnit
     );

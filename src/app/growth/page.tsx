@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card,   } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,8 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, GraduationCap, Plus, Trash2, CheckCircle2, Bookmark, Star } from "lucide-react";
+
+import { BookOpen, GraduationCap, Plus, Trash2,  Bookmark, } from "lucide-react";
 import { toast } from "sonner";
 
 interface Book {
@@ -72,7 +72,12 @@ export default function GrowthPage() {
   };
 
   useEffect(() => {
-    loadData();
+    const controller = new AbortController();
+    fetch("/api/growth", { signal: controller.signal })
+      .then((res) => { if (!res.ok) throw new Error("Load failed"); return res.json(); })
+      .then((json) => { setBooks(json.books); setCourses(json.courses); })
+      .catch(() => { if (!controller.signal.aborted) toast.error("دریافت اطلاعات انجام نشد. دوباره تلاش کنید."); });
+    return () => controller.abort();
   }, []);
 
   const handleAddBook = async (e: React.FormEvent) => {

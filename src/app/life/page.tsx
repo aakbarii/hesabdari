@@ -151,7 +151,11 @@ export default function LifePage() {
   }, []);
 
   useEffect(() => {
-    loadTodos();
+    const controller = new AbortController();
+    fetch(`/api/todos?filter=${todoFilter}`, { signal: controller.signal })
+      .then((r) => { if (!r.ok) throw new Error("Load failed"); return r.json(); })
+      .then(setTodos).catch(() => { if (!controller.signal.aborted) toast.error("دریافت کارها انجام نشد"); });
+    return () => controller.abort();
   }, [todoFilter]);
 
   const openCreateTodo = () => {

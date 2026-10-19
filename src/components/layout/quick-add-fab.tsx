@@ -1,5 +1,8 @@
 "use client";
 
+import { toISODate } from "@/lib/format";
+import { parseTomanInput, getCurrencyLabel, getClientCurrency } from "@/lib/currency";
+
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Plus, ArrowDownRight, ArrowUpRight } from "lucide-react";
@@ -48,6 +51,7 @@ export function QuickAddFab() {
       fetch("/api/accounts").then((r) => r.json()),
       fetch("/api/categories").then((r) => r.json()),
     ]).then(([accs, cats]) => {
+      if (!Array.isArray(accs) || !Array.isArray(cats)) throw new Error("Load failed");
       setAccounts(accs);
       setCategories(cats);
       const last =
@@ -59,7 +63,7 @@ export function QuickAddFab() {
         accs[0]?.id ||
         "";
       setAccountId(preferred);
-    });
+    }).catch(() => toast.error("حساب‌ها بارگذاری نشدند. دوباره تلاش کنید."));
   }, [open]);
 
   const filtered = categories.filter((c) => c.type === type);
@@ -76,9 +80,9 @@ export function QuickAddFab() {
           type,
           accountId,
           categoryId: categoryId || null,
-          amount: parseInt(amount.replace(/,/g, ""), 10),
+          amount: parseTomanInput(amount),
           description,
-          date: new Date().toISOString().split("T")[0],
+          date: toISODate(new Date()),
         }),
       });
       const data = await res.json();
@@ -130,7 +134,7 @@ export function QuickAddFab() {
               <Button
                 type="button"
                 variant={type === "expense" ? "default" : "outline"}
-                className={type === "expense" ? "bg-red-600 hover:bg-red-600/90" : ""}
+                className={type === "expense" ? "bg-red-600 text-white hover:bg-red-600/90" : ""}
                 onClick={() => {
                   setType("expense");
                   setCategoryId("");
@@ -142,7 +146,7 @@ export function QuickAddFab() {
               <Button
                 type="button"
                 variant={type === "income" ? "default" : "outline"}
-                className={type === "income" ? "bg-emerald-600 hover:bg-emerald-600/90" : ""}
+                className={type === "income" ? "bg-emerald-600 text-white hover:bg-emerald-600/90" : ""}
                 onClick={() => {
                   setType("income");
                   setCategoryId("");
@@ -154,7 +158,7 @@ export function QuickAddFab() {
             </div>
 
             <div>
-              <Label>مبلغ</Label>
+              <Label>مبلغ ({getCurrencyLabel(getClientCurrency())})</Label>
               <AmountInput
                 placeholder="مثلاً 50,000"
                 value={amount}

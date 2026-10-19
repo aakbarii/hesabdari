@@ -45,14 +45,12 @@ export function TodoWeekView({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/todos/week?offset=${offset}`)
-      .then((r) => r.json())
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    const controller = new AbortController();
+    fetch(`/api/todos/week?offset=${offset}`, { signal: controller.signal })
+      .then((r) => { if (!r.ok) throw new Error("Load failed"); return r.json(); })
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, [offset]);
 
   return (
@@ -66,7 +64,7 @@ export function TodoWeekView({ onBack }: { onBack: () => void }) {
           <Button
             variant="outline"
             size="icon-sm"
-            onClick={() => setOffset((o) => o - 1)}
+            onClick={() => { setLoading(true); setOffset((o) => o - 1); }}
             aria-label="هفته قبل"
           >
             <ChevronRight className="h-4 w-4" />
@@ -74,7 +72,7 @@ export function TodoWeekView({ onBack }: { onBack: () => void }) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setOffset(0)}
+            onClick={() => { setLoading(true); setOffset(0); }}
             disabled={offset === 0}
           >
             این هفته
@@ -82,7 +80,7 @@ export function TodoWeekView({ onBack }: { onBack: () => void }) {
           <Button
             variant="outline"
             size="icon-sm"
-            onClick={() => setOffset((o) => o + 1)}
+            onClick={() => { setLoading(true); setOffset((o) => o + 1); }}
             disabled={offset >= 0}
             aria-label="هفته بعد"
           >

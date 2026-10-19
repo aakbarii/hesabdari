@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
   const date = searchParams.get("date");
 
   if (date) {
-    const entry = db
+    const entry = await db
       .select()
       .from(dailyJournals)
       .where(and(eq(dailyJournals.userId, auth), eq(dailyJournals.date, date)))
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ entry });
   }
 
-  const allEntries = db
+  const allEntries = await db
     .select()
     .from(dailyJournals)
     .where(eq(dailyJournals.userId, auth))
@@ -45,21 +46,21 @@ export async function POST(request: Request) {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = journalSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده‌های ژورنال نامعتبر است" }, { status: 400 });
   }
 
   // Check if journal for this date already exists
-  const existing = db
+  const existing = await db
     .select()
     .from(dailyJournals)
     .where(and(eq(dailyJournals.userId, auth), eq(dailyJournals.date, parsed.data.date)))
     .get();
 
   if (existing) {
-    db.update(dailyJournals)
+    await db.update(dailyJournals)
       .set({
         mood: parsed.data.mood,
         gratitude: parsed.data.gratitude ?? null,
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
   }
 
   const id = nanoid();
-  db.insert(dailyJournals)
+  await db.insert(dailyJournals)
     .values({
       id,
       userId: auth,

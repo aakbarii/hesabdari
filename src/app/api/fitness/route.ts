@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -22,11 +23,11 @@ const metricSchema = z.object({
   note: z.string().optional().nullable(),
 });
 
-export async function GET(request: Request) {
+export async function GET() {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const userWorkouts = db
+  const userWorkouts = await db
     .select()
     .from(workouts)
     .where(eq(workouts.userId, auth))
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
     .limit(30)
     .all();
 
-  const userMetrics = db
+  const userMetrics = await db
     .select()
     .from(bodyMetrics)
     .where(eq(bodyMetrics.userId, auth))
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
 
   if (body.kind === "metric") {
     const parsed = metricSchema.safeParse(body);
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "اطلاعات وزن نامعتبر است" }, { status: 400 });
     }
     const id = nanoid();
-    db.insert(bodyMetrics)
+    await db.insert(bodyMetrics)
       .values({
         id,
         userId: auth,
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
   }
 
   const id = nanoid();
-  db.insert(workouts)
+  await db.insert(workouts)
     .values({
       id,
       userId: auth,

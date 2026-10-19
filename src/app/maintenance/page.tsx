@@ -1,8 +1,10 @@
 "use client";
 
+import { toISODate } from "@/lib/format";
+
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card,   } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +41,7 @@ export default function MaintenancePage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = toISODate(new Date());
 
   const [form, setForm] = useState({
     vehicleName: "خودروی من",
@@ -63,7 +65,12 @@ export default function MaintenancePage() {
   };
 
   useEffect(() => {
-    loadData();
+    const controller = new AbortController();
+    fetch("/api/maintenance", { signal: controller.signal })
+      .then((res) => { if (!res.ok) throw new Error("Load failed"); return res.json(); })
+      .then((json) => { setServices(json.services); })
+      .catch(() => { if (!controller.signal.aborted) toast.error("دریافت اطلاعات انجام نشد. دوباره تلاش کنید."); });
+    return () => controller.abort();
   }, []);
 
   const handleAdd = (e: React.FormEvent) => {
@@ -247,7 +254,7 @@ export default function MaintenancePage() {
                 <Label htmlFor="sType">نوع سرویس</Label>
                 <Select
                   value={form.serviceType}
-                  onValueChange={(v: any) => setForm({ ...form, serviceType: v })}
+                  onValueChange={(v) => { if (v && v in SERVICE_TYPES) setForm({ ...form, serviceType: v as VehicleService["serviceType"] }); }}
                 >
                   <SelectTrigger id="sType"><SelectValue /></SelectTrigger>
                   <SelectContent>

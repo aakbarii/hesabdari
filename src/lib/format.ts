@@ -50,7 +50,7 @@ export function getCurrentJalaliYearMonth(): { year: number; month: number } {
 }
 
 export function toISODate(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 export function jalaliToDate(jYear: number, jMonth: number, jDay: number): Date {

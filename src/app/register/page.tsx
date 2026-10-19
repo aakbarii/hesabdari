@@ -44,7 +44,7 @@ export default function RegisterPage() {
           <div className="mx-auto mb-3 flex items-center justify-center">
             <AppLogo size="xl" showText={false} clickable={false} />
           </div>
-          <CardTitle className="text-2xl font-black">عضویت در سامان</CardTitle>
+          <CardTitle className="text-2xl font-black">عضویت در روال</CardTitle>
           <p className="text-sm text-muted-foreground">حساب کاربری جدید خود را ایجاد کنید</p>
         </CardHeader>
         <CardContent>

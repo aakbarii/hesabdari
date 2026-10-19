@@ -7,7 +7,7 @@ import {
   ArrowLeftRight,
   PiggyBank,
   Sunrise,
-  Menu,
+
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOBILE_NAV_PRIMARY } from "@/lib/constants";
@@ -24,7 +24,7 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 pb-[env(safe-area-inset-bottom)]">
+    <nav aria-label="دسترسی سریع" className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around px-2 py-2">
         {MOBILE_NAV_PRIMARY.map((item) => {
           const Icon = iconMap[item.icon as keyof typeof iconMap];
@@ -36,6 +36,7 @@ export function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "motion-soft motion-press flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-medium min-w-0",
                 isActive ? "text-primary scale-105" : "text-muted-foreground"

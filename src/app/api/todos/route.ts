@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensureDb, db, todos, getTodos } from "@/lib/db/queries";
@@ -13,7 +14,7 @@ const createSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
@@ -25,22 +26,22 @@ export async function GET(request: Request) {
     | "today"
     | "overdue";
 
-  return NextResponse.json(getTodos(auth, filter));
+  return NextResponse.json(await getTodos(auth, filter));
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
   const id = nanoid();
-  db.insert(todos)
+  await db.insert(todos)
     .values({
       id,
       userId: auth,

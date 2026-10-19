@@ -68,7 +68,7 @@ function ResetPasswordForm() {
           <div className="mx-auto mb-3 flex items-center justify-center">
             <AppLogo size="xl" showText={false} clickable={false} />
           </div>
-          <CardTitle className="text-2xl font-black">تعیین رمز جدید سامان</CardTitle>
+          <CardTitle className="text-2xl font-black">تعیین رمز جدید روال</CardTitle>
           <p className="text-sm text-muted-foreground">رمز عبور جدید خود را وارد نمایید</p>
         </CardHeader>
         <CardContent>

@@ -1,3 +1,6 @@
+import { readJsonObject } from "@/lib/validation";
+import { validateFinancialReferences } from "@/lib/financial-validation";
+import { moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import {
@@ -13,13 +16,13 @@ import moment from "jalali-moment";
 
 const budgetSchema = z.object({
   categoryId: z.string(),
-  year: z.number(),
-  month: z.number().min(1).max(12),
-  amount: z.number().positive(),
+  year: z.number().int().min(1200).max(2000),
+  month: z.number().int().min(1).max(12),
+  amount: moneyInput,
 });
 
 export async function GET(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
@@ -29,16 +32,16 @@ export async function GET(request: Request) {
     searchParams.get("month") ?? String(moment().jMonth() + 1)
   );
 
-  const items = getBudgetsWithSpent(auth, year, month);
+  const items = await getBudgetsWithSpent(auth, year, month);
   return NextResponse.json({ year, month, budgets: items });
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = budgetSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
@@ -46,7 +49,10 @@ export async function POST(request: Request) {
 
   const { categoryId, year, month, amount } = parsed.data;
 
-  const existing = db
+  const referenceError = await validateFinancialReferences(auth, { categoryId, type: "expense" });
+  if (referenceError) return referenceError;
+
+  const existing = await db
     .select()
     .from(budgets)
     .where(
@@ -60,7 +66,7 @@ export async function POST(request: Request) {
     .get();
 
   if (existing) {
-    db.update(budgets)
+    await db.update(budgets)
       .set({ amount })
       .where(eq(budgets.id, existing.id))
       .run();
@@ -68,7 +74,7 @@ export async function POST(request: Request) {
   }
 
   const id = nanoid();
-  db.insert(budgets)
+  await db.insert(budgets)
     .values({
       id,
       userId: auth,

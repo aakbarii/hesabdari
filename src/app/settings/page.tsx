@@ -1,5 +1,8 @@
 "use client";
 
+import { TotpQrCode } from "@/components/totp-qr-code";
+import { AUTH_ENABLED } from "@/lib/app-config";
+
 import { useEffect, useState } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { Header } from "@/components/layout/header";
@@ -55,7 +58,7 @@ interface Category {
 export default function SettingsPage() {
   const confirm = useConfirm();
   const { currency, setCurrency } = useCurrency();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -87,7 +90,7 @@ export default function SettingsPage() {
         setName(d.name ?? "");
         setEmail(d.email ?? "");
       });
-    fetch("/api/auth/2fa")
+    if (AUTH_ENABLED) fetch("/api/auth/2fa")
       .then((r) => r.json())
       .then((d) => setTotpEnabled(Boolean(d.enabled)));
     fetch("/api/categories")
@@ -272,7 +275,8 @@ export default function SettingsPage() {
                   required
                 />
               </div>
-              <div className="border-t pt-4 space-y-3">
+              {/* Password management is paused together with login. */}
+              {AUTH_ENABLED && <div className="border-t pt-4 space-y-3">
                 <p className="text-sm text-muted-foreground">تغییر رمز (اختیاری)</p>
                 <div className="space-y-2">
                   <Label>رمز فعلی</Label>
@@ -291,7 +295,7 @@ export default function SettingsPage() {
                     minLength={6}
                   />
                 </div>
-              </div>
+              </div>}
               <Button type="submit" disabled={saving}>
                 {saving ? "..." : "ذخیره پروفایل"}
               </Button>
@@ -395,7 +399,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* 2FA code is retained while authentication is disabled. */}
+        {AUTH_ENABLED && <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Shield className="h-5 w-5 text-primary" />
@@ -444,13 +449,7 @@ export default function SettingsPage() {
             ) : totpSetup ? (
               <div className="space-y-4">
                 <div className="flex justify-center">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(totpSetup.uri)}`}
-                    alt="QR کد ۲FA"
-                    className="rounded-lg border"
-                    width={180}
-                    height={180}
-                  />
+                  <TotpQrCode value={totpSetup.uri} />
                 </div>
                 <p className="text-xs text-muted-foreground break-all text-center">
                   کلید دستی: <code className="font-mono">{totpSetup.secret}</code>
@@ -495,7 +494,7 @@ export default function SettingsPage() {
               </Button>
             )}
           </CardContent>
-        </Card>
+        </Card>}
       </div>
 
       <Dialog

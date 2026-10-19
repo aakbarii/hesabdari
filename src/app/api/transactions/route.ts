@@ -1,3 +1,6 @@
+import { readJsonObject } from "@/lib/validation";
+import { validateFinancialReferences } from "@/lib/financial-validation";
+import { dateInput, moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 import {
@@ -16,13 +19,13 @@ const transactionSchema = z.object({
   accountId: z.string(),
   categoryId: z.string().optional().nullable(),
   type: z.enum(["income", "expense"]),
-  amount: z.number().positive(),
+  amount: moneyInput,
   description: z.string().optional(),
-  date: z.string(),
+  date: dateInput,
 });
 
 export async function GET(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
@@ -36,6 +39,14 @@ export async function GET(request: Request) {
   const maxAmount = searchParams.get("maxAmount");
   const fromDate = searchParams.get("fromDate");
   const toDate = searchParams.get("toDate");
+
+  if ((minAmount && !moneyInput.or(z.literal(0)).safeParse(Number(minAmount)).success) ||
+      (maxAmount && !moneyInput.or(z.literal(0)).safeParse(Number(maxAmount)).success) ||
+      (fromDate && !dateInput.safeParse(fromDate).success) ||
+      (toDate && !dateInput.safeParse(toDate).success) ||
+      (minAmount && maxAmount && Number(minAmount) > Number(maxAmount))) {
+    return NextResponse.json({ error: "فیلترهای مبلغ یا تاریخ نامعتبر است" }, { status: 400 });
+  }
 
   const conditions = [eq(transactions.userId, userId)];
   if (type === "income" || type === "expense") {
@@ -57,7 +68,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const list = db
+  const list = await db
     .select({
       id: transactions.id,
       type: transactions.type,
@@ -83,26 +94,30 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = transactionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
   const id = nanoid();
-  let { accountId, categoryId, type, amount, description, date } = parsed.data;
+  const { accountId, type, amount, description, date } = parsed.data;
+  let { categoryId } = parsed.data;
 
   if (!categoryId && description) {
-    const auto = autoCategorize(userId, description, type);
+    const auto = await autoCategorize(userId, description, type);
     if (auto) categoryId = auto;
   }
 
-  db.insert(transactions)
+  const referenceError = await validateFinancialReferences(userId, { accountId, categoryId, type });
+  if (referenceError) return referenceError;
+
+  await db.insert(transactions)
     .values({
       id,
       userId,

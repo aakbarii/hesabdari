@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -26,31 +27,31 @@ const completeSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
   const { searchParams } = new URL(request.url);
   if (searchParams.get("summary") === "1") {
-    return NextResponse.json(getLifeSummary(auth));
+    return NextResponse.json(await getLifeSummary(auth));
   }
 
-  return NextResponse.json(getRoutines(auth));
+  return NextResponse.json(await getRoutines(auth));
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
 
   if (body.routineId) {
     const parsed = completeSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
     }
-    const result = toggleRoutineCompletion(
+    const result = await toggleRoutineCompletion(
       auth,
       parsed.data.routineId,
       parsed.data.date
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
   }
 
   const id = nanoid();
-  db.insert(routines)
+  await db.insert(routines)
     .values({
       id,
       userId: auth,

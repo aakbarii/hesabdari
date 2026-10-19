@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import moment from "jalali-moment";
 import { z } from "zod";
@@ -17,10 +18,10 @@ import {
   getExpenseByCategory,
 } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
-import type { DashboardWidgetId } from "@/lib/constants";
+import { DASHBOARD_WIDGETS, type DashboardWidgetId } from "@/lib/constants";
 
 export async function GET(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
@@ -31,27 +32,25 @@ export async function GET(request: Request) {
     searchParams.get("month") ?? String(moment().jMonth() + 1)
   );
 
-  const settings = getUserSettings(userId);
+  const settings = await getUserSettings(userId);
   const widgets = new Set(settings.widgets as DashboardWidgetId[]);
   const show = (id: DashboardWidgetId) => widgets.has(id);
 
-  const totalBalance = show("balance") ? getTotalBalance(userId) : 0;
-  const monthly = show("monthly") || show("forecast")
-    ? getMonthlyStats(userId, year, month)
-    : { income: 0, expense: 0, balance: 0 };
-  const recent = show("recent") ? getRecentTransactions(userId, 8) : [];
-  const expenses = show("chart") ? getExpenseByCategory(userId, year, month) : [];
+  const totalBalance = show("balance") ? await getTotalBalance(userId) : 0;
+  const monthly = await getMonthlyStats(userId, year, month);
+  const recent = show("recent") ? await getRecentTransactions(userId, 8) : [];
+  const expenses = show("chart") ? await getExpenseByCategory(userId, year, month) : [];
   const forecast = show("forecast")
-    ? getMonthlyForecast(userId, year, month)
+    ? await getMonthlyForecast(userId, year, month)
     : null;
   const anomalies = show("anomalies")
-    ? getAnomalies(userId, year, month, settings.anomalyThreshold)
+    ? await getAnomalies(userId, year, month, settings.anomalyThreshold)
     : [];
-  const savingsGoals = show("goals") ? getGoals(userId, "savings").slice(0, 3) : [];
+  const savingsGoals = show("goals") ? (await getGoals(userId, "savings")).slice(0, 3) : [];
   const purchaseGoals = show("goals")
-    ? getGoals(userId, "purchase").slice(0, 3)
+    ? (await getGoals(userId, "purchase")).slice(0, 3)
     : [];
-  const lifeSummary = show("life") ? getLifeSummary(userId) : null;
+  const lifeSummary = show("life") ? await getLifeSummary(userId) : null;
 
   return NextResponse.json({
     totalBalance,
@@ -70,19 +69,19 @@ export async function GET(request: Request) {
 }
 
 const settingsSchema = z.object({
-  widgets: z.array(z.string()).optional(),
+  widgets: z.array(z.enum(Object.keys(DASHBOARD_WIDGETS) as [DashboardWidgetId, ...DashboardWidgetId[]])).max(Object.keys(DASHBOARD_WIDGETS).length).optional(),
   anomalyThreshold: z.number().min(10).max(200).optional(),
 });
 
 export async function PATCH(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = settingsSchema.safeParse(body);
-  if (!parsed.success) {
+  if (!parsed.success || Object.keys(parsed.data).length === 0) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
@@ -94,10 +93,12 @@ export async function PATCH(request: Request) {
     updates.anomalyThreshold = parsed.data.anomalyThreshold;
   }
 
-  db.update(userSettings)
+  if (Object.keys(updates).length === 0) return NextResponse.json(await getUserSettings(userId));
+
+  await db.update(userSettings)
     .set(updates)
     .where(eq(userSettings.userId, userId))
     .run();
 
-  return NextResponse.json(getUserSettings(userId));
+  return NextResponse.json(await getUserSettings(userId));
 }

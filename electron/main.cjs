@@ -5,6 +5,15 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 const { createManager, APP_URL } = require("./server-manager.cjs");
 
+// Keep the existing data location when renaming the displayed product.
+const previousUserDataPath = path.join(app.getPath("appData"), "Hesabdari");
+const renamedUserDataPath = path.join(app.getPath("appData"), "Saman");
+const legacyUserDataPath = !fs.existsSync(renamedUserDataPath) && fs.existsSync(previousUserDataPath)
+  ? previousUserDataPath
+  : renamedUserDataPath;
+fs.mkdirSync(legacyUserDataPath, { recursive: true });
+app.setPath("userData", legacyUserDataPath);
+
 // Faster Chromium startup on Windows desktop shells
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 app.commandLine.appendSwitch("disable-background-timer-throttling");
@@ -33,7 +42,7 @@ function loadingHtml() {
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>سامان | Saman Life OS</title>
+  <title>روال | Ravaal Life OS</title>
   <style>
     html,body{height:100%;margin:0;font-family:Tahoma,Segoe UI,sans-serif;
       background:linear-gradient(160deg,#042f2e 0%,#064e3b 45%,#011b15 100%);
@@ -50,7 +59,7 @@ function loadingHtml() {
 </head>
 <body>
   <div class="box">
-    <h1>سامان</h1>
+    <h1>روال</h1>
     <div><span class="tag">Life OS</span></div>
     <div class="spin"></div>
     <p style="margin-top:14px">در حال آماده‌سازی سامانه زندگی و مالی...</p>
@@ -97,7 +106,7 @@ function createWindow(showSplash) {
     height: 840,
     minWidth: 900,
     minHeight: 600,
-    title: "سامان | Saman Life OS",
+    title: "روال | Ravaal Life OS",
     icon: path.join(__dirname, "icon.png"),
     show: true,
     autoHideMenuBar: true,
@@ -136,7 +145,7 @@ function createWindow(showSplash) {
 function createTray() {
   if (tray) return;
   tray = new Tray(trayIcon());
-  tray.setToolTip("سامان | Saman Life OS");
+  tray.setToolTip("روال | Ravaal Life OS");
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "باز کردن", click: () => openApp() },

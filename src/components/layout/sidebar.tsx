@@ -10,7 +10,7 @@ import {
   PiggyBank,
   HandCoins,
   BarChart3,
-  Calculator,
+
   Target,
   Gem,
   Settings,
@@ -22,11 +22,13 @@ import {
   BookOpen,
   Smile,
   Wrench,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/layout/app-logo";
+import { AUTH_ENABLED } from "@/lib/app-config";
 
 const iconMap = {
   "layout-dashboard": LayoutDashboard,
@@ -51,11 +53,16 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [userName, setUserName] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d) => setUserName(d.user?.name ?? ""));
+      .then((d) => {
+        setUserName(d.user?.name ?? "");
+        setIsAdmin(Boolean(d.user?.isAdmin));
+      })
+      .catch(() => {});
   }, []);
 
   const logout = async () => {
@@ -68,7 +75,7 @@ export function Sidebar() {
       <div className="flex h-16 items-center px-5 border-b">
         <AppLogo size="md" subtitle="سامانه جامع زندگی و مالی" />
       </div>
-      <nav className="flex-1 p-4 space-y-5 overflow-y-auto">
+      <nav aria-label="منوی اصلی" className="flex-1 p-4 space-y-5 overflow-y-auto">
         {NAV_GROUPS.map((group) => (
           <div key={group.title}>
             <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
@@ -85,6 +92,7 @@ export function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "motion-soft motion-press flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
                       isActive
@@ -105,14 +113,24 @@ export function Sidebar() {
         {userName && (
           <p className="text-xs text-muted-foreground px-3 truncate">{userName}</p>
         )}
-        <Button
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <ShieldCheck className="h-5 w-5" />
+            پنل مدیریت
+          </Link>
+        )}
+        {/* Login/logout temporarily disabled; restore with AUTH_ENABLED. */}
+        {AUTH_ENABLED && <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground"
           onClick={logout}
         >
           <LogOut className="h-5 w-5" />
           خروج
-        </Button>
+        </Button>}
       </div>
     </aside>
   );

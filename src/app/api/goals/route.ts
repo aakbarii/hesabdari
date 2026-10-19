@@ -1,3 +1,6 @@
+import { readJsonObject } from "@/lib/validation";
+import { validateFinancialReferences } from "@/lib/financial-validation";
+import { dateInput, moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -14,29 +17,29 @@ import { nanoid } from "@/lib/db/nanoid";
 const goalSchema = z.object({
   type: z.enum(["savings", "purchase"]),
   name: z.string().min(1),
-  targetAmount: z.number().positive(),
+  targetAmount: moneyInput,
   accountId: z.string().optional().nullable(),
-  deadline: z.string().optional().nullable(),
+  deadline: dateInput.optional().nullable(),
   color: z.string().optional(),
   priority: z.number().optional(),
 });
 
 const contributeSchema = z.object({
   goalId: z.string(),
-  amount: z.number().positive(),
-  date: z.string(),
+  amount: moneyInput,
+  date: dateInput,
   note: z.string().optional(),
 });
 
 export async function GET(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type") as "savings" | "purchase" | null;
-  const list = getGoals(
+  const list = await getGoals(
     userId,
     type === "savings" || type === "purchase" ? type : undefined
   );
@@ -44,12 +47,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
 
   if (body.goalId) {
     const parsed = contributeSchema.safeParse(body);
@@ -57,22 +60,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
     }
     const { goalId, amount, date, note } = parsed.data;
-    const goal = db.select().from(goals).where(eq(goals.id, goalId)).get();
+    const goal = await db.select().from(goals).where(eq(goals.id, goalId)).get();
     if (!goal || goal.userId !== userId) {
       return NextResponse.json({ error: "هدف یافت نشد" }, { status: 404 });
     }
 
     const id = nanoid();
-    db.insert(goalContributions)
-      .values({ id, goalId, amount, date: new Date(date), note })
-      .run();
+    await db.transaction(async (tx) => {
+      await tx.insert(goalContributions)
+        .values({ id, goalId, amount, date: new Date(date), note })
+        .run();
 
-    const newAmount = goal.currentAmount + amount;
-    const status = newAmount >= goal.targetAmount ? "completed" : "active";
-    db.update(goals)
-      .set({ currentAmount: newAmount, status })
-      .where(eq(goals.id, goalId))
-      .run();
+      const newAmount = goal.currentAmount + amount;
+      const status = newAmount >= goal.targetAmount ? "completed" : "active";
+      await tx.update(goals)
+        .set({ currentAmount: newAmount, status })
+        .where(eq(goals.id, goalId))
+        .run();
+    });
 
     return NextResponse.json({ id });
   }
@@ -86,7 +91,10 @@ export async function POST(request: Request) {
   const { type, name, targetAmount, accountId, deadline, color, priority } =
     parsed.data;
 
-  db.insert(goals)
+  const referenceError = await validateFinancialReferences(userId, { accountId });
+  if (referenceError) return referenceError;
+
+  await db.insert(goals)
     .values({
       id,
       userId,

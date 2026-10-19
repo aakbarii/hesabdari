@@ -13,7 +13,7 @@ export async function DELETE(
 
   const { id } = await params;
 
-  db.delete(vehicleServices)
+  await db.delete(vehicleServices)
     .where(and(eq(vehicleServices.id, id), eq(vehicleServices.userId, auth)))
     .run();
 

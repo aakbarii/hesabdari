@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -14,14 +15,14 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  ensureDb();
-  const body = await request.json();
+  await ensureDb();
+  const body = await readJsonObject(request);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "اطلاعات نامعتبر" }, { status: 400 });
   }
 
-  const user = getUserByEmail(parsed.data.email);
+  const user = await getUserByEmail(parsed.data.email);
   if (!user?.passwordHash) {
     return NextResponse.json({ error: "ایمیل یا رمز اشتباه است" }, { status: 401 });
   }

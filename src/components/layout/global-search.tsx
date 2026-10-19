@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import {
@@ -33,6 +33,7 @@ export function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,24 +46,23 @@ export function GlobalSearch() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const search = useCallback(async (q: string) => {
-    if (q.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      if (res.ok) setResults(await res.json());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    const t = setTimeout(() => search(query), 250);
-    return () => clearTimeout(t);
-  }, [query, search]);
+    if (!open || query.trim().length < 2) return;
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, { signal: controller.signal });
+        if (!res.ok) throw new Error("Search failed");
+        const next = await res.json();
+        if (!controller.signal.aborted) setResults(next);
+      } catch {
+        if (!controller.signal.aborted) setError(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 250);
+    return () => { clearTimeout(t); controller.abort(); };
+  }, [query, open]);
 
   const go = (href: string) => {
     setOpen(false);
@@ -100,15 +100,23 @@ export function GlobalSearch() {
               autoFocus
               placeholder="تراکنش، حساب، هدف، بدهی..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              aria-label="جستجو در روال"
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setResults([]);
+                setError(false);
+                setLoading(e.target.value.trim().length >= 2);
+              }}
               className="border-0 shadow-none focus-visible:ring-0 text-base"
             />
           </DialogHeader>
-          <div className="max-h-80 overflow-y-auto p-2">
+          <div className="max-h-80 overflow-y-auto p-2" aria-live="polite" aria-busy={loading}>
+            {query.trim().length < 2 && <p className="p-6 text-center text-sm text-muted-foreground">برای شروع، دست‌کم دو حرف بنویسید</p>}
+            {error && <p role="alert" className="p-3 text-sm text-destructive">جستجو انجام نشد. اتصال را بررسی و دوباره تلاش کنید.</p>}
             {loading && (
               <p className="text-sm text-muted-foreground p-3">در حال جستجو...</p>
             )}
-            {!loading && query.length >= 2 && results.length === 0 && (
+            {!loading && !error && query.trim().length >= 2 && results.length === 0 && (
               <p className="text-sm text-muted-foreground p-3">نتیجه‌ای یافت نشد</p>
             )}
             {results.map((r) => (

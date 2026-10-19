@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import {
@@ -18,32 +19,32 @@ const accountSchema = z.object({
 });
 
 export async function GET() {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const list = db
+  const list = await db
     .select()
     .from(accounts)
     .where(eq(accounts.userId, userId))
     .all();
 
-  const withBalance = list.map((acc) => ({
+  const withBalance = await Promise.all(list.map(async (acc) => ({
     ...acc,
-    balance: getAccountBalance(acc.id),
-  }));
+    balance: await getAccountBalance(acc.id),
+  })));
 
   return NextResponse.json(withBalance);
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = accountSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   const id = nanoid();
   const { name, type, color, initialBalance } = parsed.data;
 
-  db.insert(accounts)
+  await db.insert(accounts)
     .values({
       id,
       userId,
@@ -63,6 +64,6 @@ export async function POST(request: Request) {
     })
     .run();
 
-  const account = db.select().from(accounts).where(eq(accounts.id, id)).get();
-  return NextResponse.json({ ...account, balance: getAccountBalance(id) });
+  const account = await db.select().from(accounts).where(eq(accounts.id, id)).get();
+  return NextResponse.json({ ...account, balance: await getAccountBalance(id) });
 }

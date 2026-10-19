@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Vazirmatn } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -7,23 +6,18 @@ import { AppChrome } from "@/components/layout/app-chrome";
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
-const vazirmatn = Vazirmatn({
-  variable: "--font-sans",
-  subsets: ["arabic"],
-});
-
 export const metadata: Metadata = {
   title: {
-    default: "سامان | سیستم هوشمند مدیریت زندگی و دارایی",
-    template: "%s | سامان",
+    default: "روال | سیستم هوشمند مدیریت زندگی و دارایی",
+    template: "%s | روال",
   },
-  description: "سامان (Saman Life OS) — سیستم جامع مدیریت مالی، بودجه‌بندی، رژیم و کالری‌شمار، تمرینات ورزشی، تمرکز و رشد فردی",
-  applicationName: "سامان (Saman)",
+  description: "روال (Ravaal Life OS) — سیستم جامع مدیریت مالی، بودجه‌بندی، رژیم و کالری‌شمار، تمرینات ورزشی، تمرکز و رشد فردی",
+  applicationName: "روال (Ravaal)",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "سامان",
+    title: "روال",
   },
   formatDetection: {
     telephone: false,
@@ -58,7 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
-      <body className={`${vazirmatn.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

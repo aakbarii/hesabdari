@@ -1,10 +1,11 @@
 appId: ir.saman.app
-productName: Saman
-copyright: Saman Life OS
+productName: Ravaal
+copyright: Ravaal Life OS
 npmRebuild: false
 nodeGypRebuild: false
 buildDependenciesFromSource: false
 directories:
+  app: build-resources/desktop-app
   output: dist-desktop
   buildResources: build-resources
 files:
@@ -19,6 +20,10 @@ extraResources:
       - "!**/dist-desktop{,/**/*}"
       - "!.git{,/**/*}"
       - "!**/.git{,/**/*}"
+      - "!data{,/**/*}"
+      - "!**/*.db*"
+      - "!**/.env*"
+      - "!**/.session-secret"
   - from: build-resources/node
     to: node
     filter:
@@ -32,7 +37,7 @@ win:
     - target: portable
       arch:
         - x64
-  artifactName: Saman-${version}-${os}-${arch}.${ext}
+  artifactName: Ravaal-${version}-${os}-${arch}.${ext}
 nsis:
   oneClick: true
   perMachine: false
@@ -40,10 +45,10 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   # ASCII only — Persian breaks NSIS shortcut encoding on some Windows locales
-  shortcutName: Saman
+  shortcutName: Ravaal
   runAfterFinish: true
   # Never wipe %APPDATA%\Saman or %APPDATA%\Hesabdari
   deleteAppDataOnUninstall: false
 portable:
-  artifactName: Saman-Portable.exe
+  artifactName: Ravaal-Portable.exe
   requestExecutionLevel: user

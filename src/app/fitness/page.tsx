@@ -1,15 +1,17 @@
 "use client";
 
+import { toISODate } from "@/lib/format";
+
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card,   } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dumbbell, Scale, Flame, Plus, Trash2, Calendar, Activity, HeartPulse } from "lucide-react";
+import { Dumbbell, Scale, Flame, Plus, Trash2,  Activity, } from "lucide-react";
 import { toast } from "sonner";
 
 interface Workout {
@@ -45,7 +47,7 @@ export default function FitnessPage() {
   const [openWeight, setOpenWeight] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = toISODate(new Date());
 
   const [workoutForm, setWorkoutForm] = useState({
     title: "",
@@ -75,7 +77,12 @@ export default function FitnessPage() {
   };
 
   useEffect(() => {
-    loadData();
+    const controller = new AbortController();
+    fetch("/api/fitness", { signal: controller.signal })
+      .then((res) => { if (!res.ok) throw new Error("Load failed"); return res.json(); })
+      .then((json) => { setWorkouts(json.workouts); setMetrics(json.metrics); })
+      .catch(() => { if (!controller.signal.aborted) toast.error("دریافت اطلاعات انجام نشد. دوباره تلاش کنید."); });
+    return () => controller.abort();
   }, []);
 
   const handleAddWorkout = async (e: React.FormEvent) => {
@@ -312,7 +319,7 @@ export default function FitnessPage() {
                 <Label htmlFor="wType">نوع تمرین</Label>
                 <Select
                   value={workoutForm.type}
-                  onValueChange={(v: any) => setWorkoutForm({ ...workoutForm, type: v })}
+                  onValueChange={(v) => { if (v && v in WORKOUT_TYPES) setWorkoutForm({ ...workoutForm, type: v as Workout["type"] }); }}
                 >
                   <SelectTrigger id="wType"><SelectValue /></SelectTrigger>
                   <SelectContent>

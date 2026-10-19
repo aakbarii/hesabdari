@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 export const users = sqliteTable("users", {
@@ -33,6 +33,19 @@ export const pending2faTokens = sqliteTable("pending_2fa_tokens", {
     .references(() => users.id, { onDelete: "cascade" }),
   tokenHash: text("token_hash").notNull(),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Receipt images live in the database so they survive serverless deploys.
+export const receiptFiles = sqliteTable("receipt_files", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  mimeType: text("mime_type").notNull(),
+  data: blob("data", { mode: "buffer" }).notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import { Input } from "@/components/ui/input";
-import { parseRawNumber } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
 /** Format digits with thousand separators: 1250000 → 1,250,000 */
 export function formatGroupedDigits(raw: string): string {
   const digitsOnly = raw
     .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
     .replace(/\D/g, "");
   if (!digitsOnly) return "";
   const normalized = digitsOnly.replace(/^0+(?=\d)/, "");
@@ -41,12 +41,14 @@ export function AmountInput({
       onChange={(e) => {
         const cleaned = e.target.value
           .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+          .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
           .replace(/\D/g, "");
         if (!cleaned) {
           onValueChange("");
           return;
         }
-        onValueChange(String(parseRawNumber(cleaned)));
+        const normalized = cleaned.replace(/^0+(?=\d)/, "");
+        if (Number.isSafeInteger(Number(normalized))) onValueChange(normalized);
       }}
     />
   );

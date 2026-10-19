@@ -3,7 +3,7 @@ import { ensureDb, globalSearch } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
@@ -13,5 +13,5 @@ export async function GET(request: Request) {
     return NextResponse.json([]);
   }
 
-  return NextResponse.json(globalSearch(auth, q));
+  return NextResponse.json(await globalSearch(auth, q));
 }

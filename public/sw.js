@@ -1,5 +1,5 @@
-const CACHE = "hesabdari-shell-v2";
-const PRECACHE = ["/", "/manifest.json", "/icon-192.png", "/apple-touch-icon.png"];
+const CACHE = "hesabdari-static-v4";
+const PRECACHE = ["/offline.html", "/manifest.json", "/icon-192.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -11,7 +11,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k.startsWith("hesabdari-") && k !== CACHE).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -32,13 +32,9 @@ self.addEventListener("fetch", (event) => {
 
   if (isDocument) {
     event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy));
-          return res;
-        })
-        .catch(() => caches.match(request).then((hit) => hit || caches.match("/")))
+      fetch(request).catch(async () =>
+        (await caches.match("/offline.html")) || new Response("اتصال به اینترنت برقرار نیست", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } })
+      )
     );
     return;
   }
@@ -58,7 +54,7 @@ self.addEventListener("fetch", (event) => {
             }
             return res;
           })
-          .catch(() => cached);
+          .catch(() => cached || Response.error());
         return cached || network;
       })
     );

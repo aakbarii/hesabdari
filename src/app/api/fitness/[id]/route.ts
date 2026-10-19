@@ -13,11 +13,11 @@ export async function DELETE(
 
   const { id } = await params;
 
-  db.delete(workouts)
+  await db.delete(workouts)
     .where(and(eq(workouts.id, id), eq(workouts.userId, auth)))
     .run();
 
-  db.delete(bodyMetrics)
+  await db.delete(bodyMetrics)
     .where(and(eq(bodyMetrics.id, id), eq(bodyMetrics.userId, auth)))
     .run();
 

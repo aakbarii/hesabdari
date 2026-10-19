@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -26,12 +27,12 @@ const courseSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-export async function GET(request: Request) {
+export async function GET() {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const userBooks = db.select().from(books).where(eq(books.userId, auth)).orderBy(desc(books.createdAt)).all();
-  const userCourses = db.select().from(courses).where(eq(courses.userId, auth)).orderBy(desc(courses.createdAt)).all();
+  const userBooks = await db.select().from(books).where(eq(books.userId, auth)).orderBy(desc(books.createdAt)).all();
+  const userCourses = await db.select().from(courses).where(eq(courses.userId, auth)).orderBy(desc(courses.createdAt)).all();
 
   return NextResponse.json({
     books: userBooks,
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
 
   if (body.kind === "course") {
     const parsed = courseSchema.safeParse(body);
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "اطلاعات دوره نامعتبر است" }, { status: 400 });
     }
     const id = nanoid();
-    db.insert(courses)
+    await db.insert(courses)
       .values({
         id,
         userId: auth,
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
   }
 
   const id = nanoid();
-  db.insert(books)
+  await db.insert(books)
     .values({
       id,
       userId: auth,

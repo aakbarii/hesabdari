@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -17,19 +18,19 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
-  const row = db.select().from(todos).where(eq(todos.id, id)).get();
+  const row = await db.select().from(todos).where(eq(todos.id, id)).get();
   if (!row || row.userId !== auth) {
     return NextResponse.json({ error: "کار یافت نشد" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
+  if (!parsed.success || Object.keys(parsed.data).length === 0) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
@@ -49,7 +50,7 @@ export async function PATCH(
       parsed.data.status === "done" ? new Date() : null;
   }
 
-  db.update(todos).set(updates).where(eq(todos.id, id)).run();
+  await db.update(todos).set(updates).where(eq(todos.id, id)).run();
   return NextResponse.json({ ok: true });
 }
 
@@ -57,16 +58,16 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
-  const row = db.select().from(todos).where(eq(todos.id, id)).get();
+  const row = await db.select().from(todos).where(eq(todos.id, id)).get();
   if (!row || row.userId !== auth) {
     return NextResponse.json({ error: "کار یافت نشد" }, { status: 404 });
   }
 
-  db.delete(todos).where(eq(todos.id, id)).run();
+  await db.delete(todos).where(eq(todos.id, id)).run();
   return NextResponse.json({ ok: true });
 }

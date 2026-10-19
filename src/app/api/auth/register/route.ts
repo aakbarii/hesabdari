@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
@@ -20,20 +21,20 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  ensureDb();
-  const body = await request.json();
+  await ensureDb();
+  const body = await readJsonObject(request);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "اطلاعات نامعتبر" }, { status: 400 });
   }
 
   const { email, password, name } = parsed.data;
-  if (getUserByEmail(email)) {
+  if (await getUserByEmail(email)) {
     return NextResponse.json({ error: "این ایمیل قبلاً ثبت شده" }, { status: 400 });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const userId = createUserWithDefaults(email, passwordHash, name);
+  const userId = await createUserWithDefaults(email, passwordHash, name);
   const token = await signSession(userId);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);

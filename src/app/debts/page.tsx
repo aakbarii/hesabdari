@@ -1,5 +1,7 @@
 "use client";
 
+import { toISODate } from "@/lib/format";
+
 import { useEffect, useState } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
@@ -52,7 +54,7 @@ export default function DebtsPage() {
   const [form, setForm] = useState(emptyForm);
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
-    date: new Date().toISOString().split("T")[0],
+    date: toISODate(new Date()),
   });
 
   const load = () =>
@@ -147,7 +149,7 @@ export default function DebtsPage() {
     if (res.ok) {
       toast.success("پرداخت ثبت شد");
       setPaymentOpen(null);
-      setPaymentForm({ amount: "", date: new Date().toISOString().split("T")[0] });
+      setPaymentForm({ amount: "", date: toISODate(new Date()) });
       load();
     }
   };

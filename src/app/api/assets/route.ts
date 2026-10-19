@@ -1,3 +1,4 @@
+import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -17,16 +18,16 @@ const schema = z.object({
 });
 
 export async function GET() {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const list = db
+  const list = (await db
     .select()
     .from(assets)
     .where(eq(assets.userId, userId))
-    .all()
+    .all())
     .map((a) => ({
       ...a,
       totalValue: a.quantity * a.unitPrice,
@@ -41,12 +42,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
   const { name, type, quantity, unitPrice, purchasePrice, purchaseDate, notes, color } =
     parsed.data;
 
-  db.insert(assets)
+  await db.insert(assets)
     .values({
       id,
       userId,

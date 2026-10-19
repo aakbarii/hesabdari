@@ -25,6 +25,9 @@ import {
   Target,
   LineChart,
   Sunrise,
+  ArrowLeft,
+  RefreshCw,
+  Plus,
 } from "lucide-react";
 import {
   formatToman,
@@ -120,26 +123,35 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [widgets, setWidgets] = useState<DashboardWidgetId[]>([]);
+  const [error, setError] = useState(false);
+  const [reload, setReload] = useState(0);
+  const [savingWidgets, setSavingWidgets] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
+    let version = 0;
     const load = () => {
+      const currentVersion = ++version;
       setLoading(true);
+      setError(false);
       fetch("/api/dashboard", { signal: controller.signal })
         .then((r) => {
           if (!r.ok) throw new Error("dashboard fetch failed");
           return r.json();
         })
         .then((d) => {
+          if (controller.signal.aborted || currentVersion !== version) return;
           setData(d);
           setWidgets(d.widgets ?? []);
         })
         .catch((err) => {
           if (err?.name !== "AbortError") {
+            if (currentVersion !== version) return;
+            setError(true);
             toast.error("خطا در بارگذاری داشبورد");
           }
         })
-        .finally(() => setLoading(false));
+        .finally(() => { if (!controller.signal.aborted && currentVersion === version) setLoading(false); });
     };
     load();
     const onTx = () => load();
@@ -148,21 +160,30 @@ export default function DashboardPage() {
       controller.abort();
       window.removeEventListener("hesabdari:tx-created", onTx);
     };
-  }, []);
+  }, [reload]);
 
   const show = (id: DashboardWidgetId) => widgets.includes(id);
 
   const toggleWidget = async (id: DashboardWidgetId) => {
+    if (savingWidgets) return;
     const next = widgets.includes(id)
       ? widgets.filter((w) => w !== id)
       : [...widgets, id];
-    setWidgets(next);
-    await fetch("/api/dashboard", {
+    setSavingWidgets(true);
+    try {
+    const response = await fetch("/api/dashboard", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ widgets: next }),
     });
+    if (!response.ok) throw new Error("Save failed");
+    setReload((value) => value + 1);
     toast.success("تنظیمات ذخیره شد");
+    } catch {
+      toast.error("تنظیمات ذخیره نشد. دوباره تلاش کنید.");
+    } finally {
+      setSavingWidgets(false);
+    }
   };
 
   const chartData =
@@ -176,13 +197,31 @@ export default function DashboardPage() {
     <>
       <Header title="داشبورد" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
+        <section className="dashboard-welcome relative overflow-hidden rounded-3xl p-6 sm:p-8">
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+            <div className="max-w-xl space-y-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-emerald-50"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> فضای شخصی روال</span>
+              <h2 className="text-2xl font-bold leading-relaxed sm:text-3xl">امروز را با خیال آسوده شروع کن.</h2>
+              <p className="text-sm leading-7 text-emerald-50/80">دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.</p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Link href="/transactions?new=expense" className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50"><Plus className="h-4 w-4" /> ثبت تراکنش</Link>
+                <Link href="/life" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm transition hover:bg-white/10">برنامه امروز <ArrowLeft className="h-4 w-4" /></Link>
+              </div>
+            </div>
+            {data && <div className="w-full rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm sm:w-auto sm:min-w-56">
+              <p className="text-xs text-emerald-50/75">مانده این ماه · {getJalaliMonthName(data.month)}</p>
+              <p className="mt-3 text-xl font-bold tabular-nums sm:text-2xl">{formatToman(data.monthly.balance)}</p>
+              <Link href="/reports" className="mt-4 inline-flex items-center gap-2 text-xs text-emerald-50/80 hover:text-white">مشاهده گزارش مالی <ArrowLeft className="h-3.5 w-3.5" /></Link>
+            </div>}
+          </div>
+        </section>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex gap-2">
             <Link
               href="/transactions?new=expense"
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "bg-red-600 hover:bg-red-600/90"
+                "bg-red-600 text-white hover:bg-red-600/90"
               )}
             >
               <ArrowDownRight className="h-4 w-4 ml-1" />
@@ -218,6 +257,7 @@ export default function DashboardPage() {
                       className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted"
                     >
                       <input
+                        disabled={savingWidgets}
                         type="checkbox"
                         checked={widgets.includes(id)}
                         onChange={() => toggleWidget(id)}
@@ -234,7 +274,14 @@ export default function DashboardPage() {
           </Sheet>
         </div>
 
-        {loading ? (
+        {error ? (
+          <Card><CardContent className="flex flex-col items-center gap-4 py-10 text-center" role="alert">
+            <AlertTriangle className="h-9 w-9 text-amber-500" />
+            <h2 className="text-lg font-semibold">داشبورد بارگذاری نشد</h2>
+            <p className="text-sm text-muted-foreground">اتصال به سرور را بررسی کنید و دوباره تلاش کنید.</p>
+            <Button variant="outline" onClick={() => setReload((value) => value + 1)}><RefreshCw className="h-4 w-4" /> تلاش دوباره</Button>
+          </CardContent></Card>
+        ) : loading ? (
           <div className="grid gap-4 md:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="overflow-hidden">
@@ -244,6 +291,7 @@ export default function DashboardPage() {
           </div>
         ) : data ? (
           <>
+            {widgets.length === 0 && <Card><CardContent className="py-10 text-center text-muted-foreground">ویجت‌های دلخواهتان را از «تنظیم ویجت‌ها» فعال کنید.</CardContent></Card>}
             {show("balance") || show("monthly") ? (
               <div className="grid gap-4 md:grid-cols-3">
                 {show("balance") && (
@@ -455,8 +503,9 @@ export default function DashboardPage() {
 
                 {show("recent") && (
                   <Card>
-                    <CardHeader>
+                    <CardHeader className="flex items-center justify-between gap-3">
                       <CardTitle>آخرین تراکنش‌ها</CardTitle>
+                      <Link href="/transactions" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">مشاهده همه <ArrowLeft className="h-3 w-3" /></Link>
                     </CardHeader>
                     <CardContent>
                       {data.recent.length > 0 ? (
@@ -479,7 +528,7 @@ export default function DashboardPage() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-center text-muted-foreground py-12">هنوز تراکنشی ثبت نشده</p>
+                        <div className="flex flex-col items-center gap-3 py-10 text-center"><span className="rounded-2xl bg-primary/8 p-4 text-primary"><Wallet className="h-7 w-7" /></span><p className="font-medium">اولین قدم برای مدیریت مالی</p><p className="text-xs text-muted-foreground">یک حساب بسازید و درآمدها و هزینه‌ها را ثبت کنید.</p><Link href="/accounts" className="text-sm font-semibold text-primary hover:underline">مدیریت حساب‌ها ←</Link></div>
                       )}
                     </CardContent>
                   </Card>

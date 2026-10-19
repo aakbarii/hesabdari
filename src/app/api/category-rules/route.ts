@@ -1,3 +1,5 @@
+import { readJsonObject } from "@/lib/validation";
+import { validateFinancialReferences } from "@/lib/financial-validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -11,12 +13,12 @@ const ruleSchema = z.object({
 });
 
 export async function GET() {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const list = db
+  const list = await db
     .select({
       id: categoryRules.id,
       keyword: categoryRules.keyword,
@@ -32,19 +34,22 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  ensureDb();
+  await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
   const userId = auth;
 
-  const body = await request.json();
+  const body = await readJsonObject(request);
   const parsed = ruleSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
   }
 
+  const referenceError = await validateFinancialReferences(userId, { categoryId: parsed.data.categoryId });
+  if (referenceError) return referenceError;
+
   const id = nanoid();
-  db.insert(categoryRules)
+  await db.insert(categoryRules)
     .values({
       id,
       userId,

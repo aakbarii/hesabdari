@@ -7,13 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Calculator, Shield } from "lucide-react";
+import {  Shield } from "lucide-react";
 import { toast } from "sonner";
 import { AppLogo } from "@/components/layout/app-logo";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const from = searchParams.get("from");
+  const returnPath = from?.startsWith("/") && !from.startsWith("//") && !from.includes("\\") ? from : "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ function LoginForm() {
       }
 
       toast.success(needsSetup ? "حساب فعال شد" : "خوش آمدید");
-      router.replace(searchParams.get("from") ?? "/");
+      router.replace(returnPath);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "خطا در ورود");
     } finally {
@@ -76,7 +78,7 @@ function LoginForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "خطا");
       toast.success("خوش آمدید");
-      router.replace(searchParams.get("from") ?? "/");
+      router.replace(returnPath);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "کد نامعتبر");
     } finally {
@@ -142,7 +144,7 @@ function LoginForm() {
             <AppLogo size="xl" showText={false} clickable={false} />
           </div>
           <CardTitle className="text-2xl font-black">
-            {needsSetup ? "راه‌اندازی و ورود به سامان" : "ورود به سامان"}
+            {needsSetup ? "راه‌اندازی و ورود به روال" : "ورود به روال"}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             {needsSetup

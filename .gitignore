@@ -46,6 +46,12 @@ yarn-error.log*
 /build-resources/node/
 /build-resources/*.zip
 /build-resources/_node_extract/
+/build-resources/desktop-app/
 
 *.tsbuildinfo
 next-env.d.ts
+
+# Local design context and verification output
+/.superdesign/
+/.eslint-results.json
+/.npm-audit*.json
