@@ -231,7 +231,7 @@ export default function BudgetPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{formatToman(totalBudget)}</p>
+                <p className="text-2xl font-semibold tabular-nums">{formatToman(totalBudget)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -241,7 +241,7 @@ export default function BudgetPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-2xl font-semibold tabular-nums text-red-600">
                   {formatToman(totalSpent)}
                 </p>
               </CardContent>
@@ -249,10 +249,9 @@ export default function BudgetPage() {
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-card empty:hidden">
           {budgets.map((b) => (
-            <Card key={b.id}>
-              <CardContent className="pt-6">
+            <div key={b.id} className="px-5 py-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div
@@ -262,12 +261,12 @@ export default function BudgetPage() {
                     <span className="font-medium">{b.categoryName}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm tabular-nums text-muted-foreground">
                       {formatToman(b.spent)} از {formatToman(b.amount)}
                     </span>
                     <Button
                       type="button"
-                      size="icon"
+                      size="icon-sm"
                       variant="ghost"
                       onClick={() => deleteBudget(b.id)}
                       aria-label="حذف بودجه"
@@ -284,8 +283,7 @@ export default function BudgetPage() {
                   {b.percent}% مصرف شده · باقیمانده:{" "}
                   {formatToman(Math.max(0, b.remaining))}
                 </p>
-              </CardContent>
-            </Card>
+            </div>
           ))}
         </div>
 

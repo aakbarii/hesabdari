@@ -56,7 +56,7 @@ export default function AdminPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header title="پنل مدیریت" />
-      <main className="flex-1 p-4 lg:p-8 space-y-6">
+      <div className="p-4 lg:p-8 space-y-6 motion-stagger">
         {allowed === false && (
           <Card>
             <CardContent className="p-6 text-sm text-muted-foreground">
@@ -127,7 +127,7 @@ export default function AdminPage() {
             )}
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 }

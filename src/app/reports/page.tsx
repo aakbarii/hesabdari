@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { formatToman, getJalaliMonthName } from "@/lib/format";
+import { formatCompactAmount } from "@/lib/currency";
 import {
   BarChart,
   Bar,
@@ -132,9 +133,9 @@ export default function ReportsPage() {
             {monthly && (
               <>
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">درآمد</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-emerald-600">{formatToman(monthly.monthly.income)}</p></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">هزینه</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-red-600">{formatToman(monthly.monthly.expense)}</p></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">مانده</CardTitle></CardHeader><CardContent><p className={`text-2xl font-bold ${monthly.monthly.balance >= 0 ? "text-emerald-600" : "text-red-600"}`}>{formatToman(monthly.monthly.balance)}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">درآمد</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold tabular-nums text-emerald-600">{formatToman(monthly.monthly.income)}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">هزینه</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold tabular-nums text-red-600">{formatToman(monthly.monthly.expense)}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">مانده</CardTitle></CardHeader><CardContent><p className={`text-2xl font-semibold tabular-nums ${monthly.monthly.balance >= 0 ? "text-emerald-600" : "text-red-600"}`}>{formatToman(monthly.monthly.balance)}</p></CardContent></Card>
                 </div>
                 <Card>
                   <CardHeader><CardTitle>درآمد و هزینه</CardTitle></CardHeader>
@@ -142,9 +143,9 @@ export default function ReportsPage() {
                     <div className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={barData}>
-                          <CartesianGrid strokeDasharray="3 3" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                           <XAxis dataKey="name" />
-                          <YAxis tickFormatter={(v) => formatToman(v)} />
+                          <YAxis tickFormatter={(v) => formatCompactAmount(v)} width={64} tick={{ fontSize: 11 }} />
                           <Tooltip formatter={(v) => formatToman(Number(v))} />
                           <Legend />
                           <Bar dataKey="درآمد" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -161,8 +162,8 @@ export default function ReportsPage() {
                       <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={categoryData} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" tickFormatter={(v) => formatToman(v)} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis type="number" tickFormatter={(v) => formatCompactAmount(v)} tick={{ fontSize: 11 }} />
                             <YAxis type="category" dataKey="name" width={80} />
                             <Tooltip formatter={(v) => formatToman(Number(v))} />
                             <Bar dataKey="مبلغ" radius={[0, 4, 4, 0]} />
@@ -195,7 +196,7 @@ export default function ReportsPage() {
                       <ChangeBadge value={compare.changes.income} />
                     </CardHeader>
                     <CardContent>
-                      <p className="text-xl font-bold text-emerald-600">{formatToman(compare.current.income)}</p>
+                      <p className="text-xl font-semibold tabular-nums text-emerald-600">{formatToman(compare.current.income)}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         ماه قبل: {formatToman(compare.previous.income)}
                       </p>
@@ -207,7 +208,7 @@ export default function ReportsPage() {
                       <ChangeBadge value={compare.changes.expense} invert />
                     </CardHeader>
                     <CardContent>
-                      <p className="text-xl font-bold text-red-600">{formatToman(compare.current.expense)}</p>
+                      <p className="text-xl font-semibold tabular-nums text-red-600">{formatToman(compare.current.expense)}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         ماه قبل: {formatToman(compare.previous.expense)}
                       </p>
@@ -219,7 +220,7 @@ export default function ReportsPage() {
                       <ChangeBadge value={compare.changes.balance} />
                     </CardHeader>
                     <CardContent>
-                      <p className={`text-xl font-bold ${compare.current.balance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      <p className={`text-xl font-semibold tabular-nums ${compare.current.balance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                         {formatToman(compare.current.balance)}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -234,9 +235,9 @@ export default function ReportsPage() {
                     <div className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={compareChart}>
-                          <CartesianGrid strokeDasharray="3 3" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                           <XAxis dataKey="name" />
-                          <YAxis tickFormatter={(v) => formatToman(v)} />
+                          <YAxis tickFormatter={(v) => formatCompactAmount(v)} width={64} tick={{ fontSize: 11 }} />
                           <Tooltip formatter={(v) => formatToman(Number(v))} />
                           <Legend />
                           <Bar dataKey="درآمد" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -259,13 +260,13 @@ export default function ReportsPage() {
             {annual && (
               <>
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">کل درآمد سال</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-emerald-600">{formatToman(annual.totalIncome)}</p></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">کل هزینه سال</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-red-600">{formatToman(annual.totalExpense)}</p></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">مانده سال</CardTitle></CardHeader><CardContent><p className={`text-2xl font-bold ${annual.totalBalance >= 0 ? "text-emerald-600" : "text-red-600"}`}>{formatToman(annual.totalBalance)}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">کل درآمد سال</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold tabular-nums text-emerald-600">{formatToman(annual.totalIncome)}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">کل هزینه سال</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold tabular-nums text-red-600">{formatToman(annual.totalExpense)}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">مانده سال</CardTitle></CardHeader><CardContent><p className={`text-2xl font-semibold tabular-nums ${annual.totalBalance >= 0 ? "text-emerald-600" : "text-red-600"}`}>{formatToman(annual.totalBalance)}</p></CardContent></Card>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">میانگین درآمد ماهانه</p><p className="text-xl font-bold">{formatToman(annual.avgMonthlyIncome)}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">میانگین هزینه ماهانه</p><p className="text-xl font-bold">{formatToman(annual.avgMonthlyExpense)}</p></CardContent></Card>
+                  <Card><CardContent><p className="text-sm text-muted-foreground">میانگین درآمد ماهانه</p><p className="text-xl font-semibold tabular-nums">{formatToman(annual.avgMonthlyIncome)}</p></CardContent></Card>
+                  <Card><CardContent><p className="text-sm text-muted-foreground">میانگین هزینه ماهانه</p><p className="text-xl font-semibold tabular-nums">{formatToman(annual.avgMonthlyExpense)}</p></CardContent></Card>
                 </div>
                 <Card>
                   <CardHeader><CardTitle>روند سالانه</CardTitle></CardHeader>
@@ -273,9 +274,9 @@ export default function ReportsPage() {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={annualChart}>
-                          <CartesianGrid strokeDasharray="3 3" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                           <XAxis dataKey="name" />
-                          <YAxis tickFormatter={(v) => formatToman(v)} />
+                          <YAxis tickFormatter={(v) => formatCompactAmount(v)} width={64} tick={{ fontSize: 11 }} />
                           <Tooltip formatter={(v) => formatToman(Number(v))} />
                           <Legend />
                           <Line type="monotone" dataKey="درآمد" stroke="#10b981" strokeWidth={2} />

@@ -163,7 +163,7 @@ export default function FitnessPage() {
     <div className="flex-1 flex flex-col min-h-screen bg-background">
       <Header title="ورزش و تناسب اندام" />
 
-      <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <div className="p-4 lg:p-8 space-y-6 motion-stagger">
         <PageHero
           heroKey="fitness"
           title="ورزش و تناسب اندام"
@@ -186,7 +186,7 @@ export default function FitnessPage() {
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Activity className="h-4 w-4 text-emerald-500" /> کل تمرینات ثبت‌شده
             </p>
-            <p className="text-3xl font-extrabold mt-2">{workouts.length.toLocaleString("fa-IR")} <span className="text-sm font-normal text-muted-foreground">جلسه</span></p>
+            <p className="text-3xl font-semibold tabular-nums mt-2">{workouts.length.toLocaleString("fa-IR")} <span className="text-sm font-normal text-muted-foreground">جلسه</span></p>
             <p className="text-xs text-muted-foreground mt-1">مجموعاً {totalWorkoutMinutes} دقیقه فعالیت ورزشی</p>
           </Card>
 
@@ -194,7 +194,7 @@ export default function FitnessPage() {
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Flame className="h-4 w-4 text-orange-500" /> کالری سوزانده‌شده
             </p>
-            <p className="text-3xl font-extrabold mt-2 text-orange-600">{totalCaloriesBurned.toLocaleString("fa-IR")} <span className="text-sm font-normal text-muted-foreground">kcal</span></p>
+            <p className="text-3xl font-semibold tabular-nums mt-2 text-orange-600">{totalCaloriesBurned.toLocaleString("fa-IR")} <span className="text-sm font-normal text-muted-foreground">kcal</span></p>
             <p className="text-xs text-muted-foreground mt-1">انرژی مصرف‌شده در تمرینات</p>
           </Card>
 
@@ -202,7 +202,7 @@ export default function FitnessPage() {
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Scale className="h-4 w-4 text-blue-500" /> آخرین وزن ثبت‌شده
             </p>
-            <p className="text-3xl font-extrabold mt-2 text-blue-600">
+            <p className="text-3xl font-semibold tabular-nums mt-2 text-blue-600">
               {latestWeight ? latestWeight.toLocaleString("fa-IR") : "—"} <span className="text-sm font-normal text-muted-foreground">کیلوگرم</span>
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -216,7 +216,7 @@ export default function FitnessPage() {
           {/* Workouts List (2 Cols) */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-base flex items-center gap-2">
+              <h3 className="font-semibold text-base flex items-center gap-2">
                 <Dumbbell className="h-4 w-4 text-primary" /> تمرینات اخیر
               </h3>
             </div>
@@ -232,7 +232,7 @@ export default function FitnessPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-lg">{WORKOUT_TYPES[w.type]?.icon ?? "🏋️"}</span>
-                        <span className="font-bold text-sm">{w.title}</span>
+                        <span className="font-semibold text-sm">{w.title}</span>
                         <Badge variant="secondary" className="text-[10px]">
                           {WORKOUT_TYPES[w.type]?.label ?? w.type}
                         </Badge>
@@ -261,7 +261,7 @@ export default function FitnessPage() {
 
           {/* Weight Log Sidebar */}
           <div className="space-y-4">
-            <h3 className="font-bold text-base flex items-center gap-2">
+            <h3 className="font-semibold text-base flex items-center gap-2">
               <Scale className="h-4 w-4 text-blue-500" /> سابقه وزن‌ها
             </h3>
 
@@ -274,7 +274,7 @@ export default function FitnessPage() {
                 {metrics.map((m) => (
                   <div key={m.id} className="p-3 flex items-center justify-between text-xs">
                     <div>
-                      <p className="font-bold text-sm text-foreground">{m.weightKg} کیلوگرم</p>
+                      <p className="font-semibold text-sm text-foreground">{m.weightKg} کیلوگرم</p>
                       <p className="text-[11px] text-muted-foreground">{m.date} {m.bodyFat ? `• چربی: ${m.bodyFat}%` : ""}</p>
                     </div>
                     <Button
@@ -291,7 +291,7 @@ export default function FitnessPage() {
             )}
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Add Workout Dialog */}
       <Dialog open={openWorkout} onOpenChange={setOpenWorkout}>

@@ -145,7 +145,7 @@ export default function FocusPage() {
     <div className="flex-1 flex flex-col min-h-screen bg-background">
       <Header title="حالت تمرکز و پومودورو" />
 
-      <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-4xl mx-auto w-full">
+      <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
         <PageHero
           heroKey="focus"
           title="حالت تمرکز و پومودورو"
@@ -156,13 +156,13 @@ export default function FocusPage() {
             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" /> جلسات پومودورو امروز
             </p>
-            <p className="text-3xl font-extrabold mt-1 text-primary">{stats.sessionCount.toLocaleString("fa-IR")}</p>
+            <p className="text-3xl font-semibold tabular-nums mt-1 text-primary">{stats.sessionCount.toLocaleString("fa-IR")}</p>
           </Card>
           <Card className="border shadow-sm text-center p-4">
             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
               <Brain className="h-4 w-4 text-blue-500" /> زمان کار عمیق امروز
             </p>
-            <p className="text-3xl font-extrabold mt-1 text-blue-600">
+            <p className="text-3xl font-semibold tabular-nums mt-1 text-blue-600">
               {stats.totalMinutes.toLocaleString("fa-IR")} <span className="text-sm font-normal text-muted-foreground">دقیقه</span>
             </p>
           </Card>
@@ -200,7 +200,7 @@ export default function FocusPage() {
 
           {/* Big Digital Clock */}
           <div className="my-8">
-            <span className="font-mono text-7xl sm:text-8xl font-black tracking-tight drop-shadow-sm">
+            <span className="font-mono text-7xl sm:text-8xl font-semibold tracking-tight drop-shadow-sm">
               {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
             </span>
           </div>
@@ -215,7 +215,7 @@ export default function FocusPage() {
 
           {/* Controls */}
           <div className="flex justify-center items-center gap-4 mb-6">
-            <Button size="lg" className="h-14 px-8 text-lg font-bold gap-2 rounded-full shadow-md" onClick={toggleTimer}>
+            <Button size="lg" className="h-14 px-8 text-lg font-semibold gap-2 rounded-full shadow-md" onClick={toggleTimer}>
               {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               {isRunning ? "توقف موقت" : "شروع تمرکز"}
             </Button>
@@ -252,7 +252,7 @@ export default function FocusPage() {
         {sessions.length > 0 && (
           <Card className="border shadow-sm p-4">
             <CardHeader className="p-2 pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Flame className="h-4 w-4 text-orange-500" /> جلسات تکمیل‌شده امروز
               </CardTitle>
             </CardHeader>
@@ -272,7 +272,7 @@ export default function FocusPage() {
             </CardContent>
           </Card>
         )}
-      </main>
+      </div>
     </div>
   );
 }

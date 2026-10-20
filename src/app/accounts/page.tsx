@@ -35,6 +35,7 @@ import { formatToman } from "@/lib/format";
 import { ACCOUNT_TYPES, ACCOUNT_COLORS } from "@/lib/constants";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/amount-input";
+import { StatCard } from "@/components/stat-card";
 
 interface Account {
   id: string;
@@ -160,22 +161,20 @@ export default function AccountsPage() {
             </Button>
           }
         />
-        <div>
-          <p className="text-sm text-muted-foreground">مجموع موجودی</p>
-          <p className="text-2xl font-bold">{formatToman(total)}</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard label="مجموع موجودی" value={formatToman(total)} hint={`${accounts.length} حساب فعال`} icon={<Wallet />} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {accounts.map((acc) => {
             const Icon = typeIcons[acc.type];
             return (
-              <Card key={acc.id} className="overflow-hidden">
-                <div className="h-1.5" style={{ backgroundColor: acc.color }} />
-                <CardContent className="pt-5">
+              <Card key={acc.id} className="motion-lift">
+                <CardContent>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
                         style={{
                           backgroundColor: `${acc.color}20`,
                           color: acc.color,
@@ -190,24 +189,27 @@ export default function AccountsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    <div className="flex gap-0.5 shrink-0">
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="icon-sm"
+                        aria-label="ویرایش"
                         onClick={() => openEdit(acc)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="icon-sm"
+                        aria-label="حذف"
                         onClick={() => remove(acc)}
                       >
                         <Trash2 className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </div>
                   </div>
-                  <p className="text-xl font-bold mt-4">
+                  <p className="mt-5 text-xs text-muted-foreground">موجودی</p>
+                  <p className="mt-1 text-xl font-semibold tracking-tight tabular-nums">
                     {formatToman(acc.balance)}
                   </p>
                 </CardContent>

@@ -327,12 +327,12 @@ export default function LifePage() {
         />
         {summary && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="bg-gradient-to-br from-violet-500/10 to-transparent">
-              <CardContent className="pt-6">
+            <Card className="bg-accent/40">
+              <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground">پیشرفت امروز</p>
-                    <p className="text-2xl font-bold">{summary.todayProgress}%</p>
+                    <p className="text-2xl font-semibold tabular-nums">{summary.todayProgress}%</p>
                   </div>
                   <Sunrise className="h-8 w-8 text-violet-500" />
                 </div>
@@ -340,28 +340,28 @@ export default function LifePage() {
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-6">
+              <CardContent>
                 <p className="text-xs text-muted-foreground">کارهای باز</p>
-                <p className="text-2xl font-bold">{summary.todos.total}</p>
+                <p className="text-2xl font-semibold tabular-nums">{summary.todos.total}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {summary.todos.today} امروز · {summary.todos.overdue} عقب‌افتاده
                 </p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-6">
+              <CardContent>
                 <p className="text-xs text-muted-foreground">عادت‌های امروز</p>
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-semibold tabular-nums">
                   {summary.routines.completedToday}/{summary.routines.dueToday}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">انجام‌شده</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-6 flex items-center justify-between">
+              <CardContent className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">بیشترین استریک</p>
-                  <p className="text-2xl font-bold flex items-center gap-1">
+                  <p className="text-2xl font-semibold tabular-nums flex items-center gap-1">
                     <Flame className="h-5 w-5 text-orange-500" />
                     {summary.routines.maxStreak}
                   </p>
@@ -442,16 +442,15 @@ export default function LifePage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-2">
+              <div className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-card">
                 {todos.map((todo) => (
-                  <Card
+                  <div
                     key={todo.id}
                     className={cn(
-                      "transition-opacity",
+                      "flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
                       todo.status === "done" && "opacity-60"
                     )}
                   >
-                    <CardContent className="py-4 flex items-start gap-3">
                       <button
                         type="button"
                         onClick={() => toggleTodo(todo)}
@@ -503,20 +502,21 @@ export default function LifePage() {
                       </div>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="icon-sm"
+                        aria-label="ویرایش"
                         onClick={() => openEditTodo(todo)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="icon-sm"
+                        aria-label="حذف"
                         onClick={() => deleteTodo(todo.id)}
                       >
                         <Trash2 className="h-4 w-4 text-muted-foreground" />
                       </Button>
-                    </CardContent>
-                  </Card>
+                  </div>
                 ))}
               </div>
             )}

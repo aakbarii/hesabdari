@@ -9,6 +9,7 @@ import { Header } from "@/components/layout/header";
 import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/stat-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -173,24 +174,8 @@ export default function DebtsPage() {
           subtitle="رهگیری بدهی‌ها و طلب‌های شما از دیگران"
         />
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-emerald-600 mb-2">
-                <ArrowDownLeft className="h-4 w-4" />
-                <span className="text-sm">طلب از دیگران</span>
-              </div>
-              <p className="text-2xl font-bold">{formatToman(totalOwed)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-red-600 mb-2">
-                <ArrowUpRight className="h-4 w-4" />
-                <span className="text-sm">بدهی به دیگران</span>
-              </div>
-              <p className="text-2xl font-bold">{formatToman(totalOwing)}</p>
-            </CardContent>
-          </Card>
+          <StatCard label="طلب از دیگران" value={formatToman(totalOwed)} tone="positive" icon={<ArrowDownLeft />} />
+          <StatCard label="بدهی به دیگران" value={formatToman(totalOwing)} tone="negative" icon={<ArrowUpRight />} />
         </div>
 
         <Button onClick={openCreate}>
@@ -400,7 +385,7 @@ function DebtCard({
             </div>
           </div>
           <div className="text-left flex flex-col items-end gap-2 shrink-0">
-            <p className="font-bold">{formatToman(remaining)}</p>
+            <p className="font-semibold">{formatToman(remaining)}</p>
             <div className="flex items-center gap-1">
               {debt.status === "active" && onPay && (
                 <Button size="sm" variant="outline" onClick={onPay}>

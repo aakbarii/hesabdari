@@ -405,7 +405,7 @@ export default function SettingsPage() {
   return (
     <>
       <Header title={t("settings.title")} />
-      <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6 motion-stagger">
+      <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
         <PageHero
           heroKey="settings"
           title={t("settings.title")}

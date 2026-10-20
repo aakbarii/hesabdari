@@ -181,7 +181,7 @@ export default function GoalsPage() {
             </Button>
           </div>
 
-          <TabsContent value="savings" className="space-y-4 mt-4">
+          <TabsContent value="savings" className="mt-4 grid gap-4 lg:grid-cols-2 [&>*:only-child]:col-span-full">
             {filtered.map((g) => (
               <GoalCard
                 key={g.id}
@@ -201,7 +201,7 @@ export default function GoalsPage() {
               />
             )}
           </TabsContent>
-          <TabsContent value="purchase" className="space-y-4 mt-4">
+          <TabsContent value="purchase" className="mt-4 grid gap-4 lg:grid-cols-2 [&>*:only-child]:col-span-full">
             {filtered.map((g) => (
               <GoalCard
                 key={g.id}
@@ -321,7 +321,7 @@ function GoalCard({
 }) {
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent>
         <div className="flex items-start justify-between mb-4 gap-2">
           <div className="flex items-center gap-3 min-w-0">
             <div
@@ -341,7 +341,7 @@ function GoalCard({
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <span
-              className="text-sm font-bold tabular-nums ml-1"
+              className="text-sm font-semibold tabular-nums ml-1"
               style={{ color: goal.color }}
             >
               {goal.percent}%

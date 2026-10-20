@@ -125,7 +125,7 @@ export default function MaintenancePage() {
     <div className="flex-1 flex flex-col min-h-screen bg-background">
       <Header title="نگهداری و سرویس‌های خودرو" />
 
-      <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <div className="p-4 lg:p-8 space-y-6 motion-stagger">
         <PageHero
           heroKey="maintenance"
           title="نگهداری و سرویس‌های خودرو"
@@ -143,14 +143,14 @@ export default function MaintenancePage() {
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Car className="h-4 w-4 text-primary" /> کل سرویس‌های ثبت‌شده
             </p>
-            <p className="text-3xl font-extrabold mt-2">{services.length.toLocaleString("fa-IR")}</p>
+            <p className="text-3xl font-semibold tabular-nums mt-2">{services.length.toLocaleString("fa-IR")}</p>
           </Card>
 
           <Card className="border p-4">
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <ShieldCheck className="h-4 w-4 text-emerald-500" /> مجموع هزینه‌های نگهداری
             </p>
-            <p className="text-3xl font-extrabold mt-2 text-emerald-600">
+            <p className="text-3xl font-semibold tabular-nums mt-2 text-emerald-600">
               {totalCost.toLocaleString("fa-IR")} <span className="text-xs font-normal text-muted-foreground">تومان</span>
             </p>
           </Card>
@@ -159,7 +159,7 @@ export default function MaintenancePage() {
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <AlertTriangle className="h-4 w-4 text-amber-500" /> وضعیت پایش
             </p>
-            <p className="text-lg font-bold mt-2 text-primary flex items-center gap-1.5">
+            <p className="text-lg font-semibold mt-2 text-primary flex items-center gap-1.5">
               <CheckCircle2 className="h-5 w-5 text-emerald-500" /> خودرو تحت کنترل
             </p>
           </Card>
@@ -167,7 +167,7 @@ export default function MaintenancePage() {
 
         {/* Services List */}
         <div className="space-y-4">
-          <h3 className="font-bold text-base flex items-center gap-2">
+          <h3 className="font-semibold text-base flex items-center gap-2">
             <Wrench className="h-4 w-4 text-primary" /> تاریخچه سرویس‌ها
           </h3>
 
@@ -184,7 +184,7 @@ export default function MaintenancePage() {
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{SERVICE_TYPES[s.serviceType]?.icon ?? "🔧"}</span>
                         <div>
-                          <p className="font-bold text-sm">{SERVICE_TYPES[s.serviceType]?.label ?? s.serviceType}</p>
+                          <p className="font-semibold text-sm">{SERVICE_TYPES[s.serviceType]?.label ?? s.serviceType}</p>
                           <p className="text-xs text-muted-foreground">{s.vehicleName}</p>
                         </div>
                       </div>
@@ -196,12 +196,12 @@ export default function MaintenancePage() {
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-2 border-t font-mono">
                       <div>
                         <span>کیلومتر انجام: </span>
-                        <span className="font-bold text-foreground">{s.currentMileage.toLocaleString("fa-IR")} km</span>
+                        <span className="font-semibold text-foreground">{s.currentMileage.toLocaleString("fa-IR")} km</span>
                       </div>
                       {s.nextDueMileage && (
                         <div>
                           <span>کیلومتر بعدی: </span>
-                          <span className="font-bold text-amber-600">{s.nextDueMileage.toLocaleString("fa-IR")} km</span>
+                          <span className="font-semibold text-amber-600">{s.nextDueMileage.toLocaleString("fa-IR")} km</span>
                         </div>
                       )}
                     </div>
@@ -229,7 +229,7 @@ export default function MaintenancePage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
 
       {/* Add Dialog */}
       <Dialog open={openAdd} onOpenChange={setOpenAdd}>

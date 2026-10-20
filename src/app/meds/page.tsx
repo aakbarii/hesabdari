@@ -81,7 +81,7 @@ export default function MedsPage() {
   return (
     <>
       <Header title={t("nav.meds")} />
-      <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6 motion-stagger">
+      <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
         <PageHero
           heroKey="meds"
           title={t("nav.meds")}

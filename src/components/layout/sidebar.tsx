@@ -91,14 +91,14 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:right-0 border-l bg-card/90 backdrop-blur-xl supports-[backdrop-filter]:bg-card/75 motion-slide-in-right shadow-[-12px_0_40px_-28px_oklch(0.2_0.05_160/0.25)]">
+    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:right-0 border-l border-border/70 bg-sidebar">
       <div className="flex h-16 items-center px-5 border-b border-border/70">
         <AppLogo size="md" subtitle="سامانه جامع زندگی و مالی" />
       </div>
-      <nav aria-label="منوی اصلی" className="flex-1 p-4 space-y-5 overflow-y-auto">
+      <nav aria-label="منوی اصلی" className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
         {navGroups.map((group) => (
           <div key={group.titleKey}>
-            <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            <p className="mb-1.5 px-3 text-[11px] font-medium text-muted-foreground/80">
               {t(group.titleKey as MessageKey)}
             </p>
             <div className="space-y-1">
@@ -114,10 +114,10 @@ export function Sidebar() {
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "motion-soft motion-press flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >
                     <Icon className="h-5 w-5" />

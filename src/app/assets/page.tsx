@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Gem, Trash2, Pencil, TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
+import { StatCard } from "@/components/stat-card";
 import { formatToman } from "@/lib/format";
 import { ASSET_TYPES } from "@/lib/constants";
 import { JalaliDatePicker } from "@/components/jalali-date-picker";
@@ -182,11 +183,8 @@ export default function AssetsPage() {
           title="دارایی‌ها"
           subtitle="طلا، ارز و سرمایه‌هایت در یک نگاه"
         />
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <p className="text-sm text-muted-foreground">ارزش کل دارایی‌ها</p>
-            <p className="text-2xl font-bold">{formatToman(totalValue)}</p>
-          </div>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <StatCard label="ارزش کل دارایی‌ها" value={formatToman(totalValue)} icon={<Gem />} className="w-full sm:w-80" />
           <div className="flex gap-2">
             <Button variant="outline" disabled={syncing} onClick={syncRates}>
               <RefreshCw className="h-4 w-4 ml-2" />
@@ -202,7 +200,7 @@ export default function AssetsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {assets.map((a) => (
             <Card key={a.id}>
-              <CardContent className="pt-6">
+              <CardContent>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div
@@ -227,7 +225,7 @@ export default function AssetsPage() {
                     </Button>
                   </div>
                 </div>
-                <p className="text-xl font-bold mt-4">{formatToman(a.totalValue)}</p>
+                <p className="text-xl font-semibold tabular-nums mt-4">{formatToman(a.totalValue)}</p>
                 {a.profit != null && (
                   <p
                     className={`text-sm mt-1 flex items-center gap-1 ${

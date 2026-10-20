@@ -12,10 +12,10 @@ export function Header({ title }: { title: string }) {
           <AppLogo size="sm" showText={false} />
         </div>
         <div className="min-w-0">
-          <p className="hidden sm:block text-[10px] font-medium tracking-wide text-muted-foreground/80 mb-0.5">
+          <p className="hidden sm:block text-[11px] font-medium text-muted-foreground mb-0.5">
             روال
           </p>
-          <h1 key={title} className="text-lg lg:text-xl font-bold motion-fade-in truncate leading-tight">
+          <h1 key={title} className="text-base font-semibold tracking-tight motion-fade-in truncate leading-tight lg:text-lg">
             {title}
           </h1>
         </div>

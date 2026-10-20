@@ -95,7 +95,7 @@ export default function JournalPage() {
     <div className="flex-1 flex flex-col min-h-screen bg-background">
       <Header title="ژورنال روزانه و حال روحی" />
 
-      <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-5xl mx-auto w-full">
+      <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
         <PageHero
           heroKey="journal"
           title="ژورنال روزانه و حال روحی"
@@ -113,7 +113,7 @@ export default function JournalPage() {
             <form onSubmit={handleSave} className="space-y-6">
               {/* Mood Picker */}
               <Card className="border shadow-sm p-4 space-y-3">
-                <Label className="text-sm font-bold flex items-center gap-1.5">
+                <Label className="text-sm font-semibold flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-amber-500" /> حال و هوای امروزت چطوره؟
                 </Label>
                 <div className="grid grid-cols-5 gap-2">
@@ -125,7 +125,7 @@ export default function JournalPage() {
                       className={cn(
                         "flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-center",
                         mood === m.value
-                          ? cn(m.color, "ring-2 ring-primary ring-offset-2 scale-105 shadow-sm font-bold")
+                          ? cn(m.color, "ring-2 ring-primary ring-offset-2 scale-105 shadow-sm font-semibold")
                           : "hover:bg-muted/50 border-muted"
                       )}
                     >
@@ -212,7 +212,7 @@ export default function JournalPage() {
                   >
                     ساخت تسک از متن
                   </Button>
-                  <Button type="submit" disabled={isPending} className="px-6 font-bold">
+                  <Button type="submit" disabled={isPending} className="px-6 font-semibold">
                     {isPending ? "در حال ذخیره..." : "ذخیره ژورنال"}
                   </Button>
                 </div>
@@ -222,7 +222,7 @@ export default function JournalPage() {
 
           {/* Past Entries List */}
           <div className="space-y-4">
-            <h3 className="font-bold text-base flex items-center gap-2">
+            <h3 className="font-semibold text-base flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary" /> روزهای ثبت‌شده اخیر
             </h3>
 
@@ -244,7 +244,7 @@ export default function JournalPage() {
                       onClick={() => setDate(entry.date)}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold">{entry.date}</span>
+                        <span className="font-semibold">{entry.date}</span>
                         <span className="text-base">{m?.emoji ?? "😊"}</span>
                       </div>
                       {entry.gratitude && (
@@ -264,7 +264,7 @@ export default function JournalPage() {
             )}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

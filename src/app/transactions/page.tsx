@@ -418,7 +418,7 @@ export default function TransactionsPage() {
 
         {showFilters && (
           <Card>
-            <CardContent className="pt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div>
                 <Label>جستجو</Label>
                 <div className="relative">
@@ -495,14 +495,14 @@ export default function TransactionsPage() {
 
         {loadError && <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm"><p>بارگذاری اطلاعات انجام نشد.</p><Button variant="outline" onClick={() => { void load(); }}>تلاش دوباره</Button></div>}
         <Tabs defaultValue="all">
-          <TabsList className="max-w-full overflow-x-auto">
+          <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
             <TabsTrigger value="all">همه ({transactions.length + transfers.length})</TabsTrigger>
             <TabsTrigger value="income">درآمد</TabsTrigger>
             <TabsTrigger value="expense">هزینه</TabsTrigger>
             <TabsTrigger value="transfer">انتقال</TabsTrigger>
             <TabsTrigger value="recurring">تکراری</TabsTrigger>
           </TabsList>
-          <TabsContent value="all" className="space-y-2 mt-4">
+          <TabsContent value="all" className="mt-4 divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-card empty:hidden">
             {transactions.length + transfers.length === 0 ? (
               <EmptyState
                 title="هنوز تراکنشی نیست"
@@ -526,25 +526,24 @@ export default function TransactionsPage() {
                 )
             )}
           </TabsContent>
-          <TabsContent value="income" className="space-y-2 mt-4">
+          <TabsContent value="income" className="mt-4 divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-card empty:hidden">
             {transactions.filter((t) => t.type === "income").map((tx) => (
               <TransactionRow key={tx.id} tx={tx} onDelete={deleteTransaction} onEdit={setEditTx} onUploadReceipt={uploadReceipt} />
             ))}
           </TabsContent>
-          <TabsContent value="expense" className="space-y-2 mt-4">
+          <TabsContent value="expense" className="mt-4 divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-card empty:hidden">
             {transactions.filter((t) => t.type === "expense").map((tx) => (
               <TransactionRow key={tx.id} tx={tx} onDelete={deleteTransaction} onEdit={setEditTx} onUploadReceipt={uploadReceipt} />
             ))}
           </TabsContent>
-          <TabsContent value="transfer" className="space-y-2 mt-4">
+          <TabsContent value="transfer" className="mt-4 divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-card empty:hidden">
             {transfers.map((t) => (
               <TransferRow key={t.id} transfer={t} onDelete={deleteTransfer} />
             ))}
           </TabsContent>
-          <TabsContent value="recurring" className="space-y-2 mt-4">
+          <TabsContent value="recurring" className="mt-4 divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-card empty:hidden">
             {recurring.map((r) => (
-              <Card key={r.id}>
-                <CardContent className="flex items-center justify-between py-4">
+              <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-3">
                   <div>
                     <p className="font-medium">{r.description || "تراکنش تکراری"}</p>
                     <p className="text-xs text-muted-foreground">
@@ -562,8 +561,7 @@ export default function TransactionsPage() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+              </div>
             ))}
             {recurring.length === 0 && (
               <EmptyState title="تراکنش تکراری ندارید" description="حقوق، اجاره یا اشتراک ماهانه را اینجا تعریف کنید." actionLabel="افزودن تکراری" onAction={() => setRecurringOpen(true)} />
@@ -776,19 +774,18 @@ function TransactionRow({
   onUploadReceipt: (txId: string, file: File) => void;
 }) {
   return (
-    <Card>
-      <CardContent className="flex items-center justify-between py-4">
+    <div className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
         <div className="flex items-center gap-3">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-full ${tx.type === "income" ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"}`}>
+          <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${tx.type === "income" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-600 dark:text-red-400"}`}>
             {tx.type === "income" ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
           </div>
           <div>
-            <p className="font-medium">{tx.description || tx.categoryName || "بدون عنوان"}</p>
+            <p className="text-sm font-medium">{tx.description || tx.categoryName || "بدون عنوان"}</p>
             <p className="text-xs text-muted-foreground">{tx.accountName} · {formatJalaliDate(tx.date)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <p className={`font-semibold ${tx.type === "income" ? "text-emerald-600" : "text-red-600"}`}>
+          <p className={`text-sm font-semibold tabular-nums ${tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
             {tx.type === "income" ? "+" : "-"}{formatToman(tx.amount)}
           </p>
           {tx.categoryName && <Badge variant="secondary" className="text-[10px] hidden sm:inline-flex">{tx.categoryName}</Badge>}
@@ -804,11 +801,10 @@ function TransactionRow({
               if (f) onUploadReceipt(tx.id, f);
             }} />
           </label>
-          <Button variant="ghost" size="icon" onClick={() => onEdit(tx)}><Pencil className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" onClick={() => onDelete(tx.id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></Button>
+          <Button variant="ghost" size="icon-sm" aria-label="ویرایش" onClick={() => onEdit(tx)}><Pencil className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon-sm" aria-label="حذف" onClick={() => onDelete(tx.id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></Button>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -820,10 +816,9 @@ function TransferRow({
   onDelete: (id: string) => void;
 }) {
   return (
-    <Card>
-      <CardContent className="flex items-center justify-between py-4">
+    <div className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
             <ArrowLeftRight className="h-4 w-4" />
           </div>
           <div>
@@ -836,7 +831,7 @@ function TransferRow({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <p className="font-semibold text-blue-600">
+          <p className="text-sm font-semibold tabular-nums text-blue-600 dark:text-blue-400">
             {formatToman(transfer.amount)}
           </p>
           <Button
@@ -847,7 +842,6 @@ function TransferRow({
             <Trash2 className="h-4 w-4 text-muted-foreground" />
           </Button>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

@@ -177,7 +177,7 @@ export default function GrowthPage() {
     <div className="flex-1 flex flex-col min-h-screen bg-background">
       <Header title="یادگیری و رشد فردی" />
 
-      <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <div className="p-4 lg:p-8 space-y-6 motion-stagger">
         <PageHero
           heroKey="growth"
           title="یادگیری و رشد فردی"
@@ -199,19 +199,19 @@ export default function GrowthPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card className="border p-4 text-center">
             <p className="text-xs text-muted-foreground">کتاب‌های در حال خواندن</p>
-            <p className="text-2xl font-extrabold text-primary mt-1">{activeBooks.toLocaleString("fa-IR")}</p>
+            <p className="text-2xl font-semibold tabular-nums text-primary mt-1">{activeBooks.toLocaleString("fa-IR")}</p>
           </Card>
           <Card className="border p-4 text-center">
             <p className="text-xs text-muted-foreground">کتاب‌های تمام‌شده</p>
-            <p className="text-2xl font-extrabold text-emerald-600 mt-1">{completedBooks.toLocaleString("fa-IR")}</p>
+            <p className="text-2xl font-semibold tabular-nums text-emerald-600 mt-1">{completedBooks.toLocaleString("fa-IR")}</p>
           </Card>
           <Card className="border p-4 text-center">
             <p className="text-xs text-muted-foreground">کل کتاب‌های قفسه</p>
-            <p className="text-2xl font-extrabold mt-1">{books.length.toLocaleString("fa-IR")}</p>
+            <p className="text-2xl font-semibold tabular-nums mt-1">{books.length.toLocaleString("fa-IR")}</p>
           </Card>
           <Card className="border p-4 text-center">
             <p className="text-xs text-muted-foreground">دوره‌های فعال</p>
-            <p className="text-2xl font-extrabold text-indigo-600 mt-1">{courses.length.toLocaleString("fa-IR")}</p>
+            <p className="text-2xl font-semibold tabular-nums text-indigo-600 mt-1">{courses.length.toLocaleString("fa-IR")}</p>
           </Card>
         </div>
 
@@ -241,7 +241,7 @@ export default function GrowthPage() {
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <h4 className="font-bold text-sm leading-snug">{b.title}</h4>
+                            <h4 className="font-semibold text-sm leading-snug">{b.title}</h4>
                             <p className="text-xs text-muted-foreground">{b.author}</p>
                           </div>
                           <Badge variant={b.status === "completed" ? "default" : "secondary"} className="text-[10px]">
@@ -308,7 +308,7 @@ export default function GrowthPage() {
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <h4 className="font-bold text-sm leading-snug">{c.title}</h4>
+                            <h4 className="font-semibold text-sm leading-snug">{c.title}</h4>
                             <p className="text-xs text-muted-foreground">{c.platform}</p>
                           </div>
                           <Badge variant={c.status === "completed" ? "default" : "secondary"} className="text-[10px]">
@@ -350,7 +350,7 @@ export default function GrowthPage() {
             )}
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
 
       {/* Add Book Dialog */}
       <Dialog open={openBook} onOpenChange={setOpenBook}>

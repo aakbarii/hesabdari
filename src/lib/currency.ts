@@ -69,6 +69,14 @@ export function formatToman(amount: number): string {
   return formatAmount(amount, clientCurrency);
 }
 
+/** Short axis labels for charts, e.g. «۴۵ میلیون». */
+export function formatCompactAmount(amount: number): string {
+  const { factor } = CURRENCY_UNITS[clientCurrency];
+  return new Intl.NumberFormat("fa-IR", { notation: "compact", maximumFractionDigits: 1 }).format(
+    Math.round(amount * factor)
+  );
+}
+
 export function parseTomanInput(value: string): number {
   return parseAmountInput(value, clientCurrency);
 }

@@ -230,7 +230,7 @@ export default function NutritionPage() {
     <div className="flex-1 flex flex-col min-h-screen bg-background">
       <Header title="مدیریت تغذیه و کالری" />
 
-      <main className="flex-1 p-4 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <div className="p-4 lg:p-8 space-y-6 motion-stagger">
         {loading && <p role="status" className="text-sm text-muted-foreground">در حال دریافت اطلاعات تغذیه…</p>}
         <PageHero
           heroKey="nutrition"
@@ -273,7 +273,7 @@ export default function NutritionPage() {
             <CardContent className="space-y-3">
               <div className="flex items-baseline justify-between">
                 <div>
-                  <span className="text-3xl font-extrabold">{summary.totalCalories.toLocaleString("fa-IR")}</span>
+                  <span className="text-3xl font-semibold tabular-nums">{summary.totalCalories.toLocaleString("fa-IR")}</span>
                   <span className="text-xs text-muted-foreground mr-1">/ {summary.targetCalories.toLocaleString("fa-IR")} کیلوکالری</span>
                 </div>
                 <Badge variant={summary.totalCalories > summary.targetCalories ? "destructive" : "secondary"}>
@@ -327,7 +327,7 @@ export default function NutritionPage() {
             <CardContent className="space-y-3">
               <div className="flex items-baseline justify-between">
                 <div>
-                  <span className="text-3xl font-extrabold text-cyan-600 dark:text-cyan-400">
+                  <span className="text-3xl font-semibold tabular-nums text-cyan-600 dark:text-cyan-400">
                     {summary.totalWater.toLocaleString("fa-IR")}
                   </span>
                   <span className="text-xs text-muted-foreground mr-1">/ {summary.targetWater.toLocaleString("fa-IR")} میلی‌لیتر</span>
@@ -368,7 +368,7 @@ export default function NutritionPage() {
                 <CardHeader className="flex flex-row items-center justify-between py-3 border-b bg-muted/30">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{sec.icon}</span>
-                    <CardTitle className="text-base font-bold">{sec.title}</CardTitle>
+                    <CardTitle className="text-base font-semibold">{sec.title}</CardTitle>
                     <span className="text-xs text-muted-foreground">({sectionMeals.length} مورد)</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -410,7 +410,7 @@ export default function NutritionPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-bold font-mono text-primary">
+                          <span className="text-sm font-semibold font-mono text-primary">
                             {meal.calories} kcal
                           </span>
                           <Button
@@ -430,7 +430,7 @@ export default function NutritionPage() {
             );
           })}
         </div>
-      </main>
+      </div>
 
       {/* Add Meal Dialog */}
       <Dialog open={openAddMeal} onOpenChange={setOpenAddMeal}>
@@ -496,7 +496,7 @@ export default function NutritionPage() {
 
             <div className="grid grid-cols-4 gap-2">
               <div className="space-y-1">
-                <Label htmlFor="cal" className="text-xs text-orange-600 font-bold">کالری (kcal)</Label>
+                <Label htmlFor="cal" className="text-xs text-orange-600 font-semibold">کالری (kcal)</Label>
                 <Input
                   id="cal"
                   type="number"
@@ -506,7 +506,7 @@ export default function NutritionPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="pro" className="text-xs text-blue-600 font-bold">پروتئین (g)</Label>
+                <Label htmlFor="pro" className="text-xs text-blue-600 font-semibold">پروتئین (g)</Label>
                 <Input
                   id="pro"
                   type="number"
@@ -516,7 +516,7 @@ export default function NutritionPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="carbs" className="text-xs text-amber-600 font-bold">کربوهیدرات (g)</Label>
+                <Label htmlFor="carbs" className="text-xs text-amber-600 font-semibold">کربوهیدرات (g)</Label>
                 <Input
                   id="carbs"
                   type="number"
@@ -526,7 +526,7 @@ export default function NutritionPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="fat" className="text-xs text-rose-600 font-bold">چربی (g)</Label>
+                <Label htmlFor="fat" className="text-xs text-rose-600 font-semibold">چربی (g)</Label>
                 <Input
                   id="fat"
                   type="number"

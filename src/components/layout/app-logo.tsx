@@ -51,10 +51,10 @@ export function AppLogo({
       {showText && (
         <div className="flex flex-col text-right leading-none">
           <div className="flex items-center gap-1.5">
-            <span className={cn("font-black tracking-tight text-foreground", currentSize.text)}>
+            <span className={cn("font-semibold tracking-tight text-foreground", currentSize.text)}>
               روال
             </span>
-            <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               Life OS
             </span>
           </div>

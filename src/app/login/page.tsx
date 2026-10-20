@@ -3,9 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PAGE_HEROES } from "@/lib/page-heroes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -90,17 +88,8 @@ function LoginForm() {
 
   if (requires2fa) {
     return (
-      <div className="relative min-h-screen flex items-center justify-center p-4">
-        <Image
-          src={PAGE_HEROES.login}
-          alt=""
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-background/75 dark:bg-background/85" />
-        <Card className="relative z-10 w-full max-w-md motion-scale-in">
+      <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+        <Card className="w-full max-w-md shadow-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Shield className="h-6 w-6" />
@@ -148,22 +137,13 @@ function LoginForm() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4">
-      <Image
-        src={PAGE_HEROES.login}
-        alt=""
-        fill
-        priority
-        className="object-cover object-center"
-        sizes="100vw"
-      />
-      <div className="absolute inset-0 bg-background/75 dark:bg-background/85" />
-      <Card className="relative z-10 w-full max-w-md motion-scale-in">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+      <Card className="w-full max-w-md shadow-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-3 flex items-center justify-center">
             <AppLogo size="xl" showText={false} clickable={false} />
           </div>
-          <CardTitle className="text-2xl font-black">
+          <CardTitle className="text-2xl font-semibold tabular-nums tracking-tight">
             {needsSetup ? "راه‌اندازی و ورود به روال" : "ورود به روال"}
           </CardTitle>
           <p className="text-sm text-muted-foreground">

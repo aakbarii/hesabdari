@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
           <div className="mx-auto mb-3 flex items-center justify-center">
             <AppLogo size="xl" showText={false} clickable={false} />
           </div>
-          <CardTitle className="text-2xl font-black">بازیابی رمز عبور روال</CardTitle>
+          <CardTitle className="text-2xl font-semibold tabular-nums">بازیابی رمز عبور روال</CardTitle>
           <p className="text-sm text-muted-foreground">
             لینک بازیابی رمز عبور به ایمیل شما ارسال می‌شود.
           </p>
