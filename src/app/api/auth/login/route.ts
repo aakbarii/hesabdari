@@ -2,7 +2,7 @@ import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { ensureDb, getUserByEmail, createPending2faToken } from "@/lib/db/queries";
+import { ensureDb, getUserByEmail } from "@/lib/db/queries";
 import {
   SESSION_COOKIE,
   SESSION_COOKIE_OPTIONS,
@@ -30,15 +30,6 @@ export async function POST(request: Request) {
   const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
   if (!valid) {
     return NextResponse.json({ error: "ایمیل یا رمز اشتباه است" }, { status: 401 });
-  }
-
-  if (user.totpEnabled && user.totpSecret) {
-    const pendingToken = await createPending2faToken(user.id);
-    return NextResponse.json({
-      requires2fa: true,
-      pendingToken,
-      user: { id: user.id, email: user.email, name: user.name },
-    });
   }
 
   const token = await signSession(user.id);

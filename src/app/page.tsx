@@ -43,7 +43,11 @@ import {
   type DashboardWidgetId,
 } from "@/lib/constants";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { toast } from "sonner";
+import { useHeroSrc, useHeroes } from "@/components/hero-provider";
+import { HeroCustomizeMenu } from "@/components/layout/hero-customize-menu";
+import { Image as ImageIcon } from "lucide-react";
 
 const ExpenseCategoryChart = dynamic(
   () =>
@@ -125,6 +129,8 @@ const CHART_COLORS = [
 
 export default function DashboardPage() {
   const { t, locale } = useLocale();
+  const hero = useHeroSrc("dashboard");
+  const { show: showHeroBanner } = useHeroes();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [widgets, setWidgets] = useState<DashboardWidgetId[]>([]);
@@ -217,24 +223,69 @@ export default function DashboardPage() {
     <>
       <Header title="داشبورد" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
-        <section className="flex flex-col gap-6 rounded-2xl border border-border/70 bg-card p-6 shadow-[0_1px_2px_oklch(0.2_0.02_165/0.04)] sm:flex-row sm:items-center sm:justify-between sm:p-7">
-          <div className="min-w-0 space-y-2">
-            <p className="text-sm font-medium text-primary">فضای شخصی روال</p>
-            <h2 className="text-2xl font-semibold tabular-nums tracking-tight sm:text-3xl">امروز را با خیال آسوده شروع کن.</h2>
-            <p className="max-w-xl text-sm leading-7 text-muted-foreground">دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.</p>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Link href="/transactions?new=expense" className={buttonVariants({ variant: "default" })}><Plus className="h-4 w-4" /> ثبت تراکنش</Link>
-              <Link href="/life" className={buttonVariants({ variant: "outline" })}>برنامه امروز <ArrowLeft className="h-4 w-4" /></Link>
+        {hero.hidden ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-4">
+            <div>
+              <p className="font-semibold">امروز را با خیال آسوده شروع کن.</p>
+              <p className="text-sm text-muted-foreground">دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.</p>
             </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                showHeroBanner("dashboard").then(() =>
+                  toast.success(locale === "en" ? "Hero shown" : "تصویر نمایش داده شد")
+                )
+              }
+            >
+              <ImageIcon className="h-3.5 w-3.5 me-1" />
+              {locale === "en" ? "Show image" : "نمایش تصویر"}
+            </Button>
           </div>
-          {data && (
-            <div className="w-full rounded-xl bg-muted/60 p-5 sm:w-64">
-              <p className="text-xs text-muted-foreground">مانده این ماه · {getJalaliMonthName(data.month)}</p>
-              <p className="mt-2 text-2xl font-semibold tabular-nums">{formatToman(data.monthly.balance)}</p>
-              <Link href="/reports" className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">مشاهده گزارش مالی <ArrowLeft className="h-3.5 w-3.5" /></Link>
-            </div>
+        ) : (
+        <section className="dashboard-welcome relative overflow-hidden rounded-3xl p-6 sm:p-8 min-h-[220px]">
+          {hero.src.startsWith("/api/") ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={hero.src}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover object-center"
+            />
+          ) : (
+            <Image
+              src={hero.src}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-center"
+            />
           )}
+          <div className="absolute inset-0 bg-gradient-to-l from-emerald-950/85 via-emerald-950/70 to-emerald-900/55" />
+          <HeroCustomizeMenu
+            heroKey="dashboard"
+            light
+            className="absolute top-4 end-4 z-20"
+          />
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+            <div className="max-w-xl space-y-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-emerald-50"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> فضای شخصی روال</span>
+              <h2 className="text-2xl font-semibold leading-relaxed sm:text-3xl">امروز را با خیال آسوده شروع کن.</h2>
+              <p className="text-sm leading-7 text-emerald-50/80">دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.</p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Link href="/transactions?new=expense" className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50"><Plus className="h-4 w-4" /> ثبت تراکنش</Link>
+                <Link href="/life" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm transition hover:bg-white/10">برنامه امروز <ArrowLeft className="h-4 w-4" /></Link>
+              </div>
+            </div>
+            {data && <div className="w-full rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm sm:w-auto sm:min-w-56">
+              <p className="text-xs text-emerald-50/75">مانده این ماه · {getJalaliMonthName(data.month)}</p>
+              <p className="mt-3 text-xl font-semibold tabular-nums sm:text-2xl">{formatToman(data.monthly.balance)}</p>
+              <Link href="/reports" className="mt-4 inline-flex items-center gap-2 text-xs text-emerald-50/80 hover:text-white">مشاهده گزارش مالی <ArrowLeft className="h-3.5 w-3.5" /></Link>
+            </div>}
+          </div>
         </section>
+        )}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex gap-2">
             <Link
@@ -350,7 +401,7 @@ export default function DashboardPage() {
                       <Wallet className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <p className="text-2xl font-semibold tabular-nums">
+                      <p className="text-2xl font-semibold">
                         {formatToman(data.totalBalance)}
                       </p>
                     </CardContent>
@@ -366,7 +417,7 @@ export default function DashboardPage() {
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                        <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
                           {formatToman(data.monthly.income)}
                         </p>
                       </CardContent>
@@ -379,7 +430,7 @@ export default function DashboardPage() {
                         <TrendingDown className="h-4 w-4 text-red-500" />
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-semibold tabular-nums text-red-600 dark:text-red-400">
+                        <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
                           {formatToman(data.monthly.expense)}
                         </p>
                       </CardContent>
@@ -492,7 +543,7 @@ export default function DashboardPage() {
             )}
 
             {show("life") && data.lifeSummary && (
-              <Card className="bg-accent/40">
+              <Card className="bg-gradient-to-br from-violet-500/5 to-transparent">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sunrise className="h-4 w-4 text-violet-500" />

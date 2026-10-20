@@ -17,7 +17,6 @@ import {
   recurringTransactions,
   assets,
   passwordResetTokens,
-  pending2faTokens,
   todos,
   routines,
   routineCompletions,
@@ -681,87 +680,6 @@ export async function completeOnboarding(userId: string) {
   await db.update(userSettings)
     .set({ onboardingCompleted: true })
     .where(eq(userSettings.userId, userId))
-    .run();
-}
-
-export async function createPending2faToken(userId: string) {
-  const token = generateResetToken();
-  const tokenHash = await hashResetToken(token);
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-  await db.delete(pending2faTokens)
-    .where(eq(pending2faTokens.userId, userId))
-    .run();
-
-  await db.insert(pending2faTokens)
-    .values({
-      id: nanoid(),
-      userId,
-      tokenHash,
-      expiresAt,
-    })
-    .run();
-
-  return token;
-}
-
-export async function consumePending2faToken(token: string) {
-  return resolvePending2faToken(token, true);
-}
-
-export async function getPending2faUserId(token: string) {
-  return resolvePending2faToken(token, false);
-}
-
-async function resolvePending2faToken(token: string, consume: boolean) {
-  const tokenHash = await hashResetToken(token);
-  const row = await db
-    .select()
-    .from(pending2faTokens)
-    .where(eq(pending2faTokens.tokenHash, tokenHash))
-    .get();
-
-  if (!row || row.expiresAt < new Date()) return null;
-
-  if (consume) {
-    const deleted = await db.delete(pending2faTokens)
-      .where(eq(pending2faTokens.id, row.id))
-      .run();
-    if (deleted.rowsAffected === 0) return null;
-  }
-
-  return row.userId;
-}
-
-export async function setTotpPendingSecret(userId: string, secret: string) {
-  await db.update(users)
-    .set({ totpPendingSecret: secret })
-    .where(eq(users.id, userId))
-    .run();
-}
-
-export async function enableTotp(userId: string) {
-  const user = await getUserById(userId);
-  if (!user?.totpPendingSecret) return false;
-  await db.update(users)
-    .set({
-      totpSecret: user.totpPendingSecret,
-      totpPendingSecret: null,
-      totpEnabled: true,
-    })
-    .where(eq(users.id, userId))
-    .run();
-  return true;
-}
-
-export async function disableTotp(userId: string) {
-  await db.update(users)
-    .set({
-      totpSecret: null,
-      totpPendingSecret: null,
-      totpEnabled: false,
-    })
-    .where(eq(users.id, userId))
     .run();
 }
 

@@ -774,7 +774,7 @@ function TransactionRow({
   onUploadReceipt: (txId: string, file: File) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/40">
         <div className="flex items-center gap-3">
           <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${tx.type === "income" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-600 dark:text-red-400"}`}>
             {tx.type === "income" ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
@@ -784,8 +784,8 @@ function TransactionRow({
             <p className="text-xs text-muted-foreground">{tx.accountName} · {formatJalaliDate(tx.date)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <p className={`text-sm font-semibold tabular-nums ${tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <p className={`whitespace-nowrap text-sm font-semibold tabular-nums ${tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
             {tx.type === "income" ? "+" : "-"}{formatToman(tx.amount)}
           </p>
           {tx.categoryName && <Badge variant="secondary" className="text-[10px] hidden sm:inline-flex">{tx.categoryName}</Badge>}
@@ -816,7 +816,7 @@ function TransferRow({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/40">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
             <ArrowLeftRight className="h-4 w-4" />
@@ -831,7 +831,7 @@ function TransferRow({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold tabular-nums text-blue-600 dark:text-blue-400">
+          <p className="whitespace-nowrap text-sm font-semibold tabular-nums text-blue-600 dark:text-blue-400">
             {formatToman(transfer.amount)}
           </p>
           <Button

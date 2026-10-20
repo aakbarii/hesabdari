@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Users, Share2, Copy, Wallet, Upload } from "lucide-react";
+import { Share2, Copy, Wallet, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useLocale } from "@/components/locale-provider";
 import { toISODate, formatToman } from "@/lib/format";

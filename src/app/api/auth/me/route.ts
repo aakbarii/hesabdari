@@ -22,7 +22,6 @@ export async function GET() {
       id: user.id,
       email: user.email,
       name: user.name,
-      totpEnabled: Boolean(user.totpEnabled),
       isAdmin: isAdminEmail(user.email),
     },
     needsSetup: false,

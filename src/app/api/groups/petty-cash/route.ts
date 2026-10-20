@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     Number(new URL(request.url).searchParams.get("month")) ||
     moment().jMonth() + 1;
 
-  let fund = await db
+  const fund = await db
     .select()
     .from(groupPettyCash)
     .where(

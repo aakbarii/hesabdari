@@ -71,14 +71,3 @@ test("financial references reject another user's account and mismatched categori
   assert.equal((await db.select().from(transactions).where(eq(transactions.userId, alice)).all()).length, 1);
   assert.equal(await getAccountBalance("alice-account"), 900);
 });
-
-test("2FA challenge remains available for retry and is consumed only once", async () => {
-  const { ensureDb, createUserWithDefaults, createPending2faToken, getPending2faUserId, consumePending2faToken } = await queriesPromise;
-  await ensureDb();
-  const userId = await createUserWithDefaults("two-factor@test.local", "test-hash", "Test");
-  const token = await createPending2faToken(userId);
-  assert.equal(await getPending2faUserId(token), userId);
-  assert.equal(await getPending2faUserId(token), userId);
-  assert.equal(await consumePending2faToken(token), userId);
-  assert.equal(await consumePending2faToken(token), null);
-});

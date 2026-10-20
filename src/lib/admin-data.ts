@@ -52,7 +52,6 @@ export async function listUsersForAdmin() {
       email: users.email,
       name: users.name,
       createdAt: users.createdAt,
-      totpEnabled: users.totpEnabled,
     })
     .from(users)
     .orderBy(asc(users.createdAt));
@@ -73,7 +72,6 @@ export async function getUserDataForAdmin(userId: string) {
       email: users.email,
       name: users.name,
       createdAt: users.createdAt,
-      totpEnabled: users.totpEnabled,
     })
     .from(users)
     .where(eq(users.id, userId))

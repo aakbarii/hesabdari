@@ -114,7 +114,7 @@ export function QuickAddFab() {
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "lg:hidden fixed z-50 bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2",
+          "lg:hidden fixed z-50 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] end-4 shadow-lg shadow-primary/25 rounded-full",
           "flex h-14 w-14 items-center justify-center rounded-full",
           "bg-primary text-primary-foreground shadow-lg",
           "motion-press active:scale-95"

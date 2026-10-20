@@ -3,8 +3,6 @@ import en from "./messages/en";
 import {
   DEFAULT_LOCALE,
   type Locale,
-  isLocale,
-  localeDir,
 } from "./types";
 
 const catalogs: Record<Locale, Record<MessageKey, string>> = { fa, en };

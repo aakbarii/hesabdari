@@ -45,8 +45,8 @@ try {
   let alice, bob;
   if (authEnabled) {
     await request("/api/accounts", { status: 401 });
-    alice = await request("/api/auth/register", { method: "POST", body: { email: "alice@smoke.test", password: "Test-password-123", name: "آزمایش" } });
-    bob = await request("/api/auth/register", { method: "POST", body: { email: "bob@smoke.test", password: "Test-password-123", name: "کاربر دوم" } });
+    alice = await request("/api/auth/register", { method: "POST", body: { email: "alice@smoke.test", password: "Test-password-123", name: "آزمایش", gender: "female" } });
+    bob = await request("/api/auth/register", { method: "POST", body: { email: "bob@smoke.test", password: "Test-password-123", name: "کاربر دوم", gender: "male" } });
   } else {
     assert.equal(me.user.id, "default-user");
     assert.equal(me.needsSetup, false);
@@ -57,7 +57,7 @@ try {
       assert.equal(new URL(page.headers.get("location"), base).pathname, "/");
       checks++;
     }
-    for (const route of ["login", "register", "setup", "2fa", "logout"]) {
+    for (const route of ["login", "register", "setup", "logout"]) {
       await request(`/api/auth/${route}`, { method: "POST", body: {}, status: 403 });
     }
     await request("/api/profile", { method: "PATCH", body: { newPassword: "test-password" }, status: 403 });

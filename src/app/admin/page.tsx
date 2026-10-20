@@ -11,7 +11,6 @@ type AdminUser = {
   email: string;
   name: string;
   createdAt: string;
-  totpEnabled: boolean;
   transactionCount: number;
 };
 

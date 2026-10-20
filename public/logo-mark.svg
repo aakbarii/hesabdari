@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="ravaal-title">
+  <title id="ravaal-title">روال</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#065F46"/>
+      <stop offset="1" stop-color="#0F766E"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#tile)"/>
+  <!-- Routine cycle: an open ring whose gap marks the start of the day -->
+  <circle cx="256" cy="256" r="124" fill="none" stroke="#ECFDF5" stroke-width="44" stroke-linecap="round" stroke-dasharray="690 89" transform="rotate(-70 256 256)"/>
+  <!-- Start node sitting on the ring -->
+  <circle cx="298.4" cy="139.4" r="30" fill="#6EE7B7" stroke="#065F46" stroke-width="12"/>
+  <!-- Core -->
+  <circle cx="256" cy="256" r="34" fill="#6EE7B7"/>
+</svg>

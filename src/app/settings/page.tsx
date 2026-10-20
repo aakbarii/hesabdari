@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import { TotpQrCode } from "@/components/totp-qr-code";
 import { AUTH_ENABLED } from "@/lib/app-config";
 
 import { useEffect, useState } from "react";
@@ -26,7 +25,6 @@ import {
   Check,
   Coins,
   User,
-  Shield,
   Tags,
   Pencil,
   Trash2,
@@ -118,15 +116,6 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
-  const [totpEnabled, setTotpEnabled] = useState(false);
-  const [totpSetup, setTotpSetup] = useState<{
-    secret: string;
-    uri: string;
-  } | null>(null);
-  const [totpCode, setTotpCode] = useState("");
-  const [disablePassword, setDisablePassword] = useState("");
-  const [disableCode, setDisableCode] = useState("");
-  const [totpLoading, setTotpLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [catOpen, setCatOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
@@ -144,9 +133,6 @@ export default function SettingsPage() {
         setName(d.name ?? "");
         setEmail(d.email ?? "");
       });
-    if (AUTH_ENABLED) fetch("/api/auth/2fa")
-      .then((r) => r.json())
-      .then((d) => setTotpEnabled(Boolean(d.enabled)));
     fetch("/api/categories")
       .then((r) => r.json())
       .then(setCategories);
@@ -340,66 +326,6 @@ export default function SettingsPage() {
     if (!res.ok) return toast.error("خطا در حذف");
     toast.success("دسته حذف شد");
     load();
-  };
-
-  const startTotpSetup = async () => {
-    setTotpLoading(true);
-    try {
-      const res = await fetch("/api/auth/2fa", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "خطا");
-      setTotpSetup({ secret: data.secret, uri: data.uri });
-      setTotpCode("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "خطا");
-    } finally {
-      setTotpLoading(false);
-    }
-  };
-
-  const enableTotp = async () => {
-    setTotpLoading(true);
-    try {
-      const res = await fetch("/api/auth/2fa", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: totpCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "خطا");
-      toast.success("احراز هویت دو مرحله‌ای فعال شد");
-      setTotpEnabled(true);
-      setTotpSetup(null);
-      setTotpCode("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "خطا");
-    } finally {
-      setTotpLoading(false);
-    }
-  };
-
-  const disableTotp = async () => {
-    setTotpLoading(true);
-    try {
-      const res = await fetch("/api/auth/2fa", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          password: disablePassword,
-          code: disableCode,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "خطا");
-      toast.success("۲FA غیرفعال شد");
-      setTotpEnabled(false);
-      setDisablePassword("");
-      setDisableCode("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "خطا");
-    } finally {
-      setTotpLoading(false);
-    }
   };
 
   return (
@@ -1072,102 +998,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* 2FA code is retained while authentication is disabled. */}
-        {AUTH_ENABLED && <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Shield className="h-5 w-5 text-primary" />
-              احراز هویت دو مرحله‌ای (۲FA)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <p className="text-muted-foreground">
-              با فعال‌سازی ۲FA، پس از ورود رمز، کد اپ احراز هویت (مثل Google
-              Authenticator) هم لازم است.
-            </p>
-            {totpEnabled ? (
-              <div className="space-y-3">
-                <p className="text-emerald-600 font-medium">✓ ۲FA فعال است</p>
-                <div className="space-y-2 border-t pt-3">
-                  <p className="text-muted-foreground">برای غیرفعال‌سازی:</p>
-                  <div className="space-y-2">
-                    <Label>رمز عبور</Label>
-                    <Input
-                      type="password"
-                      value={disablePassword}
-                      onChange={(e) => setDisablePassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>کد ۲FA</Label>
-                    <Input
-                      inputMode="numeric"
-                      value={disableCode}
-                      onChange={(e) =>
-                        setDisableCode(e.target.value.replace(/\D/g, ""))
-                      }
-                      maxLength={6}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    disabled={totpLoading}
-                    onClick={disableTotp}
-                  >
-                    غیرفعال‌سازی ۲FA
-                  </Button>
-                </div>
-              </div>
-            ) : totpSetup ? (
-              <div className="space-y-4">
-                <div className="flex justify-center">
-                  <TotpQrCode value={totpSetup.uri} />
-                </div>
-                <p className="text-xs text-muted-foreground break-all text-center">
-                  کلید دستی: <code className="font-mono">{totpSetup.secret}</code>
-                </p>
-                <div className="space-y-2">
-                  <Label>کد ۶ رقمی از اپ</Label>
-                  <Input
-                    inputMode="numeric"
-                    value={totpCode}
-                    onChange={(e) =>
-                      setTotpCode(e.target.value.replace(/\D/g, ""))
-                    }
-                    maxLength={6}
-                    placeholder="۰۰۰۰۰۰"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    disabled={totpLoading || totpCode.length < 6}
-                    onClick={enableTotp}
-                  >
-                    فعال‌سازی
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setTotpSetup(null)}
-                  >
-                    انصراف
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={totpLoading}
-                onClick={startTotpSetup}
-              >
-                راه‌اندازی ۲FA
-              </Button>
-            )}
-          </CardContent>
-        </Card>}
       </div>
 
       <Dialog
