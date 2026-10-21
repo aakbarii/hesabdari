@@ -81,8 +81,23 @@ async function repairSchema(client: Client) {
   const tableExists = (name: string) => tableSet.has(name);
   const columnExists = (table: string, column: string) => columnSet.has(`${table}.${column}`);
 
+  /** Safe ADD COLUMN — ignores races with journal migrations that already applied the same patch. */
+  const addColumnIfMissing = async (table: string, column: string, sqlType: string) => {
+    if (!tableExists(table) || columnExists(table, column)) return;
+    try {
+      await client.executeMultiple(
+        `ALTER TABLE \`${table}\` ADD \`${column}\` ${sqlType}`
+      );
+      columnSet.add(`${table}.${column}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/duplicate column name/i.test(msg)) throw err;
+      columnSet.add(`${table}.${column}`);
+    }
+  };
+
   if (tableExists("transactions") && !columnExists("transactions", "receipt_path")) {
-    await client.executeMultiple("ALTER TABLE `transactions` ADD `receipt_path` text");
+    await addColumnIfMissing("transactions", "receipt_path", "text");
   }
   if (!tableExists("receipt_files")) {
     await client.executeMultiple(`
@@ -363,21 +378,11 @@ async function repairSchema(client: Client) {
   if (tableExists("user_settings") && !columnExists("user_settings", "mobile_nav")) {
     await client.executeMultiple("ALTER TABLE `user_settings` ADD `mobile_nav` text");
   }
-  if (tableExists("user_settings") && !columnExists("user_settings", "health_targets")) {
-    await client.executeMultiple("ALTER TABLE `user_settings` ADD `health_targets` text");
-  }
-  if (tableExists("habits") && !columnExists("habits", "cue")) {
-    await client.executeMultiple("ALTER TABLE `habits` ADD `cue` text");
-  }
-  if (tableExists("habits") && !columnExists("habits", "time_of_day")) {
-    await client.executeMultiple("ALTER TABLE `habits` ADD `time_of_day` text");
-  }
-  if (tableExists("todos") && !columnExists("todos", "checklist")) {
-    await client.executeMultiple("ALTER TABLE `todos` ADD `checklist` text");
-  }
-  if (tableExists("focus_sessions") && !columnExists("focus_sessions", "todo_id")) {
-    await client.executeMultiple("ALTER TABLE `focus_sessions` ADD `todo_id` text");
-  }
+  await addColumnIfMissing("user_settings", "health_targets", "text");
+  await addColumnIfMissing("habits", "cue", "text");
+  await addColumnIfMissing("habits", "time_of_day", "text");
+  await addColumnIfMissing("todos", "checklist", "text");
+  await addColumnIfMissing("focus_sessions", "todo_id", "text");
   if (!tableExists("asset_price_history")) {
     await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS \`asset_price_history\` (
@@ -636,12 +641,28 @@ async function applyMigrations(client: Client) {
     if (entry.when <= lastApplied) continue;
     const sql = fs.readFileSync(path.join(folder, `${entry.tag}.sql`), "utf8");
     const hash = createHash("sha256").update(sql).digest("hex");
-    const statements = sql
-      .split("--> statement-breakpoint")
-      .map((part) => part.trim())
-      .filter(Boolean);
+    // Prefer drizzle breakpoints; also split bare multi-ALTER files on semicolons.
+    const chunks = sql.includes("--> statement-breakpoint")
+      ? sql.split("--> statement-breakpoint")
+      : sql.split(/;\s*\n/).flatMap((part) => {
+          const trimmed = part.trim();
+          return trimmed ? [`${trimmed};`] : [];
+        });
+    const statements = chunks.map((part) => part.trim()).filter(Boolean);
     for (const statement of statements) {
-      await client.executeMultiple(statement);
+      try {
+        await client.executeMultiple(statement);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // repairSchema may have already applied the same ADD COLUMN.
+        if (
+          /duplicate column name/i.test(msg) ||
+          /already exists/i.test(msg)
+        ) {
+          continue;
+        }
+        throw err;
+      }
     }
     await client.execute({
       sql: 'INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES (?, ?)',
