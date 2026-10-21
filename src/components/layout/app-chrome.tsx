@@ -14,7 +14,7 @@ const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"
 
 export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuth = AUTH_PATHS.includes(pathname);
+  const isAuth = AUTH_PATHS.includes(pathname) || pathname === "/install/joojo";
   const router = useRouter();
   const [session, setSession] = useState<"checking" | "in" | "out">("checking");
 

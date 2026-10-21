@@ -40,6 +40,12 @@ try {
   }
   assert.ok(ready, "Test server did not start");
   await request("/api/health");
+  const installResponse = await fetch(base + "/install/joojo", { redirect: "manual" });
+  assert.equal(installResponse.status, 200, "Install page must work without a session");
+  const installHtml = await installResponse.text();
+  assert.match(installHtml, /rel="apple-touch-icon"[^>]*href="\/joojo\/icon-180\.png\?v=2"/);
+  assert.match(installHtml, /rel="manifest"[^>]*href="\/joojo\/manifest\.json\?v=2"/);
+  checks += 3;
   const me = (await request("/api/auth/me")).data;
   const authEnabled = !me.user;
   let alice, bob;
@@ -109,6 +115,11 @@ try {
   // Switching the complete skin survives a fresh GET and retains the separate accent preference.
   await request("/api/settings", { method: "PATCH", cookie, body: { appearanceMood: "joojo", accentColor: "indigo" } });
   const joojoSettings = (await request("/api/settings", { cookie })).data;
+  const adminPage = await fetch(base + "/sanjabadmin", { headers: cookie ? { Cookie: cookie } : {}, redirect: "manual" });
+  assert.equal(adminPage.status, 200);
+  const oldAdminPage = await fetch(base + "/admin", { headers: cookie ? { Cookie: cookie } : {}, redirect: "manual" });
+  assert.equal(oldAdminPage.status, 404);
+  checks += 2;
   assert.equal(joojoSettings.appearanceMood, "joojo");
   assert.equal(joojoSettings.accentColor, "indigo");
   if (authEnabled) assert.notEqual((await request("/api/settings", { cookie: bob.cookie })).data.appearanceMood, "joojo");

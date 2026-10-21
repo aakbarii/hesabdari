@@ -165,6 +165,8 @@ html[data-appearance="joojo"] ::selection { background: #f3b4d1; color: #49243a;
 /* This preview remains visible in every theme, so discovery needs no menu hunt. */
 .joojo-mode-card { display: flex; align-items: center; gap: 24px; position: relative; border: 2px solid #efc2d5; border-radius: 26px; padding: 24px; background: linear-gradient(125deg, #fff8e6, #fff3f8 55%, #f5ebff); color: #593647; box-shadow: 0 5px 0 #eed1df; }
 .joojo-mode-card[data-active="true"] { border-color: #c64480; }
+.joojo-mode-card { flex-wrap: wrap; }
+.joojo-mode-copy { flex: 1; min-width: 0; }
 .joojo-mode-preview { position: relative; flex-shrink: 0; border-radius: 35% 65% 60% 40%; background: #ffe3ef; border: 5px solid #fff8; }
 .joojo-preview-star { position: absolute; top: -8px; right: -4px; font-size: 28px; color: #c68c1a; }
 .joojo-preview-bow { position: absolute; bottom: 4px; left: -10px; font-size: 26px; transform: rotate(-20deg); }

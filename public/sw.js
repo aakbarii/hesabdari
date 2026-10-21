@@ -1,4 +1,4 @@
-const CACHE = "hesabdari-static-v4";
+const CACHE = "hesabdari-static-v5";
 const PRECACHE = ["/offline.html", "/manifest.json", "/icon-192.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {

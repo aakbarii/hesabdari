@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === "/api/health" || pathname.startsWith("/api/auth/")) {
+  if (pathname === "/install/joojo" || pathname === "/api/health" || pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
 
