@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
@@ -11,6 +12,7 @@ import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
+import { StatChip } from "@/components/mini-trend";
 
 type Med = {
   id: string;
@@ -20,10 +22,24 @@ type Med = {
   reminderHour: number;
 };
 
+type Stats = {
+  adherenceToday: number;
+  adherenceWeek: number;
+  takenToday: number;
+  expectedToday: number;
+  pendingCount: number;
+  nextAction: string;
+  history: { id: string; date: string; name: string; taken: boolean }[];
+};
+
 export default function MedsPage() {
+  useRecordsRefresh(() => {
+    void load();
+  });
   const { t, locale } = useLocale();
   const [meds, setMeds] = useState<Med[]>([]);
   const [taken, setTaken] = useState<Set<string>>(new Set());
+  const [stats, setStats] = useState<Stats | null>(null);
   const [name, setName] = useState("");
   const [dose, setDose] = useState("");
   const [pending, start] = useTransition();
@@ -34,6 +50,7 @@ export default function MedsPage() {
       .then((d) => {
         setMeds(d.meds ?? []);
         setTaken(new Set((d.logsToday ?? []).map((l: { medicationId: string }) => l.medicationId)));
+        setStats(d.stats ?? null);
       })
       .catch(() => toast.error(t("common.error")));
 
@@ -78,6 +95,19 @@ export default function MedsPage() {
     });
   };
 
+  const nextHint =
+    stats?.nextAction === "take_pending"
+      ? locale === "en"
+        ? `${stats.pendingCount} dose(s) left today`
+        : `${stats.pendingCount} دوز مانده امروز`
+      : stats?.nextAction === "all_done"
+        ? locale === "en"
+          ? "All doses taken — nice"
+          : "همه دوزها زده شد"
+        : locale === "en"
+          ? "Add your first medication"
+          : "اولین دارو را اضافه کن";
+
   return (
     <>
       <Header title={t("nav.meds")} />
@@ -91,6 +121,26 @@ export default function MedsPage() {
               : "دارو و مکمل با یادآوری و تیک روزانه"
           }
         />
+
+        {stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <StatChip
+              label={locale === "en" ? "Today" : "پایبندی امروز"}
+              value={`${stats.adherenceToday}%`}
+              hint={`${stats.takenToday}/${stats.expectedToday}`}
+            />
+            <StatChip
+              label={locale === "en" ? "This week" : "این هفته"}
+              value={`${stats.adherenceWeek}%`}
+            />
+            <StatChip
+              label={locale === "en" ? "Next" : "اقدام بعدی"}
+              value={String(stats.pendingCount)}
+              hint={nextHint}
+            />
+          </div>
+        )}
+
         <Card className="border-primary/15 overflow-hidden">
           <CardContent className="space-y-3 pt-5">
             <div className="grid grid-cols-2 gap-3">
@@ -151,6 +201,41 @@ export default function MedsPage() {
                 </button>
               );
             })}
+            <p className="text-xs text-muted-foreground pt-1">{nextHint}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {locale === "en" ? "History" : "تاریخچه"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 max-h-64 overflow-y-auto">
+            {(stats?.history ?? []).map((h) => (
+              <div
+                key={h.id}
+                className="flex items-center justify-between rounded-lg border px-3 py-2 text-xs"
+              >
+                <span>
+                  {h.name} · <span dir="ltr">{h.date}</span>
+                </span>
+                <span className="text-muted-foreground">
+                  {h.taken
+                    ? locale === "en"
+                      ? "taken"
+                      : "زده شد"
+                    : locale === "en"
+                      ? "skipped"
+                      : "نزده"}
+                </span>
+              </div>
+            ))}
+            {!stats?.history?.length && (
+              <p className="text-sm text-muted-foreground">
+                {locale === "en" ? "No history yet." : "هنوز سابقه‌ای نیست."}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

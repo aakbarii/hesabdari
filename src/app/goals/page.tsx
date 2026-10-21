@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { toISODate } from "@/lib/format";
 
@@ -45,6 +46,7 @@ const emptyForm = {
 };
 
 export default function GoalsPage() {
+  useRecordsRefresh(() => { void load(); });
   const confirm = useConfirm();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [open, setOpen] = useState(false);
@@ -55,7 +57,10 @@ export default function GoalsPage() {
   const [contrib, setContrib] = useState({
     amount: "",
     date: toISODate(new Date()),
+    accountId: "",
+    createTransaction: true,
   });
+  const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
 
   const load = () =>
     fetch("/api/goals")
@@ -64,6 +69,10 @@ export default function GoalsPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/accounts")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setAccounts(Array.isArray(d) ? d : d.accounts ?? []))
+      .catch(() => {});
   }, []);
 
   const openCreate = () => {
@@ -142,12 +151,23 @@ export default function GoalsPage() {
         goalId: contribOpen,
         amount: parseInt(contrib.amount.replace(/,/g, "")),
         date: contrib.date,
+        accountId: contrib.accountId || null,
+        createTransaction: contrib.createTransaction && !!contrib.accountId,
       }),
     });
     if (res.ok) {
-      toast.success("واریز ثبت شد");
+      toast.success(
+        contrib.createTransaction && contrib.accountId
+          ? "واریز و تراکنش ثبت شد"
+          : "واریز ثبت شد"
+      );
       setContribOpen(null);
-      setContrib({ amount: "", date: toISODate(new Date()) });
+      setContrib({
+        amount: "",
+        date: toISODate(new Date()),
+        accountId: "",
+        createTransaction: true,
+      });
       load();
     }
   };
@@ -297,6 +317,37 @@ export default function GoalsPage() {
                   onChange={(d) => setContrib({ ...contrib, date: d })}
                 />
               </div>
+              <div>
+                <Label>حساب بانکی (اختیاری)</Label>
+                <select
+                  className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+                  value={contrib.accountId}
+                  onChange={(e) =>
+                    setContrib({ ...contrib, accountId: e.target.value })
+                  }
+                >
+                  <option value="">بدون تراکنش</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={contrib.createTransaction}
+                  onChange={(e) =>
+                    setContrib({
+                      ...contrib,
+                      createTransaction: e.target.checked,
+                    })
+                  }
+                  disabled={!contrib.accountId}
+                />
+                ثبت به‌عنوان تراکنش در دفتر
+              </label>
               <Button type="submit" className="w-full">
                 ثبت واریز
               </Button>

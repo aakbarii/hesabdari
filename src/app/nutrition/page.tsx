@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { toISODate } from "@/lib/format";
 
@@ -53,6 +54,7 @@ interface Meal {
 
 interface NutritionData {
   date: string;
+  recentFoods?: { name: string; calories: number; protein: number; carbs: number; fat: number }[];
   meals: Meal[];
   summary: {
     totalCalories: number;
@@ -61,8 +63,12 @@ interface NutritionData {
     totalFat: number;
     totalWater: number;
     targetCalories: number;
+    targetProtein?: number;
+    targetCarbs?: number;
+    targetFat?: number;
     targetWater: number;
   };
+  stats?: { calPct: number; nextAction: string };
 }
 
 const PRESET_FOODS = [
@@ -81,11 +87,23 @@ const PRESET_FOODS = [
 ];
 
 export default function NutritionPage() {
+  useRecordsRefresh(() => { void loadData(currentDate); });
   const [data, setData] = useState<NutritionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [foodQuery, setFoodQuery] = useState("");
+  const [portion, setPortion] = useState(1);
+  const [selectedFood, setSelectedFood] = useState<(typeof PRESET_FOODS)[number] | null>(null);
   const [openAddMeal, setOpenAddMeal] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<Meal["mealType"]>("lunch");
   const [isPending, startTransition] = useTransition();
+
+  const [targetForm, setTargetForm] = useState({
+    calories: "2200",
+    protein: "120",
+    carbs: "250",
+    fat: "70",
+    waterMl: "2500",
+  });
 
   const [form, setForm] = useState({
     name: "",
@@ -99,13 +117,26 @@ export default function NutritionPage() {
   const todayStr = toISODate(new Date());
   const [currentDate, setCurrentDate] = useState(todayStr);
 
+  const applyTargetsFromData = (json: NutritionData) => {
+    setData(json);
+    if (json.summary) {
+      setTargetForm({
+        calories: String(json.summary.targetCalories),
+        protein: String(json.summary.targetProtein ?? 120),
+        carbs: String(json.summary.targetCarbs ?? 250),
+        fat: String(json.summary.targetFat ?? 70),
+        waterMl: String(json.summary.targetWater),
+      });
+    }
+  };
+
   const loadData = async (date: string) => {
     try {
       setLoading(true);
       const res = await fetch(`/api/nutrition?date=${date}`);
       if (res.ok) {
         const json = await res.json();
-        setData(json);
+        applyTargetsFromData(json);
       }
     } catch {
       toast.error("خطا در دریافت اطلاعات تغذیه");
@@ -118,11 +149,36 @@ export default function NutritionPage() {
     const controller = new AbortController();
     fetch(`/api/nutrition?date=${currentDate}`, { signal: controller.signal })
       .then((res) => { if (!res.ok) throw new Error("Load failed"); return res.json(); })
-      .then((json) => setData(json))
+      .then((json) => applyTargetsFromData(json))
       .catch(() => { if (!controller.signal.aborted) toast.error("دریافت اطلاعات تغذیه انجام نشد"); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [currentDate]);
+
+  const saveTargets = () => {
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            healthTargets: {
+              calories: Number(targetForm.calories) || 2200,
+              protein: Number(targetForm.protein) || 120,
+              carbs: Number(targetForm.carbs) || 250,
+              fat: Number(targetForm.fat) || 70,
+              waterMl: Number(targetForm.waterMl) || 2500,
+            },
+          }),
+        });
+        if (!res.ok) throw new Error("fail");
+        toast.success("اهداف تغذیه ذخیره شد");
+        loadData(currentDate);
+      } catch {
+        toast.error("خطا در ذخیره اهداف");
+      }
+    });
+  };
 
   const handleAddMeal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,16 +250,11 @@ export default function NutritionPage() {
     }
   };
 
-  const fillPreset = (preset: (typeof PRESET_FOODS)[number]) => {
-    setForm({
-      name: preset.name,
-      calories: preset.calories.toString(),
-      protein: preset.protein.toString(),
-      carbs: preset.carbs.toString(),
-      fat: preset.fat.toString(),
-      note: form.note,
-    });
+  const fillPreset = (preset: (typeof PRESET_FOODS)[number], quantity = portion) => {
+    setSelectedFood(preset);
+    setForm(previous => ({ ...previous, name: quantity === 1 ? preset.name : `${preset.name} × ${quantity}`, calories: String(Math.round(preset.calories * quantity)), protein: String(Math.round(preset.protein * quantity)), carbs: String(Math.round(preset.carbs * quantity)), fat: String(Math.round(preset.fat * quantity)) }));
   };
+  const foods = [...new Map([...(data?.recentFoods ?? []), ...PRESET_FOODS].map(food => [food.name, food])).values()].filter(food => food.name.replaceAll("ي", "ی").replaceAll("ك", "ک").includes(foodQuery.trim().replaceAll("ي", "ی").replaceAll("ك", "ک")));
 
   const summary = data?.summary ?? {
     totalCalories: 0,
@@ -260,6 +311,46 @@ export default function NutritionPage() {
           }
         />
 
+        <Card className="border-primary/15 p-4">
+          <p className="text-sm font-semibold mb-3">اهداف کالری و ماکرو</p>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {(
+              [
+                ["calories", "کالری"],
+                ["protein", "پروتئین"],
+                ["carbs", "کربو"],
+                ["fat", "چربی"],
+                ["waterMl", "آب (ml)"],
+              ] as const
+            ).map(([key, label]) => (
+              <div key={key} className="space-y-1">
+                <Label className="text-[11px]">{label}</Label>
+                <Input
+                  type="number"
+                  value={targetForm[key]}
+                  onChange={(e) =>
+                    setTargetForm((f) => ({ ...f, [key]: e.target.value }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {data?.stats?.nextAction === "drink_water"
+                ? "اقدام بعدی: آب بنوش"
+                : data?.stats?.nextAction === "add_protein"
+                  ? "اقدام بعدی: پروتئین بیشتر"
+                  : data?.stats?.nextAction === "on_target"
+                    ? "روی هدف کالری هستی"
+                    : "اقدام بعدی: ثبت وعده"}
+            </p>
+            <Button size="sm" variant="outline" disabled={isPending} onClick={saveTargets}>
+              ذخیره اهداف
+            </Button>
+          </div>
+        </Card>
+
         {/* Overview Cards: Calories, Macros, Water */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Calorie Card */}
@@ -299,19 +390,19 @@ export default function NutritionPage() {
                   <span className="flex items-center gap-1.5"><Dumbbell className="h-3.5 w-3.5 text-blue-500" /> پروتئین</span>
                   <span>{summary.totalProtein} گرم</span>
                 </div>
-                <Progress value={Math.min(100, (summary.totalProtein / 140) * 100)} className="h-2 bg-blue-100 dark:bg-blue-950" />
+                <Progress value={Math.min(100, (summary.totalProtein / (summary.targetProtein ?? 120)) * 100)} className="h-2 bg-blue-100 dark:bg-blue-950" />
 
                 <div className="flex justify-between text-xs font-medium">
                   <span className="flex items-center gap-1.5"><Wheat className="h-3.5 w-3.5 text-amber-500" /> کربوهیدرات</span>
                   <span>{summary.totalCarbs} گرم</span>
                 </div>
-                <Progress value={Math.min(100, (summary.totalCarbs / 250) * 100)} className="h-2 bg-amber-100 dark:bg-amber-950" />
+                <Progress value={Math.min(100, (summary.totalCarbs / (summary.targetCarbs ?? 250)) * 100)} className="h-2 bg-amber-100 dark:bg-amber-950" />
 
                 <div className="flex justify-between text-xs font-medium">
                   <span className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5 text-rose-500" /> چربی</span>
                   <span>{summary.totalFat} گرم</span>
                 </div>
-                <Progress value={Math.min(100, (summary.totalFat / 70) * 100)} className="h-2 bg-rose-100 dark:bg-rose-950" />
+                <Progress value={Math.min(100, (summary.totalFat / (summary.targetFat ?? 70)) * 100)} className="h-2 bg-rose-100 dark:bg-rose-950" />
               </div>
             </CardContent>
           </Card>
@@ -448,8 +539,11 @@ export default function NutritionPage() {
               <Sparkles className="h-3.5 w-3.5 text-amber-500" />
               غذاهای پیشنهادی سریع (کلیک برای پر شدن):
             </Label>
+            <Input aria-label="جستجوی غذا" placeholder="جستجو در غذاهای نمونه و غذاهای ثبت‌شدهٔ خودت…" value={foodQuery} onChange={e => setFoodQuery(e.target.value)} />
+            <label className="flex items-center gap-3 text-xs">تعداد سهم<select aria-label="تعداد سهم" value={portion} onChange={e => { const value = Number(e.target.value); setPortion(value); if (selectedFood) fillPreset(selectedFood, value); }} className="h-10 rounded-lg border bg-background px-3">{[.5, 1, 1.5, 2, 3].map(value => <option key={value} value={value}>{value.toLocaleString("fa-IR")} سهم</option>)}</select></label>
+            <p className="text-xs leading-6 text-muted-foreground">اعداد غذاهای نمونه تقریبی‌اند؛ مقدار واقعی را می‌توانی از اطلاعات غذای خودت وارد کنی.</p>
             <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1 border rounded-lg bg-muted/20">
-              {PRESET_FOODS.map((item) => (
+              {foods.map((item) => (
                 <button
                   key={item.name}
                   type="button"

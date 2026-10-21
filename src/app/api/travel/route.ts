@@ -1,18 +1,23 @@
+import { dateInput } from "@/lib/validation";
 import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
 import { tripExpenses, trips } from "@/lib/db/schema";
 import { requireUserId } from "@/lib/api-auth";
 import { nanoid } from "@/lib/db/nanoid";
-import { ensureDb } from "@/lib/db/queries";
+import {
+  ensureDb,
+  db,
+  transactions,
+  categories,
+} from "@/lib/db/queries";
 
 const tripSchema = z.object({
   title: z.string().min(1).max(80),
   place: z.string().optional().nullable(),
-  startDate: z.string().min(8),
-  endDate: z.string().optional().nullable(),
+  startDate: dateInput,
+  endDate: dateInput.optional().nullable(),
   budget: z.number().int().min(0).default(0),
   notes: z.string().optional().nullable(),
 });
@@ -22,7 +27,7 @@ const expenseSchema = z.object({
   title: z.string().min(1),
   amount: z.number().int().min(0),
   category: z.string().default("سایر"),
-  date: z.string().min(8),
+  date: dateInput,
 });
 
 export async function GET() {
@@ -65,6 +70,45 @@ export async function POST(request: Request) {
       .values({ id, userId: auth, ...parsed.data })
       .run();
     return NextResponse.json({ success: true, id });
+  }
+
+  if (action === "to-transaction") {
+    const expenseId = String(body.expenseId ?? "");
+    const accountId = String(body.accountId ?? "");
+    if (!expenseId || !accountId) {
+      return NextResponse.json({ error: "expenseId و accountId لازم است" }, { status: 400 });
+    }
+    const expense = await db
+      .select()
+      .from(tripExpenses)
+      .where(and(eq(tripExpenses.id, expenseId), eq(tripExpenses.userId, auth)))
+      .get();
+    if (!expense) return NextResponse.json({ error: "not found" }, { status: 404 });
+    const trip = await db
+      .select()
+      .from(trips)
+      .where(eq(trips.id, expense.tripId))
+      .get();
+    const cat = await db
+      .select()
+      .from(categories)
+      .where(and(eq(categories.userId, auth), eq(categories.type, "expense")))
+      .get();
+    const txId = nanoid();
+    await db
+      .insert(transactions)
+      .values({
+        id: txId,
+        userId: auth,
+        accountId,
+        categoryId: cat?.id ?? null,
+        type: "expense",
+        amount: expense.amount,
+        description: `سفر «${trip?.title ?? ""}»: ${expense.title}`,
+        date: new Date(expense.date),
+      })
+      .run();
+    return NextResponse.json({ success: true, transactionId: txId });
   }
 
   const parsed = tripSchema.safeParse(body);

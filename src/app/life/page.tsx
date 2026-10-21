@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
@@ -54,6 +55,8 @@ interface LifeSummary {
   todayProgress: number;
 }
 
+type ChecklistItem = { id: string; title: string; done: boolean };
+
 interface Todo {
   id: string;
   title: string;
@@ -62,6 +65,7 @@ interface Todo {
   priority: keyof typeof TODO_PRIORITIES;
   status: "active" | "done";
   dueDate: string | null;
+  checklist?: string | ChecklistItem[] | null;
 }
 
 interface Routine {
@@ -80,6 +84,7 @@ interface Routine {
 type TodoFilter = "active" | "today" | "overdue" | "done" | "all";
 
 export default function LifePage() {
+  useRecordsRefresh(() => { void loadSummary(); void loadTodos(); void loadRoutines(); });
   const [tab, setTab] = useState("todos");
   const [summary, setSummary] = useState<LifeSummary | null>(null);
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -96,6 +101,8 @@ export default function LifePage() {
     area: "personal" as Todo["area"],
     priority: "medium" as Todo["priority"],
     dueDate: "",
+    checklist: [] as ChecklistItem[],
+    subtaskDraft: "",
   });
   const [routineForm, setRoutineForm] = useState({
     name: "",
@@ -106,6 +113,17 @@ export default function LifePage() {
     weeklyDays: [0, 1, 2, 3, 4, 5, 6] as number[],
   });
 
+  const parseChecklist = (raw: Todo["checklist"]): ChecklistItem[] => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+      const parsed = JSON.parse(raw) as ChecklistItem[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
   const resetTodoForm = () =>
     setTodoForm({
       title: "",
@@ -113,6 +131,8 @@ export default function LifePage() {
       area: "personal",
       priority: "medium",
       dueDate: "",
+      checklist: [],
+      subtaskDraft: "",
     });
 
   const resetRoutineForm = () =>
@@ -173,6 +193,8 @@ export default function LifePage() {
       area: todo.area,
       priority: todo.priority,
       dueDate: todo.dueDate ? String(todo.dueDate).slice(0, 10) : "",
+      checklist: parseChecklist(todo.checklist),
+      subtaskDraft: "",
     });
     setTodoOpen(true);
   };
@@ -206,6 +228,7 @@ export default function LifePage() {
       area: todoForm.area,
       priority: todoForm.priority,
       dueDate: todoForm.dueDate || null,
+      checklist: todoForm.checklist.length ? todoForm.checklist : null,
     };
 
     if (editingTodo) {
@@ -325,6 +348,17 @@ export default function LifePage() {
           title="زندگی"
           subtitle="کارها، روال‌ها و برنامه روزانه در یک نگاه"
         />
+        <details className="rounded-2xl border bg-card p-4"><summary className="cursor-pointer text-sm font-semibold">کتابخانهٔ روتین‌های قابل شخصی‌سازی</summary><p className="mt-3 text-xs leading-7 text-muted-foreground">یک الگو را انتخاب کن، زمان و جزئیاتش را تغییر بده و بعد ذخیره کن. انتخاب الگو چیزی را خودکار ثبت نمی‌کند.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{[
+          ["شروع روز", "پس از شروع روز، سه خروجی مهم امروز را بنویسم.", "08:00"],
+          ["مطالعهٔ کوتاه", "پس از چای عصر، ۵ صفحه بخوانم و یک نکته بنویسم.", "18:00"],
+          ["مرور هزینه‌ها", "رسیدها را جمع کنم و هزینه‌های جاافتادهٔ امروز را ثبت کنم.", "21:00"],
+          ["جمع‌بندی شب", "یک کار تمام‌شده، یک آموخته و قدم اول فردا را یادداشت کنم.", "22:00"],
+          ["تمرین مهارت", "یک تمرین کوچک از دورهٔ فعلی را انجام دهم و نتیجه را ذخیره کنم.", "17:00"],
+          ["نظم محیط کار", "پس از پایان کار، میز را مرتب و وسایل فردا را آماده کنم.", "17:30"],
+          ["مرور کارهای باز", "فهرست کارها را مرور کنم؛ هر مورد یک قدم بعدی مشخص داشته باشد.", "09:00"],
+          ["ارتباط با عزیزان", "زمانی مشخص برای یک تماس یا گفت‌وگوی بدون حواس‌پرتی کنار بگذارم.", "20:00"],
+        ].map(([name, description, timeOfDay]) => <button type="button" key={name} onClick={() => { setEditingRoutine(null); setRoutineForm({ name, description, timeOfDay, frequency: "daily", color: "#8b5cf6", weeklyDays: [0, 1, 2, 3, 4, 5, 6] }); setRoutineOpen(true); }} className="rounded-xl border px-4 py-3 text-right text-sm hover:border-primary/40"><strong>{name}</strong><span className="mt-1 block text-xs leading-6 text-muted-foreground">{description}</span></button>)}</div></details>
+
         {summary && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="bg-accent/40">
@@ -493,6 +527,16 @@ export default function LifePage() {
                             {todo.description}
                           </p>
                         )}
+                        {(() => {
+                          const items = parseChecklist(todo.checklist);
+                          if (!items.length) return null;
+                          const done = items.filter((i) => i.done).length;
+                          return (
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              زیرفعال {done}/{items.length}
+                            </p>
+                          );
+                        })()}
                         {todo.dueDate && (
                           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                             <CalendarClock className="h-3.5 w-3.5" />
@@ -739,6 +783,73 @@ export default function LifePage() {
                 onChange={(v) => setTodoForm({ ...todoForm, dueDate: v })}
               />
             </div>
+            <div className="space-y-2">
+              <Label>زیرفعال‌ها</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={todoForm.subtaskDraft}
+                  onChange={(e) =>
+                    setTodoForm({ ...todoForm, subtaskDraft: e.target.value })
+                  }
+                  placeholder="زیرفعال جدید"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (!todoForm.subtaskDraft.trim()) return;
+                    setTodoForm({
+                      ...todoForm,
+                      checklist: [
+                        ...todoForm.checklist,
+                        {
+                          id: crypto.randomUUID(),
+                          title: todoForm.subtaskDraft.trim(),
+                          done: false,
+                        },
+                      ],
+                      subtaskDraft: "",
+                    });
+                  }}
+                >
+                  افزودن
+                </Button>
+              </div>
+              <div className="space-y-1">
+                {todoForm.checklist.map((item) => (
+                  <label
+                    key={item.id}
+                    className="flex items-center gap-2 text-sm rounded-lg border px-2 py-1.5"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={item.done}
+                      onChange={() =>
+                        setTodoForm({
+                          ...todoForm,
+                          checklist: todoForm.checklist.map((c) =>
+                            c.id === item.id ? { ...c, done: !c.done } : c
+                          ),
+                        })
+                      }
+                    />
+                    <span className="flex-1">{item.title}</span>
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground"
+                      onClick={() =>
+                        setTodoForm({
+                          ...todoForm,
+                          checklist: todoForm.checklist.filter((c) => c.id !== item.id),
+                        })
+                      }
+                    >
+                      حذف
+                    </button>
+                  </label>
+                ))}
+              </div>
+            </div>
             <Button type="submit" className="w-full">
               ذخیره
             </Button>
@@ -819,6 +930,47 @@ export default function LifePage() {
             {routineForm.frequency === "weekly" && (
               <div className="space-y-2">
                 <Label>روزهای هفته</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setRoutineForm({
+                        ...routineForm,
+                        weeklyDays: [0, 1, 2, 3, 4],
+                      })
+                    }
+                  >
+                    فقط روزکاری
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setRoutineForm({
+                        ...routineForm,
+                        weeklyDays: [5, 6],
+                      })
+                    }
+                  >
+                    فقط آخر هفته
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setRoutineForm({
+                        ...routineForm,
+                        weeklyDays: [0, 1, 2, 3, 4, 5, 6],
+                      })
+                    }
+                  >
+                    همه روزها
+                  </Button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {WEEKDAY_LABELS.map((label, day) => (
                     <Button

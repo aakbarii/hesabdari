@@ -34,15 +34,18 @@ export async function GET() {
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
 
-  const latest = await db
+  const history = await db
     .select()
     .from(weeklyInsights)
     .where(eq(weeklyInsights.userId, auth))
     .orderBy(desc(weeklyInsights.createdAt))
-    .limit(1)
-    .get();
+    .limit(12)
+    .all();
 
-  return NextResponse.json({ insight: latest ?? null });
+  return NextResponse.json({
+    insight: history[0] ?? null,
+    history,
+  });
 }
 
 export async function POST() {

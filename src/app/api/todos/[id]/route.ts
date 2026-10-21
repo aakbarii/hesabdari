@@ -5,6 +5,12 @@ import { z } from "zod";
 import { ensureDb, db, todos } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 
+const checklistItem = z.object({
+  id: z.string(),
+  title: z.string().min(1),
+  done: z.boolean(),
+});
+
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
@@ -12,6 +18,7 @@ const updateSchema = z.object({
   priority: z.enum(["low", "medium", "high"]).optional(),
   dueDate: z.string().optional().nullable(),
   status: z.enum(["active", "done"]).optional(),
+  checklist: z.array(checklistItem).optional().nullable(),
 });
 
 export async function PATCH(
@@ -48,6 +55,12 @@ export async function PATCH(
     updates.status = parsed.data.status;
     updates.completedAt =
       parsed.data.status === "done" ? new Date() : null;
+  }
+  if (parsed.data.checklist !== undefined) {
+    updates.checklist =
+      parsed.data.checklist == null
+        ? null
+        : JSON.stringify(parsed.data.checklist);
   }
 
   await db.update(todos).set(updates).where(eq(todos.id, id)).run();

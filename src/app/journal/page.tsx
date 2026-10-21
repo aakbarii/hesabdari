@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { toISODate } from "@/lib/format";
 
@@ -13,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, HeartHandshake, Trophy, Calendar, BookMarked } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { MiniTrend, StatChip } from "@/components/mini-trend";
 
 const MOODS = [
   { value: "great", label: "عالی و پرانرژی", emoji: "🤩", color: "bg-emerald-500/10 border-emerald-500 text-emerald-600" },
@@ -23,6 +26,10 @@ const MOODS = [
 ];
 
 export default function JournalPage() {
+  useRecordsRefresh(() => {
+    void loadAll();
+    fetch(`/api/journal?date=${date}`).then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(d => { setMood(d.entry?.mood ?? "good"); setGratitude(d.entry?.gratitude ?? ""); setHighlights(d.entry?.highlights ?? ""); setNotes(d.entry?.notes ?? ""); }).catch(() => toast.error("بازخوانی ژورنال انجام نشد"));
+  });
   const todayStr = toISODate(new Date());
   const [date, setDate] = useState(todayStr);
   const [mood, setMood] = useState<string>("good");
@@ -31,14 +38,24 @@ export default function JournalPage() {
   const [notes, setNotes] = useState("");
 
   const [pastEntries, setPastEntries] = useState<Array<{ id: string; date: string; mood: string; gratitude: string | null; highlights: string | null; notes: string | null }>>([]);
+  const [stats, setStats] = useState<{
+    mood7: { label: string; value: number }[];
+    mood30: { label: string; value: number }[];
+    avgMood7: number;
+    loggedToday: boolean;
+    nextAction: string;
+  } | null>(null);
+  const [searchQ, setSearchQ] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const loadAll = async () => {
+  const loadAll = async (q?: string) => {
     try {
-      const res = await fetch("/api/journal");
+      const qs = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+      const res = await fetch(`/api/journal${qs}`);
       if (res.ok) {
         const json = await res.json();
         setPastEntries(json.entries || []);
+        if (!q?.trim() && json.stats) setStats(json.stats);
       }
     } catch {}
   };
@@ -58,11 +75,22 @@ export default function JournalPage() {
     const controller = new AbortController();
     fetch("/api/journal", { signal: controller.signal }).then((res) => {
       if (!res.ok) throw new Error("Load failed"); return res.json();
-    }).then((json) => setPastEntries(json.entries ?? [])).catch(() => {
+    }).then((json) => {
+      setPastEntries(json.entries ?? []);
+      if (json.stats) setStats(json.stats);
+    }).catch(() => {
       if (!controller.signal.aborted) toast.error("دریافت یادداشت‌ها انجام نشد");
     });
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void loadAll(searchQ);
+    }, 280);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQ]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +134,32 @@ export default function JournalPage() {
             </Badge>
           }
         />
+        {stats && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <StatChip
+                label="خلق ۷روز"
+                value={stats.avgMood7 ? String(stats.avgMood7) : "—"}
+                hint={stats.loggedToday ? "امروز ثبت شده" : "امروز هنوز ننوشته‌ای"}
+              />
+              <StatChip
+                label="اقدام بعدی"
+                value={stats.nextAction === "write_today" ? "بنویس" : "استخراج تسک"}
+              />
+            </div>
+            <Card className="p-4 border">
+              <p className="text-xs text-muted-foreground mb-2">روند خلق ۷روز</p>
+              <MiniTrend
+                points={stats.mood7.map((p) => ({ label: p.label, value: p.value }))}
+                max={5}
+                colorClass="bg-amber-500/80"
+              />
+            </Card>
+          </div>
+        )}
+
+        <details className="rounded-2xl border bg-card p-4"><summary className="cursor-pointer text-sm font-semibold">وقتی نمی‌دانم چه بنویسم · پرسش‌های راهنما</summary><div className="mt-3 flex flex-wrap gap-2">{["امروز چه چیزی بیشتر از انتظارم خوب پیش رفت؟", "کدام اتفاق انرژی‌ام را گرفت و دفعهٔ بعد چه انتخابی دارم؟", "چه کاری را عقب انداختم و کوچک‌ترین قدم شروعش چیست؟", "از چه کسی یا چه چیزی قدردانی می‌کنم و چرا؟", "امروز چه چیزی یاد گرفتم که می‌توانم به کار ببرم؟", "در هفتهٔ آینده چه چیزی را کمتر و چه چیزی را بیشتر می‌خواهم؟", "یک تصمیم امروز من چه نتیجه‌ای داشت؟", "اگر فردا فقط یک کار انجام دهم، آن کار چیست؟"].map(prompt => <button type="button" key={prompt} onClick={() => setNotes(previous => [previous, prompt + "\n"].filter(Boolean).join("\n\n"))} className="rounded-xl border px-3 py-2 text-right text-xs leading-6 hover:bg-muted">{prompt}</button>)}</div><p className="mt-3 text-xs text-muted-foreground">پرسش به یادداشت اضافه می‌شود؛ متن قبلی پاک نمی‌شود و تا ذخیره نکنی ارسال نمی‌شود.</p></details>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Journal Form (2 cols) */}
@@ -225,6 +279,12 @@ export default function JournalPage() {
             <h3 className="font-semibold text-base flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary" /> روزهای ثبت‌شده اخیر
             </h3>
+            <Input
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              placeholder="جستجو در متن ژورنال…"
+              className="text-sm"
+            />
 
             {pastEntries.length === 0 ? (
               <Card className="p-6 text-center text-xs text-muted-foreground border">

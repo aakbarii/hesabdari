@@ -16,6 +16,7 @@ import {
   userSettings,
   recurringTransactions,
   assets,
+  assetPriceHistory,
   passwordResetTokens,
   todos,
   routines,
@@ -46,6 +47,7 @@ import {
   type AccentColorId,
   type Gender,
 } from "../appearance";
+import { parseHealthTargets, type HealthTargets } from "../health-targets";
 import {
   parsePageHeroPrefs,
   type HeroPref,
@@ -577,9 +579,24 @@ export async function getUserSettings(userId: string = DEFAULT_USER_ID) {
     mobileNav: normalizeMobileNav(mobileNavParsed, visibleNav),
     gender,
     pageHeroes: parsePageHeroPrefs(pageHeroesParsed),
+    healthTargets: parseHealthTargets(settings.healthTargets),
     locale: settings.locale === "en" ? "en" : "fa",
     onboardingCompleted: settings.onboardingCompleted,
   };
+}
+
+export async function updateHealthTargets(
+  userId: string,
+  targets: Partial<HealthTargets>
+) {
+  const current = await getUserSettings(userId);
+  const next = parseHealthTargets({ ...current.healthTargets, ...targets });
+  await db
+    .update(userSettings)
+    .set({ healthTargets: JSON.stringify(next) })
+    .where(eq(userSettings.userId, userId))
+    .run();
+  return (await getUserSettings(userId)).healthTargets;
 }
 
 export async function updatePageHeroPref(
@@ -1169,7 +1186,7 @@ export async function getReminders(userId: string) {
       }
     }
 
-    // Vehicle service due by date or mileage proximity (date only here)
+    // Vehicle service due by date or mileage
     const maintenanceAlerts = (
       await db
         .select()
@@ -1177,23 +1194,46 @@ export async function getReminders(userId: string) {
         .where(eq(vehicleServices.userId, userId))
         .all()
     )
-      .filter((s) => {
-        if (!s.nextDueDate) return false;
-        const due = new Date(s.nextDueDate + "T12:00:00");
-        const diff = (due.getTime() - now.getTime()) / 86400000;
-        return diff <= 14;
-      })
-      .slice(0, 3)
       .map((s) => {
-        const due = new Date(s.nextDueDate! + "T12:00:00");
-        const overdue = due < now;
+        let overdue = false;
+        let dueSoon = false;
+        let reason = "";
+        if (s.nextDueDate) {
+          const due = new Date(s.nextDueDate + "T12:00:00");
+          const diff = (due.getTime() - now.getTime()) / 86400000;
+          if (diff < 0) {
+            overdue = true;
+            reason = "موعد تاریخ گذشته";
+          } else if (diff <= 14) {
+            dueSoon = true;
+            reason = "موعد تاریخ نزدیک";
+          }
+        }
+        if (s.nextDueMileage != null && s.currentMileage >= s.nextDueMileage) {
+          overdue = true;
+          reason = reason || "کیلومتر گذشته";
+        } else if (
+          s.nextDueMileage != null &&
+          s.nextDueMileage - s.currentMileage <= 500
+        ) {
+          dueSoon = true;
+          reason = reason || "کیلومتر نزدیک";
+        }
+        if (!overdue && !dueSoon) return null;
         return {
           id: s.id,
-          message: `${s.vehicleName}: سرویس نزدیک`,
-          level: overdue ? "overdue" : "due_soon",
+          message: `${s.vehicleName}: ${reason || "سرویس"}`,
+          level: overdue ? ("overdue" as const) : ("due_soon" as const),
           href: "/maintenance",
         };
-      });
+      })
+      .filter(Boolean)
+      .slice(0, 5) as Array<{
+      id: string;
+      message: string;
+      level: "overdue" | "due_soon";
+      href: string;
+    }>;
 
     // Meds not logged today
     const todayKey = dateKey(now);
@@ -1927,10 +1967,35 @@ export async function syncAssetRates(userId: string) {
         .set({ unitPrice: price })
         .where(eq(assets.id, a.id))
         .run();
+      await db
+        .insert(assetPriceHistory)
+        .values({
+          id: nanoid(),
+          assetId: a.id,
+          userId,
+          unitPrice: price,
+          recordedAt: new Date(),
+        })
+        .run();
       updated++;
     }
   }
   return { updated, rates, note: "placeholder rates — replace with live feed later" };
+}
+
+export async function getAssetPriceHistory(userId: string, assetId?: string, limit = 30) {
+  const rows = await db
+    .select()
+    .from(assetPriceHistory)
+    .where(
+      assetId
+        ? and(eq(assetPriceHistory.userId, userId), eq(assetPriceHistory.assetId, assetId))
+        : eq(assetPriceHistory.userId, userId)
+    )
+    .orderBy(desc(assetPriceHistory.recordedAt))
+    .limit(limit)
+    .all();
+  return rows;
 }
 
 export async function getDebtSettlementSuggestions(userId: string) {
@@ -1999,6 +2064,7 @@ export {
   userSettings,
   recurringTransactions,
   assets,
+  assetPriceHistory,
   todos,
   routines,
   routineCompletions,

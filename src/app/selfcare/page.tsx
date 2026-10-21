@@ -1,130 +1,72 @@
-﻿"use client";
-
-import { useEffect, useMemo, useState } from "react";
+"use client";
+import { useEffect,useState } from "react";
 import { Header } from "@/components/layout/header";
 import { PageHero } from "@/components/layout/page-hero";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
-import { useLocale } from "@/components/locale-provider";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog,DialogContent,DialogHeader,DialogTitle } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/confirm-dialog";
+import { CARE_CATEGORIES,CARE_TIMES,CARE_PACKS,scheduledOn } from "@/lib/selfcare";
+import { addDays } from "@/lib/cycle-tracking";
+import { toISODate,formatJalaliDate } from "@/lib/format";
+import { Check,Plus,Pencil,Archive,RotateCcw,ChevronLeft,ChevronRight,CalendarDays,Target,Cloud } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { toISODate } from "@/lib/format";
-
-const ITEMS = [
-  { id: "cleanser", fa: "پاک‌سازی پوست", en: "Cleanse skin" },
-  { id: "moisturizer", fa: "مرطوب‌کننده", en: "Moisturizer" },
-  { id: "sunscreen", fa: "ضدآفتاب", en: "Sunscreen" },
-  { id: "hair", fa: "مراقبت مو", en: "Hair care" },
-  { id: "water", fa: "آب کافی", en: "Drink water" },
-  { id: "stretch", fa: "کشش ملایم", en: "Gentle stretch" },
-  { id: "journal", fa: "۵ دقیقه ژورنال", en: "5‑min journal" },
-  { id: "screen", fa: "استراحت از صفحه", en: "Screen break" },
-  { id: "tea", fa: "چای / آرامش", en: "Tea & calm" },
-  { id: "sleep", fa: "آماده خواب", en: "Wind down for sleep" },
-];
-
-function storageKey(day: string) {
-  return `ravaal-selfcare-${day}`;
-}
-
-export default function SelfCarePage() {
-  const { t, locale } = useLocale();
-  const today = toISODate(new Date());
-  const [done, setDone] = useState<string[]>([]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey(today));
-      if (raw) setDone(JSON.parse(raw));
-    } catch {
-      /* ignore */
-    }
-  }, [today]);
-
-  const persist = (next: string[]) => {
-    setDone(next);
-    try {
-      localStorage.setItem(storageKey(today), JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const progress = useMemo(
-    () => Math.round((done.length / ITEMS.length) * 100),
-    [done.length]
-  );
-
-  return (
-    <>
-      <Header title={t("selfcare.title")} />
-      <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6 motion-stagger">
-        <PageHero
-          heroKey="selfcare"
-          title={t("selfcare.title")}
-          subtitle={t("selfcare.subtitle")}
-        />
-        <Card className="border-primary/15 overflow-hidden">
-          <CardContent className="pt-5 space-y-2">
-            <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground" dir="ltr">
-              {done.length}/{ITEMS.length} · {progress}%
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-base">{t("selfcare.done")}</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => persist([])}
-            >
-              {t("selfcare.resetDay")}
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {ITEMS.map((item) => {
-              const on = done.includes(item.id);
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() =>
-                    persist(
-                      on
-                        ? done.filter((x) => x !== item.id)
-                        : [...done, item.id]
-                    )
-                  }
-                  className={cn(
-                    "w-full flex items-center justify-between rounded-xl border px-3 py-3 text-sm transition-colors",
-                    on
-                      ? "border-primary/40 bg-primary/8"
-                      : "hover:bg-muted/50"
-                  )}
-                >
-                  <span>{locale === "en" ? item.en : item.fa}</span>
-                  <span
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full border",
-                      on && "border-primary bg-primary text-primary-foreground"
-                    )}
-                  >
-                    {on && <Check className="h-3.5 w-3.5" />}
-                  </span>
-                </button>
-              );
-            })}
-          </CardContent>
-        </Card>
-      </div>
-    </>
-  );
+type Item={id:string;title:string;description:string|null;category:string;timeOfDay:string;weekdays:string;targetValue:number;unit:string;archived:boolean};
+type Log={id:string;date:string;itemId:string;value:number;targetValue:number;titleSnapshot:string;unitSnapshot:string;notes:string|null};
+type Data={items:Item[];logs:Log[];week:{date:string;completed:number;recorded:number}[]};
+const DAYS=[{id:6,label:"شنبه"},{id:0,label:"یکشنبه"},{id:1,label:"دوشنبه"},{id:2,label:"سه‌شنبه"},{id:3,label:"چهارشنبه"},{id:4,label:"پنجشنبه"},{id:5,label:"جمعه"}];
+const emptyItem=()=>({id:"",title:"",description:"",category:"personal",timeOfDay:"anytime",weekdays:[0,1,2,3,4,5,6],targetValue:1,unit:"نوبت"});
+export default function SelfCarePage(){
+  const today=toISODate(new Date());
+  const [date,setDate]=useState(today);
+  const [data,setData]=useState<Data|null>(null);
+  const [error,setError]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [pending,setPending]=useState(false);
+  const [revision,setRevision]=useState(0);
+  const [category,setCategory]=useState("all");
+  const [showAll,setShowAll]=useState(false);
+  const [archiveView,setArchiveView]=useState(false);
+  const [query,setQuery]=useState("");
+  const [itemOpen,setItemOpen]=useState(false);
+  const [itemForm,setItemForm]=useState(emptyItem);
+  const [logItem,setLogItem]=useState<Item|null>(null);
+  const [logForm,setLogForm]=useState({value:0,notes:""});
+  const confirm=useConfirm();
+  useEffect(()=>{const controller=new AbortController();fetch(`/api/selfcare?date=${date}`,{signal:controller.signal}).then(async response=>{if(!response.ok)throw new Error();return response.json();}).then(next=>{setData(next);setError(false);}).catch(()=>{if(!controller.signal.aborted){setError(true);toast.error("برنامهٔ مراقبت دریافت نشد");}}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return()=>controller.abort();},[date,revision]);
+  const changeDate=(next:string)=>{if(!next)return;setLoading(true);setDate(next);};
+  const refresh=()=>setRevision(value=>value+1);
+  const call=async(method:string,body:unknown)=>{const response=await fetch("/api/selfcare",{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw new Error(result.error??"ذخیره انجام نشد");return result;};
+  const mutate=async(method:string,body:unknown,success:string)=>{if(pending)return false;setPending(true);try{await call(method,body);refresh();toast.success(success);return true;}catch(err){toast.error(err instanceof Error?err.message:"خطا");return false;}finally{setPending(false);}};
+  const dayLogs=data?.logs.filter(log=>log.date===date)??[];
+  const due=data?.items.filter(item=>!item.archived&&(scheduledOn(item.weekdays,date)||dayLogs.some(log=>log.itemId===item.id)))??[];
+  const completed=due.filter(item=>{const log=dayLogs.find(log=>log.itemId===item.id);return log&&log.value>=log.targetValue;}).length;
+  const percent=due.length?Math.round(completed/due.length*100):0;
+  const visible=data?.items.filter(item=>item.archived===archiveView&&(archiveView||showAll||due.some(dueItem=>dueItem.id===item.id))&&(category==="all"||category===item.category)&&item.title.includes(query.trim()))??[];
+  const editItem=(item?:Item)=>{if(item){let weekdays:number[]=[];try{weekdays=JSON.parse(item.weekdays);}catch{weekdays=[0,1,2,3,4,5,6];}setItemForm({...item,description:item.description??"",weekdays});}else setItemForm(emptyItem());setItemOpen(true);};
+  const editLog=(item:Item)=>{const log=dayLogs.find(log=>log.itemId===item.id);setLogForm({value:log?.value??0,notes:log?.notes??""});setLogItem(item);};
+  const archive=async(item:Item)=>{if(!item.archived&&!await confirm({title:"این برنامه بایگانی شود؟",description:"سوابق انجام‌شده حفظ می‌شوند و خود برنامه قابل بازیابی است.",confirmLabel:"بایگانی",destructive:false}))return;await mutate("PATCH",{id:item.id,archived:!item.archived},item.archived?"برنامه بازیابی شد":"برنامه بایگانی شد");};
+  const importLegacy=async()=>{const days:{date:string;ids:string[]}[]=[];try{for(let index=0;index<90;index++){const day=addDays(today,-index);const ids=JSON.parse(localStorage.getItem(`ravaal-selfcare-${day}`)??"[]");if(Array.isArray(ids)&&ids.length)days.push({date:day,ids:ids.filter(value=>typeof value==="string")});}}catch{toast.error("خواندن سوابق قدیمی ممکن نیست");return;}if(!days.length){toast.info("در ۹۰ روز اخیر، سابقهٔ قدیمی روی این مرورگر پیدا نشد");return;}if(!await confirm({title:"انتقال سوابق همین مرورگر؟",description:`${days.length} روز از چک‌لیست قدیمی به حساب فعلی اضافه می‌شود. تیک‌های قدیمی به شکل یک نوبت انجام‌شده منتقل می‌شوند. دادهٔ مرورگر پاک نمی‌شود و انتقال دوباره رکورد تکراری نمی‌سازد.`,confirmLabel:"انتقال به حساب فعلی",destructive:false}))return;await mutate("POST",{action:"import",days},"سوابق قدیمی به حساب منتقل شدند");};
+  const maxWeek=Math.max(1,...(data?.week.map(day=>day.completed)??[]));
+  return <><Header title="مراقبت و برنامه‌های شخصی"/><div className="mx-auto max-w-6xl space-y-6 p-4 lg:p-8"><PageHero heroKey="selfcare" title="روتینی که واقعاً برای توست" subtitle="برنامه‌های خودت، روزهای دلخواه، هدف قابل اندازه‌گیری و سابقهٔ واقعی" action={<Button onClick={()=>editItem()} disabled={pending||loading||error}><Plus className="h-4 w-4"/> برنامهٔ شخصی</Button>}/>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4"><div className="flex items-center gap-2"><Button variant="outline" size="icon" aria-label="روز قبل" disabled={pending||loading} onClick={()=>changeDate(addDays(date,-1))}><ChevronRight className="h-4 w-4"/></Button><label className="text-center"><span className="block text-sm font-semibold">{date===today?"امروز":formatJalaliDate(date+"T12:00:00")}</span><Input type="date" aria-label="روز برنامهٔ مراقبت" value={date} max={today} disabled={pending} onChange={event=>changeDate(event.target.value)} className="mt-1 w-40 text-xs"/></label><Button variant="outline" size="icon" aria-label="روز بعد" disabled={date>=today||pending||loading} onClick={()=>changeDate(addDays(date,1))}><ChevronLeft className="h-4 w-4"/></Button>{date!==today&&<Button variant="ghost" disabled={pending} onClick={()=>changeDate(today)}>امروز</Button>}</div><span className="flex items-center gap-2 text-xs text-muted-foreground"><Cloud className="h-4 w-4"/> ذخیره در حساب تو؛ قابل استفاده روی دستگاه‌های دیگر</span></div>
+    {error&&<div role="alert" className="rounded-xl border p-5 text-sm">اطلاعات به‌روز نیست. <Button variant="outline" onClick={()=>{setLoading(true);refresh();}}>تلاش دوباره</Button></div>}
+    {loading&&<p role="status" className="p-4 text-sm">در حال دریافت برنامه‌ها…</p>}
+    <div className="grid gap-3 sm:grid-cols-3"><Card className="gap-2 p-5"><p className="text-xs text-muted-foreground">برنامهٔ این روز</p><strong className="text-2xl">{due.length.toLocaleString("fa-IR")} مورد</strong></Card><Card className="gap-2 p-5"><p className="text-xs text-muted-foreground">هدف‌های کامل‌شده</p><strong className="text-2xl">{completed.toLocaleString("fa-IR")} از {due.length.toLocaleString("fa-IR")}</strong><progress aria-label="پیشرفت مراقبت روزانه" value={percent} max={100} className="h-2 w-full accent-[var(--primary)]"/></Card><Card className="gap-2 p-5"><p className="text-xs text-muted-foreground">تکمیل‌ها در هفت روز نمایش‌داده‌شده</p><strong className="text-2xl">{(data?.week.reduce((sum,day)=>sum+day.completed,0)??0).toLocaleString("fa-IR")}</strong></Card></div>
+    <div className="grid items-start gap-5 lg:grid-cols-[1.5fr_1fr]"><section className="space-y-4"><div className="flex flex-wrap gap-2"><Button variant={!archiveView?"default":"outline"} disabled={pending} onClick={()=>setArchiveView(false)}>برنامه‌ها</Button><Button variant={archiveView?"default":"outline"} disabled={pending} onClick={()=>setArchiveView(true)}>بایگانی</Button><Input aria-label="جستجوی برنامهٔ مراقبت" placeholder="جستجوی برنامه…" value={query} onChange={event=>setQuery(event.target.value)} className="min-w-40 flex-1"/></div><div className="flex flex-wrap items-center gap-3"><select aria-label="دستهٔ مراقبت" value={category} onChange={event=>setCategory(event.target.value)} className="h-11 rounded-xl border bg-background px-3 text-xs"><option value="all">همهٔ دسته‌ها</option>{Object.entries(CARE_CATEGORIES).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select>{!archiveView&&<label className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" checked={showAll} onChange={event=>setShowAll(event.target.checked)} className="accent-[var(--primary)]"/>همهٔ برنامه‌ها، حتی خارج از روز انتخابی</label>}</div>
+      {!loading&&!visible.length&&<Card className="space-y-3 border-dashed p-7 text-center"><Target className="mx-auto h-8 w-8 text-primary"/><h2 className="font-bold">{archiveView?"برنامه‌ای در بایگانی نیست":"برنامه را بر اساس زندگی خودت بساز"}</h2><p className="text-sm leading-7 text-muted-foreground">{archiveView?"بایگانی، سابقه را حذف نمی‌کند.":data?.items.some(item=>!item.archived)?"در روز یا فیلتر فعلی موردی نیست؛ نمایش همه را انتخاب کن.":"از الگوهای کنار صفحه شروع کن یا یک کار با هدف، واحد و روزهای دلخواه خودت تعریف کن."}</p>{!archiveView&&<Button variant="outline" disabled={error} onClick={()=>editItem()}>ساخت برنامهٔ دلخواه</Button>}</Card>}
+      {visible.map(item=>{const log=dayLogs.find(log=>log.itemId===item.id);const target=log?.targetValue??item.targetValue;const value=log?.value??0;const done=value>=target;const unit=log?.unitSnapshot??item.unit;return<Card key={item.id} className={cn("gap-4 p-5",done&&"border-primary/35 bg-primary/5")}><div className="flex items-start gap-3"><span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border",done&&"border-primary bg-primary text-primary-foreground")}>{done?<Check className="h-5 w-5"/>:<Target className="h-5 w-5 text-primary"/>}</span><div className="min-w-0 flex-1"><h3 className="font-bold">{item.title}</h3>{item.description&&<p className="mt-1 whitespace-pre-wrap text-xs leading-6 text-muted-foreground">{item.description}</p>}<p className="mt-2 text-xs text-muted-foreground">{CARE_CATEGORIES[item.category]} · {CARE_TIMES[item.timeOfDay]}{!scheduledOn(item.weekdays,date)?" · خارج از برنامهٔ این روز":""}</p></div><Button aria-label={`ویرایش ${item.title}`} variant="ghost" size="icon" disabled={pending} onClick={()=>editItem(item)}><Pencil className="h-4 w-4"/></Button></div>
+        {!archiveView&&<><div className="flex items-center justify-between text-xs"><span>{value.toLocaleString("fa-IR")} / {target.toLocaleString("fa-IR")} {unit}</span><span className={done?"text-primary":"text-muted-foreground"}>{done?"هدف این روز کامل شد":"هر مقدار پیشرفت، قابل ثبت است"}</span></div><progress max={target} value={Math.min(value,target)} className="h-2 w-full accent-[var(--primary)]"/>{log?.notes&&<p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-xs leading-7">{log.notes}</p>}<div className="flex flex-wrap gap-2"><Button variant={done?"outline":"default"} disabled={pending||loading||error||date>today} onClick={()=>void mutate("POST",{action:"log",itemId:item.id,date,value:done?0:target,notes:log?.notes??null},done?"علامت تکمیل برداشته شد":"هدف روز ثبت شد")}>{done?<RotateCcw className="h-4 w-4"/>:<Check className="h-4 w-4"/>}{done?"لغو تکمیل":"انجام شد"}</Button><Button variant="outline" disabled={pending||loading||error} onClick={()=>editLog(item)}>مقدار و یادداشت</Button><Button size="icon" variant="ghost" aria-label={`بایگانی ${item.title}`} disabled={pending} onClick={()=>void archive(item)}><Archive className="h-4 w-4"/></Button></div></>}{archiveView&&<Button variant="outline" disabled={pending} onClick={()=>void archive(item)}><RotateCcw className="h-4 w-4"/> بازیابی برنامه</Button>}
+      </Card>;})}
+    </section><aside className="space-y-5"><Card className="space-y-4 p-5"><h2 className="flex items-center gap-2 font-bold"><CalendarDays className="h-5 w-5"/> هفت روز در یک نگاه</h2><div className="grid grid-cols-7 gap-2">{data?.week.map(day=><button type="button" key={day.date} aria-label={`${formatJalaliDate(day.date+"T12:00:00")}: ${day.completed} تکمیل`} disabled={pending||loading} onClick={()=>changeDate(day.date)} className={cn("flex min-h-28 flex-col items-center justify-end gap-2 rounded-xl p-2 hover:bg-muted",day.date===date&&"bg-primary/5 ring-1 ring-primary/30")}><span className="text-xs font-bold">{day.completed.toLocaleString("fa-IR")}</span><span className="block w-5 rounded-t-lg bg-primary/70" style={{height:`${Math.max(3,day.completed/maxWeek*55)}px`}}/><span className="text-[10px] text-muted-foreground">{new Intl.DateTimeFormat("fa-IR",{weekday:"narrow"}).format(new Date(day.date+"T12:00:00"))}</span></button>)}</div><p className="text-xs leading-7 text-muted-foreground">نمودار فقط تکمیل‌های ثبت‌شده را می‌شمارد. عنوان، واحد و هدف هر ثبت با همان زمان نگه داشته می‌شود؛ تغییر برنامه، سابقهٔ گذشته را بازنویسی نمی‌کند.</p></Card>
+      <Card className="space-y-4 p-5"><h2 className="font-bold">الگوهای شروع؛ همه قابل تغییرند</h2>{CARE_PACKS.map(pack=><div key={pack.id} className="rounded-xl border p-4"><h3 className="text-sm font-semibold">{pack.title}</h3><p className="my-2 text-xs leading-6 text-muted-foreground">{pack.description}</p><Button size="sm" variant="outline" disabled={pending||loading||error} onClick={()=>void mutate("POST",{action:"seed",packId:pack.id},"برنامه‌ها اضافه شدند؛ هدف و روزهایشان را می‌توانی ویرایش کنی")}><Plus className="h-3.5 w-3.5"/> افزودن این مجموعه</Button></div>)}</Card>
+      <details className="rounded-xl border bg-card p-4 text-xs"><summary className="cursor-pointer font-semibold">سوابق چک‌لیست قدیمی</summary><p className="my-3 leading-7 text-muted-foreground">اگر قبلاً در همین مرورگر تیک می‌زدی، حداکثر ۹۰ روز اخیر را با تأیید خودت به حساب فعلی منتقل کن.</p><Button variant="outline" size="sm" disabled={pending||loading||error} onClick={()=>void importLegacy()}>بررسی و انتقال سوابق مرورگر</Button></details>
+      <details className="rounded-xl border bg-card p-4"><summary className="cursor-pointer text-sm font-semibold">جزئیات ثبت‌های هفته</summary><div className="mt-3 max-h-80 space-y-3 overflow-y-auto">{data?.logs.length?data.logs.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(log=><div key={log.id} className="space-y-1 rounded-lg border p-3 text-xs"><strong>{log.titleSnapshot}</strong><p className="leading-6 text-muted-foreground">{formatJalaliDate(log.date+"T12:00:00")} · {log.value} / {log.targetValue} {log.unitSnapshot}</p>{log.notes&&<p className="whitespace-pre-wrap leading-6">{log.notes}</p>}</div>):<p className="text-xs text-muted-foreground">هنوز ثبتی در این بازه نیست.</p>}</div></details>
+    </aside></div>
+    <Dialog open={itemOpen} onOpenChange={next=>{if(!pending)setItemOpen(next);}}><DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto" dir="rtl"><DialogHeader><DialogTitle>{itemForm.id?"ویرایش برنامه":"برنامهٔ شخصی جدید"}</DialogTitle></DialogHeader><form className="space-y-4" onSubmit={async event=>{event.preventDefault();if(await mutate("POST",{...itemForm,id:itemForm.id||undefined},"برنامه ذخیره شد"))setItemOpen(false);}}><fieldset disabled={pending} className="space-y-4"><label className="block space-y-2 text-sm">عنوان<Input aria-label="عنوان برنامهٔ مراقبت" required maxLength={100} value={itemForm.title} onChange={event=>setItemForm({...itemForm,title:event.target.value})} placeholder="مثلاً ده دقیقه مطالعه برای خودم"/></label><label className="block space-y-2 text-sm">توضیحات و نشانهٔ شروع<Textarea maxLength={2000} value={itemForm.description} onChange={event=>setItemForm({...itemForm,description:event.target.value})} placeholder="بعد از چه کاری؟ چطور انجامش می‌دهم؟"/></label><div className="grid grid-cols-2 gap-3"><label className="space-y-2 text-sm">دسته<select value={itemForm.category} onChange={event=>setItemForm({...itemForm,category:event.target.value})} className="h-11 w-full rounded-lg border bg-background px-3">{Object.entries(CARE_CATEGORIES).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label><label className="space-y-2 text-sm">زمان روز<select value={itemForm.timeOfDay} onChange={event=>setItemForm({...itemForm,timeOfDay:event.target.value})} className="h-11 w-full rounded-lg border bg-background px-3">{Object.entries(CARE_TIMES).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label></div><div><p className="mb-2 text-sm">روزهای اجرا</p><div className="flex flex-wrap gap-2">{DAYS.map(day=><button key={day.id} type="button" aria-pressed={itemForm.weekdays.includes(day.id)} onClick={()=>setItemForm({...itemForm,weekdays:itemForm.weekdays.includes(day.id)?itemForm.weekdays.filter(value=>value!==day.id):[...itemForm.weekdays,day.id]})} className={cn("min-h-10 rounded-lg border px-3 text-xs",itemForm.weekdays.includes(day.id)&&"border-primary bg-primary/10 text-primary")}>{day.label}</button>)}</div></div><div className="grid grid-cols-2 gap-3"><label className="space-y-2 text-sm">هدف هر روز<Input aria-label="هدف برنامهٔ مراقبت" type="number" required min={.1} max={100000} step="any" value={itemForm.targetValue} onChange={event=>setItemForm({...itemForm,targetValue:Number(event.target.value)})}/></label><label className="space-y-2 text-sm">واحد<Input aria-label="واحد هدف" required maxLength={30} value={itemForm.unit} onChange={event=>setItemForm({...itemForm,unit:event.target.value})} placeholder="دقیقه، صفحه، نوبت…"/></label></div><p className="text-xs leading-7 text-muted-foreground">برای یک کار تیکی، هدف را ۱ نوبت بگذار. برای کار قابل اندازه‌گیری، مقدار و واحد دلخواه خودت را بنویس.</p><Button type="submit" disabled={pending}>{pending?"در حال ذخیره…":"ذخیرهٔ برنامه"}</Button></fieldset></form></DialogContent></Dialog>
+    <Dialog open={!!logItem} onOpenChange={next=>{if(!pending&&!next)setLogItem(null);}}><DialogContent className="sm:max-w-md" dir="rtl"><DialogHeader><DialogTitle>{logItem?.title}</DialogTitle></DialogHeader><form className="space-y-4" onSubmit={async event=>{event.preventDefault();if(logItem&&await mutate("POST",{action:"log",itemId:logItem.id,date,...logForm},"پیشرفت این روز ثبت شد"))setLogItem(null);}}><p className="text-xs text-muted-foreground">{formatJalaliDate(date+"T12:00:00")}</p><label className="block space-y-2 text-sm">مقدار انجام‌شده ({dayLogs.find(log=>log.itemId===logItem?.id)?.unitSnapshot??logItem?.unit})<Input aria-label="مقدار انجام‌شده" type="number" required min={0} max={1000000} step="any" value={logForm.value} disabled={pending} onChange={event=>setLogForm({...logForm,value:Number(event.target.value)})}/></label><label className="block space-y-2 text-sm">یادداشت همین روز<Textarea aria-label="یادداشت مراقبت روزانه" value={logForm.notes} maxLength={10000} disabled={pending} onChange={event=>setLogForm({...logForm,notes:event.target.value})}/></label><Button disabled={pending} type="submit">{pending?"در حال ذخیره…":"ثبت پیشرفت"}</Button></form></DialogContent></Dialog>
+  </div></>;
 }

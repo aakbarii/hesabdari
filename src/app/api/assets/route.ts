@@ -2,7 +2,7 @@ import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { ensureDb, db, assets } from "@/lib/db/queries";
+import { ensureDb, db, assets, getAssetPriceHistory } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 import { nanoid } from "@/lib/db/nanoid";
 
@@ -38,7 +38,8 @@ export async function GET() {
     }));
 
   const totalValue = list.reduce((s, a) => s + a.totalValue, 0);
-  return NextResponse.json({ assets: list, totalValue });
+  const priceHistory = await getAssetPriceHistory(userId, undefined, 40);
+  return NextResponse.json({ assets: list, totalValue, priceHistory });
 }
 
 export async function POST(request: Request) {

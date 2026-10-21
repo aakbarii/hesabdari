@@ -6,11 +6,12 @@ import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Sparkles, ListTodo } from "lucide-react";
 import { toast } from "sonner";
 import { useLocale } from "@/components/locale-provider";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { formatToman } from "@/lib/format";
 
 type Insight = {
   id: string;
@@ -23,7 +24,11 @@ type Insight = {
 type Automations = {
   anomalies: Array<{ categoryName: string; percentAbove: number }>;
   debtSuggestions: Array<{ suggestion: string; id: string }>;
-  budgetSuggestions: Array<{ categoryName: string; amount: number }>;
+  budgetSuggestions: Array<{
+    categoryId?: string;
+    categoryName: string;
+    amount: number;
+  }>;
   missedMeds: Array<{ name: string }>;
   missedHabits: Array<{ title: string }>;
   cycleSleepTip: string | null;
@@ -33,6 +38,7 @@ type Automations = {
 export default function InsightsPage() {
   const { t, locale } = useLocale();
   const [insight, setInsight] = useState<Insight | null>(null);
+  const [history, setHistory] = useState<Insight[]>([]);
   const [auto, setAuto] = useState<Automations | null>(null);
   const [pending, start] = useTransition();
 
@@ -43,6 +49,7 @@ export default function InsightsPage() {
     ])
       .then(([i, a]) => {
         setInsight(i.insight ?? null);
+        setHistory(i.history ?? []);
         setAuto(a);
       })
       .catch(() => toast.error(t("common.error")));
@@ -62,6 +69,66 @@ export default function InsightsPage() {
         setInsight(data.insight);
         toast.success(t("common.success"));
         load();
+      } catch {
+        toast.error(t("common.error"));
+      }
+    });
+  };
+
+  const applyBudgets = () => {
+    start(async () => {
+      try {
+        const res = await fetch("/api/automations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "apply-budgets" }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error("fail");
+        toast.success(
+          data.count
+            ? locale === "en"
+              ? `Applied ${data.count} budgets`
+              : `${data.count} بودجه اعمال شد`
+            : locale === "en"
+              ? "Nothing to apply"
+              : "چیزی برای اعمال نبود"
+        );
+      } catch {
+        toast.error(t("common.error"));
+      }
+    });
+  };
+
+  const createTasksFromInsight = () => {
+    if (!insight?.content) return;
+    start(async () => {
+      try {
+        const tipsText = [
+          insight.content,
+          ...(tips?.budgetTips ?? []),
+          ...(tips?.goalTips ?? []),
+        ].join("\n");
+        const res = await fetch("/api/journal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "extract-tasks",
+            text: tipsText,
+            create: true,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error("fail");
+        toast.success(
+          data.tasks?.length
+            ? locale === "en"
+              ? `${data.tasks.length} tasks created`
+              : `${data.tasks.length} تسک ساخته شد`
+            : locale === "en"
+              ? "No tasks found"
+              : "تسکی پیدا نشد"
+        );
       } catch {
         toast.error(t("common.error"));
       }
@@ -135,6 +202,25 @@ export default function InsightsPage() {
                     </ul>
                   </div>
                 ) : null}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    disabled={pending}
+                    onClick={applyBudgets}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 me-1" />
+                    {locale === "en" ? "Apply budget suggestions" : "اعمال پیشنهاد بودجه"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pending}
+                    onClick={createTasksFromInsight}
+                  >
+                    <ListTodo className="h-3.5 w-3.5 me-1" />
+                    {locale === "en" ? "Tasks from summary" : "تسک از خلاصه"}
+                  </Button>
+                </div>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -151,7 +237,7 @@ export default function InsightsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  {locale === "en" ? "Live automations" : "اتوماسیون‌های زنده"}
+                  {locale === "en" ? "One-click actions" : "اقدام یک‌کلیکی"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
@@ -165,16 +251,32 @@ export default function InsightsPage() {
                     ⚠ {a.categoryName}: +{a.percentAbove}%
                   </p>
                 ))}
+                {auto.budgetSuggestions.slice(0, 4).map((b) => (
+                  <p key={b.categoryName} className="text-muted-foreground">
+                    📊 {b.categoryName}: {formatToman(b.amount)}
+                  </p>
+                ))}
+                {auto.budgetSuggestions.length > 0 && (
+                  <Button size="sm" disabled={pending} onClick={applyBudgets}>
+                    {locale === "en"
+                      ? "Apply all budget suggestions"
+                      : "اعمال همه پیشنهادهای بودجه"}
+                  </Button>
+                )}
                 {auto.debtSuggestions.slice(0, 3).map((d) => (
                   <p key={d.id}>
-                    <Link href="/debts" className="text-primary hover:underline">
+                    <Link
+                      href={`/debts?highlight=${d.id}`}
+                      className="text-primary hover:underline"
+                    >
                       {d.suggestion}
                     </Link>
                   </p>
                 ))}
                 {auto.missedMeds.map((m) => (
                   <p key={m.name} className="text-muted-foreground">
-                    💊 {m.name} — {locale === "en" ? "not logged today" : "امروز ثبت نشده"}
+                    💊 {m.name} —{" "}
+                    {locale === "en" ? "not logged today" : "امروز ثبت نشده"}
                   </p>
                 ))}
                 {auto.missedHabits.slice(0, 4).map((h) => (
@@ -190,21 +292,51 @@ export default function InsightsPage() {
                     {locale === "en" ? "Budgets" : "بودجه"}
                   </Link>
                   <Link
-                    href="/assets"
+                    href="/debts"
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                   >
-                    {locale === "en" ? "Assets sync" : "دارایی‌ها"}
+                    {locale === "en" ? "Debts" : "بدهی‌ها"}
                   </Link>
                   <Link
                     href="/life"
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                   >
-                    {locale === "en" ? "Routines" : "روتین"}
+                    {locale === "en" ? "Tasks" : "تسک‌ها"}
                   </Link>
                 </div>
               </CardContent>
             </Card>
           </>
+        )}
+
+        {history.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {locale === "en" ? "Weekly history" : "تاریخچه خلاصه‌های هفتگی"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 max-h-80 overflow-y-auto">
+              {history.map((h) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() => setInsight(h)}
+                  className={cn(
+                    "w-full text-start rounded-xl border px-3 py-2.5 text-sm hover:bg-muted/50",
+                    insight?.id === h.id && "border-primary/40 bg-primary/5"
+                  )}
+                >
+                  <span className="text-xs text-muted-foreground" dir="ltr">
+                    {h.weekStart}
+                  </span>
+                  <p className="line-clamp-2 mt-1 text-muted-foreground">
+                    {h.content}
+                  </p>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
         )}
       </div>
     </>

@@ -10,19 +10,19 @@ import { eq, desc } from "drizzle-orm";
 const bookSchema = z.object({
   title: z.string().min(1, "عنوان کتاب الزامی است"),
   author: z.string().min(1, "نام نویسنده الزامی است"),
-  totalPages: z.number().positive(),
-  currentPage: z.number().nonnegative().default(0),
+  totalPages: z.number().int().min(1).max(100000),
+  currentPage: z.number().int().min(0).max(100000).default(0),
   status: z.enum(["want_to_read", "reading", "completed"]).default("reading"),
   category: z.string().default("توسعه فردی"),
-  rating: z.number().optional().nullable(),
+  rating: z.number().int().min(1).max(5).optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
 const courseSchema = z.object({
   title: z.string().min(1, "عنوان دوره الزامی است"),
   platform: z.string().default("Online"),
-  totalLessons: z.number().positive(),
-  completedLessons: z.number().nonnegative().default(0),
+  totalLessons: z.number().int().min(1).max(100000),
+  completedLessons: z.number().int().min(0).max(100000).default(0),
   status: z.enum(["in_progress", "completed"]).default("in_progress"),
   notes: z.string().optional().nullable(),
 });
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
   if (body.kind === "course") {
     const parsed = courseSchema.safeParse(body);
-    if (!parsed.success) {
+    if (!parsed.success || parsed.data.completedLessons > parsed.data.totalLessons) {
       return NextResponse.json({ error: "اطلاعات دوره نامعتبر است" }, { status: 400 });
     }
     const id = nanoid();
@@ -59,8 +59,8 @@ export async function POST(request: Request) {
         title: parsed.data.title,
         platform: parsed.data.platform,
         totalLessons: parsed.data.totalLessons,
-        completedLessons: parsed.data.completedLessons,
-        status: parsed.data.status,
+        completedLessons: parsed.data.status === "completed" ? parsed.data.totalLessons : parsed.data.completedLessons,
+        status: parsed.data.completedLessons >= parsed.data.totalLessons ? "completed" : parsed.data.status,
         notes: parsed.data.notes ?? null,
       })
       .run();
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   }
 
   const parsed = bookSchema.safeParse(body);
-  if (!parsed.success) {
+  if (!parsed.success || parsed.data.currentPage > parsed.data.totalPages) {
     return NextResponse.json({ error: "اطلاعات کتاب نامعتبر است" }, { status: 400 });
   }
 
@@ -80,8 +80,8 @@ export async function POST(request: Request) {
       title: parsed.data.title,
       author: parsed.data.author,
       totalPages: parsed.data.totalPages,
-      currentPage: parsed.data.currentPage,
-      status: parsed.data.status,
+      currentPage: parsed.data.status === "completed" ? parsed.data.totalPages : parsed.data.currentPage,
+      status: parsed.data.currentPage >= parsed.data.totalPages ? "completed" : parsed.data.status,
       category: parsed.data.category,
       rating: parsed.data.rating ?? null,
       notes: parsed.data.notes ?? null,

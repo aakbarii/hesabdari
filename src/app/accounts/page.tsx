@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { useEffect, useState } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -61,6 +62,7 @@ const emptyForm = {
 };
 
 export default function AccountsPage() {
+  useRecordsRefresh(() => { void load(); });
   const confirm = useConfirm();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [open, setOpen] = useState(false);

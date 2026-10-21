@@ -1,3 +1,4 @@
+import { dateInput } from "@/lib/validation";
 import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -10,12 +11,20 @@ import { extractTasksFromJournal } from "@/lib/ai/gemini";
 import { getUserSettings } from "@/lib/db/queries";
 
 const journalSchema = z.object({
-  date: z.string(),
+  date: dateInput,
   mood: z.enum(["great", "good", "neutral", "tired", "bad"]).default("good"),
   gratitude: z.string().optional().nullable(),
   highlights: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
+
+const MOOD_SCORE: Record<string, number> = {
+  great: 5,
+  good: 4,
+  neutral: 3,
+  tired: 2,
+  bad: 1,
+};
 
 export async function GET(request: Request) {
   const auth = await requireUserId();
@@ -23,6 +32,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date");
+  const q = (searchParams.get("q") || "").trim().toLowerCase();
 
   if (date) {
     const entry = await db
@@ -38,10 +48,61 @@ export async function GET(request: Request) {
     .from(dailyJournals)
     .where(eq(dailyJournals.userId, auth))
     .orderBy(desc(dailyJournals.date))
-    .limit(30)
+    .limit(90)
     .all();
 
-  return NextResponse.json({ entries: allEntries });
+  const filtered = q
+    ? allEntries.filter((e) => {
+        const blob = [e.gratitude, e.highlights, e.notes, e.mood]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return blob.includes(q);
+      })
+    : allEntries;
+
+  const byDate = new Map(allEntries.map((e) => [e.date, e]));
+  const buildTrend = (n: number) => {
+    const points: { date: string; label: string; value: number; mood: string | null }[] = [];
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    for (let i = n - 1; i >= 0; i--) {
+      const x = new Date(d);
+      x.setDate(d.getDate() - i);
+      const key = x.toISOString().slice(0, 10);
+      const e = byDate.get(key);
+      points.push({
+        date: key,
+        label: key.slice(5),
+        value: e ? MOOD_SCORE[e.mood] ?? 3 : 0,
+        mood: e?.mood ?? null,
+      });
+    }
+    return points;
+  };
+
+  const mood7 = buildTrend(7);
+  const mood30 = buildTrend(30);
+  const scored7 = mood7.filter((p) => p.mood);
+  const avg7 =
+    scored7.length === 0
+      ? 0
+      : Math.round(
+          (scored7.reduce((s, p) => s + p.value, 0) / scored7.length) * 10
+        ) / 10;
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayEntry = byDate.get(todayKey);
+
+  return NextResponse.json({
+    entries: filtered.slice(0, 30),
+    stats: {
+      mood7,
+      mood30,
+      avgMood7: avg7,
+      loggedToday: !!todayEntry,
+      nextAction: todayEntry ? "review_or_extract" : "write_today",
+    },
+  });
 }
 
 export async function POST(request: Request) {

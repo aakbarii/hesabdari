@@ -363,6 +363,35 @@ async function repairSchema(client: Client) {
   if (tableExists("user_settings") && !columnExists("user_settings", "mobile_nav")) {
     await client.executeMultiple("ALTER TABLE `user_settings` ADD `mobile_nav` text");
   }
+  if (tableExists("user_settings") && !columnExists("user_settings", "health_targets")) {
+    await client.executeMultiple("ALTER TABLE `user_settings` ADD `health_targets` text");
+  }
+  if (tableExists("habits") && !columnExists("habits", "cue")) {
+    await client.executeMultiple("ALTER TABLE `habits` ADD `cue` text");
+  }
+  if (tableExists("habits") && !columnExists("habits", "time_of_day")) {
+    await client.executeMultiple("ALTER TABLE `habits` ADD `time_of_day` text");
+  }
+  if (tableExists("todos") && !columnExists("todos", "checklist")) {
+    await client.executeMultiple("ALTER TABLE `todos` ADD `checklist` text");
+  }
+  if (tableExists("focus_sessions") && !columnExists("focus_sessions", "todo_id")) {
+    await client.executeMultiple("ALTER TABLE `focus_sessions` ADD `todo_id` text");
+  }
+  if (!tableExists("asset_price_history")) {
+    await client.executeMultiple(`
+      CREATE TABLE IF NOT EXISTS \`asset_price_history\` (
+        \`id\` text PRIMARY KEY NOT NULL,
+        \`asset_id\` text NOT NULL,
+        \`user_id\` text NOT NULL,
+        \`unit_price\` integer NOT NULL,
+        \`recorded_at\` integer NOT NULL,
+        FOREIGN KEY (\`asset_id\`) REFERENCES \`assets\`(\`id\`) ON DELETE cascade,
+        FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade
+      );
+      CREATE INDEX IF NOT EXISTS \`asset_price_history_asset_idx\` ON \`asset_price_history\` (\`asset_id\`,\`recorded_at\`);
+    `);
+  }
 
   await client.executeMultiple(`
     CREATE TABLE IF NOT EXISTS \`cycle_settings\` (

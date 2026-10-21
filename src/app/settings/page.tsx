@@ -124,6 +124,10 @@ export default function SettingsPage() {
     type: "expense" as "income" | "expense",
     color: CATEGORY_COLORS[0],
   });
+  const [categoryRules, setCategoryRules] = useState<
+    { id: string; keyword: string; categoryId: string; categoryName: string }[]
+  >([]);
+  const [ruleForm, setRuleForm] = useState({ keyword: "", categoryId: "" });
 
   const load = () => {
     fetch("/api/profile")
@@ -136,6 +140,10 @@ export default function SettingsPage() {
     fetch("/api/categories")
       .then((r) => r.json())
       .then(setCategories);
+    fetch("/api/category-rules")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setCategoryRules)
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -992,6 +1000,91 @@ export default function SettingsPage() {
                       <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
                   </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Tags className="h-5 w-5 text-primary" />
+              قوانین دسته (بانک‌اینباکس)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              اگر توضیحات تراکنش شامل این کلمه باشد، دستهٔ انتخاب‌شده اعمال می‌شود.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                className="flex-1 min-w-[120px]"
+                placeholder="کلمهٔ کلیدی"
+                value={ruleForm.keyword}
+                onChange={(e) =>
+                  setRuleForm({ ...ruleForm, keyword: e.target.value })
+                }
+              />
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm min-w-[140px]"
+                value={ruleForm.categoryId}
+                onChange={(e) =>
+                  setRuleForm({ ...ruleForm, categoryId: e.target.value })
+                }
+              >
+                <option value="">دسته…</option>
+                {categories
+                  .filter((c) => c.type === "expense")
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  if (!ruleForm.keyword.trim() || !ruleForm.categoryId) return;
+                  const res = await fetch("/api/category-rules", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(ruleForm),
+                  });
+                  if (!res.ok) return toast.error("خطا در افزودن قانون");
+                  setRuleForm({ keyword: "", categoryId: "" });
+                  toast.success("قانون اضافه شد");
+                  load();
+                }}
+              >
+                افزودن
+              </Button>
+            </div>
+            {categoryRules.length === 0 ? (
+              <p className="text-sm text-muted-foreground">هنوز قانونی نیست.</p>
+            ) : (
+              categoryRules.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between gap-2 py-1.5 border-b last:border-0 text-sm"
+                >
+                  <span>
+                    <span className="font-medium">{r.keyword}</span>
+                    <span className="text-muted-foreground"> → {r.categoryName}</span>
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={async () => {
+                      await fetch(`/api/category-rules?id=${r.id}`, {
+                        method: "DELETE",
+                      });
+                      load();
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Button>
                 </div>
               ))
             )}

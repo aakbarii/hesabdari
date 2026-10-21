@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { useEffect, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
@@ -38,6 +39,7 @@ interface Course {
 }
 
 export default function GrowthPage() {
+  useRecordsRefresh(() => { void loadData(); });
   const [tab, setTab] = useState("books");
   const [books, setBooks] = useState<Book[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -102,7 +104,7 @@ export default function GrowthPage() {
           setOpenBook(false);
           setBookForm({ title: "", author: "", totalPages: "300", currentPage: "0", category: "توسعه فردی", status: "reading" });
           loadData();
-        }
+        } else { toast.error("اطلاعات ذخیره نشد؛ تعداد کل و پیشرفت را بررسی کنید."); }
       } catch {
         toast.error("خطا در ثبت کتاب");
       }
@@ -129,7 +131,7 @@ export default function GrowthPage() {
           setOpenCourse(false);
           setCourseForm({ title: "", platform: "یوتیوب / آنلاین", totalLessons: "20", completedLessons: "0" });
           loadData();
-        }
+        } else { toast.error("اطلاعات ذخیره نشد؛ تعداد کل و پیشرفت را بررسی کنید."); }
       } catch {
         toast.error("خطا در ثبت دوره");
       }
@@ -140,34 +142,37 @@ export default function GrowthPage() {
     const validPage = Math.max(0, Math.min(total, newPage));
     const status = validPage >= total ? "completed" : "reading";
     try {
-      await fetch(`/api/growth/${id}`, {
+      const response = await fetch(`/api/growth/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "book", currentPage: validPage, status }),
       });
-      loadData();
-    } catch {}
+      if (!response.ok) throw new Error("Save failed");
+      await loadData();
+    } catch { toast.error("تغییر ذخیره نشد. دوباره تلاش کنید."); }
   };
 
   const updateCourseLesson = async (id: string, newLesson: number, total: number) => {
     const valid = Math.max(0, Math.min(total, newLesson));
     const status = valid >= total ? "completed" : "in_progress";
     try {
-      await fetch(`/api/growth/${id}`, {
+      const response = await fetch(`/api/growth/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "course", completedLessons: valid, status }),
       });
-      loadData();
-    } catch {}
+      if (!response.ok) throw new Error("Save failed");
+      await loadData();
+    } catch { toast.error("تغییر ذخیره نشد. دوباره تلاش کنید."); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/growth/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/growth/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Delete failed");
       toast.success("حذف شد");
-      loadData();
-    } catch {}
+      await loadData();
+    } catch { toast.error("تغییر ذخیره نشد. دوباره تلاش کنید."); }
   };
 
   const completedBooks = books.filter((b) => b.status === "completed").length;

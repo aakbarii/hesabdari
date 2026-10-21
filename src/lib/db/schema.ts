@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, blob, real, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 export const users = sqliteTable("users", {
@@ -255,6 +255,8 @@ export const userSettings = sqliteTable("user_settings", {
   gender: text("gender", { enum: ["male", "female"] }),
   /** JSON map of page hero customizations: { [heroKey]: { hidden?, fileId? } } */
   pageHeroes: text("page_heroes"),
+  /** JSON health goals: sleepHours, calories, protein, carbs, fat, waterMl */
+  healthTargets: text("health_targets"),
   smsIngestToken: text("sms_ingest_token"),
   onboardingCompleted: integer("onboarding_completed", { mode: "boolean" })
     .notNull()
@@ -331,6 +333,20 @@ export const assets = sqliteTable("assets", {
     .$defaultFn(() => new Date()),
 });
 
+export const assetPriceHistory = sqliteTable("asset_price_history", {
+  id: text("id").primaryKey(),
+  assetId: text("asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  unitPrice: integer("unit_price").notNull(),
+  recordedAt: integer("recorded_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const todos = sqliteTable("todos", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -351,6 +367,8 @@ export const todos = sqliteTable("todos", {
     .default("active"),
   dueDate: integer("due_date", { mode: "timestamp" }),
   completedAt: integer("completed_at", { mode: "timestamp" }),
+  /** JSON checklist: [{ id, title, done }] */
+  checklist: text("checklist"),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -557,6 +575,7 @@ export const focusSessions = sqliteTable("focus_sessions", {
   durationMinutes: integer("duration_minutes").notNull().default(25),
   category: text("category", { enum: ["work", "study", "coding", "personal"] }).notNull().default("work"),
   date: text("date").notNull(),
+  todoId: text("todo_id").references(() => todos.id, { onDelete: "set null" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -867,6 +886,10 @@ export const habits = sqliteTable("habits", {
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   color: text("color").notNull().default("#10b981"),
+  /** Cue / trigger text e.g. "بعد از صبحانه" */
+  cue: text("cue"),
+  /** Preferred time slot label e.g. morning/evening or HH:mm */
+  timeOfDay: text("time_of_day"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -904,3 +927,29 @@ export type Medication = typeof medications.$inferSelect;
 export type Trip = typeof trips.$inferSelect;
 export type Habit = typeof habits.$inferSelect;
 
+
+
+export const periodRecords = sqliteTable("period_records", {
+  id: text("id").primaryKey(), userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  startDate: text("start_date").notNull(), endDate: text("end_date"), notes: text("notes"), legacyStartId: text("legacy_start_id"),
+  archived: integer("archived", { mode: "boolean" }).notNull().default(false), createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+}, table => [uniqueIndex("period_records_user_start").on(table.userId, table.startDate)]);
+export const cycleDailyLogs = sqliteTable("cycle_daily_logs", {
+  id: text("id").primaryKey(), userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(), flow: text("flow").notNull().default("none"), pain: integer("pain").notNull().default(0),
+  mood: text("mood").notNull().default("neutral"), symptoms: text("symptoms").notNull().default("[]"), notes: text("notes"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+}, table => [uniqueIndex("cycle_daily_logs_user_date").on(table.userId, table.date)]);
+export const selfCareItems = sqliteTable("self_care_items", {
+  id: text("id").primaryKey(), userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(), description: text("description"), category: text("category").notNull().default("personal"),
+  timeOfDay: text("time_of_day").notNull().default("anytime"), weekdays: text("weekdays").notNull().default("[0,1,2,3,4,5,6]"),
+  targetValue: real("target_value").notNull().default(1), unit: text("unit").notNull().default("بار"),
+  archived: integer("archived", { mode: "boolean" }).notNull().default(false), createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+export const selfCareLogs = sqliteTable("self_care_logs", {
+  id: text("id").primaryKey(), userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  itemId: text("item_id").notNull().references(() => selfCareItems.id, { onDelete: "cascade" }), date: text("date").notNull(),
+  value: real("value").notNull().default(0), targetValue: real("target_value").notNull(), titleSnapshot: text("title_snapshot").notNull(), unitSnapshot: text("unit_snapshot").notNull(),
+  notes: text("notes"), updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+}, table => [uniqueIndex("self_care_logs_item_date").on(table.itemId, table.date)]);

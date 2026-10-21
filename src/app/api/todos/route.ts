@@ -11,6 +11,10 @@ const createSchema = z.object({
   area: z.enum(["work", "personal", "health", "home", "other"]).optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
   dueDate: z.string().optional().nullable(),
+  checklist: z
+    .array(z.object({ id: z.string(), title: z.string().min(1), done: z.boolean() }))
+    .optional()
+    .nullable(),
 });
 
 export async function GET(request: Request) {
@@ -50,6 +54,9 @@ export async function POST(request: Request) {
       area: parsed.data.area ?? "personal",
       priority: parsed.data.priority ?? "medium",
       dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
+      checklist: parsed.data.checklist
+        ? JSON.stringify(parsed.data.checklist)
+        : null,
     })
     .run();
 

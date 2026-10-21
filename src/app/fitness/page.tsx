@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { toISODate } from "@/lib/format";
 
@@ -14,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dumbbell, Scale, Flame, Plus, Trash2,  Activity, } from "lucide-react";
 import { toast } from "sonner";
+import { MiniTrend, StatChip } from "@/components/mini-trend";
 
 interface Workout {
   id: string;
@@ -46,8 +48,21 @@ const WORKOUT_TYPE_ITEMS = Object.fromEntries(
 ) as Record<keyof typeof WORKOUT_TYPES, string>;
 
 export default function FitnessPage() {
+  useRecordsRefresh(() => { void loadData(); });
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [metrics, setMetrics] = useState<BodyMetric[]>([]);
+  const [templates, setTemplates] = useState<
+    { title: string; type: Workout["type"]; durationMinutes: number; caloriesBurned: number }[]
+  >([]);
+  const [stats, setStats] = useState<{
+    weekMinutes: number;
+    weekCalories: number;
+    weekSessions: number;
+    todaySessions: number;
+    durationTrend: { label: string; value: number }[];
+    weightTrend: { label: string; value: number }[];
+    nextAction: string;
+  } | null>(null);
   const [openWorkout, setOpenWorkout] = useState(false);
   const [openWeight, setOpenWeight] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -70,13 +85,23 @@ export default function FitnessPage() {
     note: "",
   });
 
+  const applyFitness = (json: {
+    workouts: Workout[];
+    metrics: BodyMetric[];
+    templates?: typeof templates;
+    stats?: typeof stats;
+  }) => {
+    setWorkouts(json.workouts);
+    setMetrics(json.metrics);
+    if (json.templates) setTemplates(json.templates);
+    if (json.stats) setStats(json.stats);
+  };
+
   const loadData = async () => {
     try {
       const res = await fetch("/api/fitness");
       if (res.ok) {
-        const json = await res.json();
-        setWorkouts(json.workouts);
-        setMetrics(json.metrics);
+        applyFitness(await res.json());
       }
     } catch {}
   };
@@ -85,7 +110,7 @@ export default function FitnessPage() {
     const controller = new AbortController();
     fetch("/api/fitness", { signal: controller.signal })
       .then((res) => { if (!res.ok) throw new Error("Load failed"); return res.json(); })
-      .then((json) => { setWorkouts(json.workouts); setMetrics(json.metrics); })
+      .then((json) => applyFitness(json))
       .catch(() => { if (!controller.signal.aborted) toast.error("دریافت اطلاعات انجام نشد. دوباره تلاش کنید."); });
     return () => controller.abort();
   }, []);
@@ -179,6 +204,69 @@ export default function FitnessPage() {
             </div>
           }
         />
+
+        {stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <StatChip label="امروز" value={String(stats.todaySessions)} hint="جلسه" />
+            <StatChip label="هفته (دقیقه)" value={String(stats.weekMinutes)} />
+            <StatChip label="کالری هفته" value={stats.weekCalories.toLocaleString("fa-IR")} />
+            <StatChip
+              label="اقدام"
+              value={
+                stats.nextAction === "start_session"
+                  ? "شروع تمرین"
+                  : stats.nextAction === "log_weight_or_rest"
+                    ? "وزن / استراحت"
+                    : "اختیاری"
+              }
+            />
+          </div>
+        )}
+
+        {stats && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card className="p-4 border">
+              <p className="text-xs text-muted-foreground mb-2">مدت تمرین ۷روز</p>
+              <MiniTrend points={stats.durationTrend} colorClass="bg-emerald-500/80" />
+            </Card>
+            <Card className="p-4 border">
+              <p className="text-xs text-muted-foreground mb-2">روند وزن</p>
+              <MiniTrend
+                points={stats.weightTrend.length ? stats.weightTrend : [{ value: 0, label: "—" }]}
+                colorClass="bg-blue-500/70"
+              />
+            </Card>
+          </div>
+        )}
+
+        {templates.length > 0 && (
+          <Card className="p-4 border">
+            <p className="text-sm font-semibold mb-2">قالب جلسه سریع</p>
+            <div className="flex flex-wrap gap-2">
+              {templates.map((tpl) => (
+                <Button
+                  key={tpl.title}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setWorkoutForm({
+                      title: tpl.title,
+                      type: tpl.type,
+                      durationMinutes: String(tpl.durationMinutes),
+                      caloriesBurned: String(tpl.caloriesBurned),
+                      date: todayStr,
+                      notes: "",
+                    });
+                    setOpenWorkout(true);
+                  }}
+                >
+                  {tpl.title}
+                </Button>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Overview Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

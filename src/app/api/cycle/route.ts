@@ -1,3 +1,7 @@
+import { daySchema, dailyCycleSchema, cycleSummary } from "@/lib/cycle-tracking";
+import { getPeriods } from "@/lib/db/cycle-tracking";
+import { cycleDailyLogs } from "@/lib/db/schema";
+import { toISODate } from "@/lib/format";
 import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -9,7 +13,7 @@ import { nanoid } from "@/lib/db/nanoid";
 import { ensureDb } from "@/lib/db/queries";
 
 const entrySchema = z.object({
-  date: z.string().min(8),
+  date: daySchema,
   kind: z.enum(["period_start", "period_end", "symptom", "note"]),
   symptoms: z.array(z.string()).optional(),
   flow: z.enum(["light", "medium", "heavy", "spotting"]).optional().nullable(),
@@ -21,34 +25,7 @@ const settingsSchema = z.object({
   avgPeriodLength: z.number().int().min(2).max(12).optional(),
 });
 
-function estimateNext(
-  starts: string[],
-  cycleLength: number
-): string | null {
-  if (!starts.length) return null;
-  const last = new Date(starts[0] + "T12:00:00");
-  last.setDate(last.getDate() + cycleLength);
-  return last.toISOString().slice(0, 10);
-}
-
-function currentPhase(
-  starts: string[],
-  periodLength: number,
-  cycleLength: number
-): string {
-  if (!starts.length) return "unknown";
-  const last = new Date(starts[0] + "T12:00:00");
-  const today = new Date();
-  today.setHours(12, 0, 0, 0);
-  const day = Math.floor((today.getTime() - last.getTime()) / 86400000) + 1;
-  if (day < 1 || day > cycleLength + 7) return "unknown";
-  if (day <= periodLength) return "menstrual";
-  if (day <= 13) return "follicular";
-  if (day <= 16) return "ovulation";
-  return "luteal";
-}
-
-export async function GET() {
+export async function GET(request: Request) {
   await ensureDb();
   const auth = await requireUserId();
   if (auth instanceof NextResponse) return auth;
@@ -68,6 +45,7 @@ export async function GET() {
         avgPeriodLength: 5,
         updatedAt: new Date(),
       })
+      .onConflictDoNothing()
       .run();
     settings = await db
       .select()
@@ -76,28 +54,11 @@ export async function GET() {
       .get();
   }
 
-  const entries = await db
-    .select()
-    .from(cycleEntries)
-    .where(eq(cycleEntries.userId, auth))
-    .orderBy(desc(cycleEntries.date))
-    .limit(90)
-    .all();
-
-  const starts = entries
-    .filter((e) => e.kind === "period_start")
-    .map((e) => e.date);
-
-  return NextResponse.json({
-    settings,
-    entries,
-    nextEstimate: estimateNext(starts, settings!.avgCycleLength),
-    phase: currentPhase(
-      starts,
-      settings!.avgPeriodLength,
-      settings!.avgCycleLength
-    ),
-  });
+  const today = new URL(request.url).searchParams.get("today") ?? toISODate(new Date());
+  if (!daySchema.safeParse(today).success) return NextResponse.json({error:"تاریخ نامعتبر"},{status:400});
+  const [{periods,archived,legacy}, daily] = await Promise.all([getPeriods(auth),db.select().from(cycleDailyLogs).where(eq(cycleDailyLogs.userId,auth)).orderBy(desc(cycleDailyLogs.date)).all()]);
+  const summary = cycleSummary(periods,today,settings!.avgCycleLength);
+  return NextResponse.json({settings,periods,archivedPeriods:archived,daily,entries:legacy,summary,nextEstimate:summary.nextEstimate,phase:summary.ongoing ? "menstrual" : "unknown"}, {headers:{"Cache-Control":"private, no-store"}});
 }
 
 export async function POST(request: Request) {
@@ -106,6 +67,14 @@ export async function POST(request: Request) {
   if (auth instanceof NextResponse) return auth;
 
   const body = await readJsonObject(request);
+  if (body.action === "daily") {
+    const parsed = dailyCycleSchema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({error:"ثبت روزانه معتبر نیست"},{status:400});
+    const {symptoms,...values} = parsed.data;
+    const row = {...values,userId:auth,symptoms:JSON.stringify([...new Set(symptoms)]),updatedAt:new Date()};
+    await db.insert(cycleDailyLogs).values({id:`${auth}:cycle-day:${values.date}`,...row}).onConflictDoUpdate({target:cycleDailyLogs.id,set:row}).run();
+    return NextResponse.json({success:true});
+  }
   const parsed = entrySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid" }, { status: 400 });

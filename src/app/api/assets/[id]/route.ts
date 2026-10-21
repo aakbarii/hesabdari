@@ -2,8 +2,9 @@ import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { ensureDb, db, assets } from "@/lib/db/queries";
+import { ensureDb, db, assets, assetPriceHistory } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
+import { nanoid } from "@/lib/db/nanoid";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -31,6 +32,22 @@ export async function PATCH(
   const existing = await db.select().from(assets).where(eq(assets.id, id)).get();
   if (!existing || existing.userId !== userId) {
     return NextResponse.json({ error: "دارایی یافت نشد" }, { status: 404 });
+  }
+
+  if (
+    parsed.data.unitPrice != null &&
+    parsed.data.unitPrice !== existing.unitPrice
+  ) {
+    await db
+      .insert(assetPriceHistory)
+      .values({
+        id: nanoid(),
+        assetId: id,
+        userId,
+        unitPrice: parsed.data.unitPrice,
+        recordedAt: new Date(),
+      })
+      .run();
   }
 
   await db.update(assets).set(parsed.data).where(eq(assets.id, id)).run();

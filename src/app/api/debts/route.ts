@@ -2,12 +2,14 @@ import { readJsonObject } from "@/lib/validation";
 import { validateFinancialReferences } from "@/lib/financial-validation";
 import { dateInput, moneyInput } from "@/lib/validation";
 import { NextResponse } from "next/server";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import {
   ensureDb,
   db,
   debts,
   debtPayments,
+  transactions,
+  categories,
 } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 import { nanoid } from "@/lib/db/nanoid";
@@ -27,6 +29,7 @@ const paymentSchema = z.object({
   accountId: z.string().optional().nullable(),
   date: dateInput,
   note: z.string().optional(),
+  createTransaction: z.boolean().optional().default(false),
 });
 
 export async function GET() {
@@ -59,7 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "داده نامعتبر" }, { status: 400 });
     }
 
-    const { debtId, amount, accountId, date, note } = parsed.data;
+    const { debtId, amount, accountId, date, note, createTransaction } = parsed.data;
     const debt = await db.select().from(debts).where(eq(debts.id, debtId)).get();
     if (!debt || debt.userId !== userId) {
       return NextResponse.json({ error: "بدهی یافت نشد" }, { status: 404 });
@@ -71,9 +74,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "مبلغ پرداخت از مانده بدهی بیشتر است" }, { status: 400 });
     }
 
+    if (createTransaction && !accountId) {
+      return NextResponse.json(
+        { error: "برای ساخت تراکنش، حساب را انتخاب کنید" },
+        { status: 400 }
+      );
+    }
+
     const paymentId = nanoid();
+    let transactionId: string | null = null;
+
     await db.transaction(async (tx) => {
-      await tx.insert(debtPayments)
+      await tx
+        .insert(debtPayments)
         .values({
           id: paymentId,
           debtId,
@@ -86,13 +99,41 @@ export async function POST(request: Request) {
 
       const newPaid = debt.paidAmount + amount;
       const status = newPaid >= debt.totalAmount ? "settled" : "active";
-      await tx.update(debts)
+      await tx
+        .update(debts)
         .set({ paidAmount: newPaid, status })
         .where(eq(debts.id, debtId))
         .run();
+
+      if (createTransaction && accountId) {
+        const txType = debt.type === "owing" ? "expense" : "income";
+        const cat = await tx
+          .select()
+          .from(categories)
+          .where(and(eq(categories.userId, userId), eq(categories.type, txType)))
+          .get();
+        transactionId = nanoid();
+        await tx
+          .insert(transactions)
+          .values({
+            id: transactionId,
+            userId,
+            accountId,
+            categoryId: cat?.id ?? null,
+            type: txType,
+            amount,
+            description:
+              note ||
+              (debt.type === "owing"
+                ? `پرداخت بدهی به ${debt.personName}`
+                : `دریافت طلب از ${debt.personName}`),
+            date: new Date(date),
+          })
+          .run();
+      }
     });
 
-    return NextResponse.json({ id: paymentId });
+    return NextResponse.json({ id: paymentId, transactionId });
   }
 
   const parsed = debtSchema.safeParse(body);
@@ -103,7 +144,8 @@ export async function POST(request: Request) {
   const id = nanoid();
   const { personName, type, totalAmount, description, dueDate } = parsed.data;
 
-  await db.insert(debts)
+  await db
+    .insert(debts)
     .values({
       id,
       userId,

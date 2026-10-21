@@ -1,4 +1,5 @@
 "use client";
+import { WorkflowGuide } from "./workflow-guide";
 
 import { useTransition } from "react";
 import Image from "next/image";
@@ -23,7 +24,7 @@ type PageHeroProps = {
   customizable?: boolean;
 };
 
-export function PageHero({
+function HeroVisual({
   heroKey,
   image,
   title,
@@ -140,3 +141,5 @@ export function PageHero({
     </div>
   );
 }
+
+export function PageHero(props: PageHeroProps) { return <><HeroVisual {...props} /><WorkflowGuide module={props.heroKey} /></>; }

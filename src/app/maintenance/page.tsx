@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { toISODate } from "@/lib/format";
 
@@ -43,6 +44,7 @@ const SERVICE_TYPE_ITEMS = Object.fromEntries(
 ) as Record<keyof typeof SERVICE_TYPES, string>;
 
 export default function MaintenancePage() {
+  useRecordsRefresh(() => { void loadData(); });
   const [services, setServices] = useState<VehicleService[]>([]);
   const [openAdd, setOpenAdd] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -177,8 +179,28 @@ export default function MaintenancePage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {services.map((s) => (
-                <Card key={s.id} className="border shadow-sm p-4 flex flex-col justify-between">
+              {services.map((s) => {
+                const dateOverdue =
+                  !!s.nextDueDate &&
+                  new Date(s.nextDueDate + "T12:00:00") < new Date();
+                const kmOverdue =
+                  s.nextDueMileage != null &&
+                  s.currentMileage >= s.nextDueMileage;
+                const kmSoon =
+                  s.nextDueMileage != null &&
+                  !kmOverdue &&
+                  s.nextDueMileage - s.currentMileage <= 500;
+                const dateSoon =
+                  !!s.nextDueDate &&
+                  !dateOverdue &&
+                  (new Date(s.nextDueDate + "T12:00:00").getTime() -
+                    Date.now()) /
+                    86400000 <=
+                    14;
+                const overdue = dateOverdue || kmOverdue;
+                const soon = !overdue && (kmSoon || dateSoon);
+                return (
+                <Card key={s.id} className={`border shadow-sm p-4 flex flex-col justify-between ${overdue ? "border-rose-500/50" : soon ? "border-amber-500/40" : ""}`}>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -188,9 +210,21 @@ export default function MaintenancePage() {
                           <p className="text-xs text-muted-foreground">{s.vehicleName}</p>
                         </div>
                       </div>
+                      <div className="flex items-center gap-1">
+                        {overdue && (
+                          <Badge variant="destructive" className="text-[10px]">
+                            سررسید گذشته
+                          </Badge>
+                        )}
+                        {soon && (
+                          <Badge variant="secondary" className="text-[10px] text-amber-700">
+                            نزدیک
+                          </Badge>
+                        )}
                       <Badge variant="outline" className="text-xs font-mono">
                         {s.cost > 0 ? `${s.cost.toLocaleString("fa-IR")} ت` : "رایگان"}
                       </Badge>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-2 border-t font-mono">
@@ -225,7 +259,8 @@ export default function MaintenancePage() {
                     </Button>
                   </div>
                 </Card>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

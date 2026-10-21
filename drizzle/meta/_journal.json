@@ -134,6 +134,34 @@
       "when": 1785100000000,
       "tag": "0018_mobile_nav_order",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1792563739232,
+      "tag": "0019_cycle_selfcare_workflows",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1792600000000,
+      "tag": "0020_health_depth",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1792700000000,
+      "tag": "0021_finance_bridges",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1792800000000,
+      "tag": "0022_life_depth",
+      "breakpoints": true
     }
   ]
 }

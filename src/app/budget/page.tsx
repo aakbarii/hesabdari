@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { useEffect, useState, useTransition } from "react";
 import moment from "jalali-moment";
@@ -21,11 +22,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, ChevronRight, ChevronLeft, Trash2, Sparkles } from "lucide-react";
+import { Plus, ChevronRight, ChevronLeft, Trash2, Sparkles, AlertTriangle } from "lucide-react";
 import { formatToman, getJalaliMonthName } from "@/lib/format";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/amount-input";
 import { PageHero } from "@/components/layout/page-hero";
+import { MiniTrend } from "@/components/mini-trend";
 
 interface Category {
   id: string;
@@ -45,18 +47,36 @@ interface BudgetItem {
 }
 
 export default function BudgetPage() {
+  useRecordsRefresh(() => { void load(); });
   const [year, setYear] = useState(moment().jYear());
   const [month, setMonth] = useState(moment().jMonth() + 1);
   const [budgets, setBudgets] = useState<BudgetItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [alerts, setAlerts] = useState<
+    { id: string; categoryName: string; percent: number; level: string }[]
+  >([]);
+  const [trend3m, setTrend3m] = useState<
+    { year: number; month: number; totalBudget: number; totalSpent: number }[]
+  >([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ categoryId: "", amount: "" });
   const [pending, start] = useTransition();
 
+  const applyBudgetPayload = (d: {
+    budgets?: BudgetItem[];
+    personal?: BudgetItem[];
+    alerts?: typeof alerts;
+    trend3m?: typeof trend3m;
+  }) => {
+    setBudgets(d.budgets ?? d.personal ?? []);
+    setAlerts(d.alerts ?? []);
+    setTrend3m(d.trend3m ?? []);
+  };
+
   const load = () => {
     fetch(`/api/budgets?year=${year}&month=${month}`)
       .then((r) => r.json())
-      .then((d) => setBudgets(d.budgets ?? d.personal ?? []));
+      .then(applyBudgetPayload);
     fetch("/api/categories?type=expense")
       .then((r) => r.json())
       .then(setCategories);
@@ -67,7 +87,10 @@ export default function BudgetPage() {
     Promise.all([
       fetch(`/api/budgets?year=${year}&month=${month}`, { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error("Load failed"); return r.json(); }),
       fetch("/api/categories?type=expense", { signal: controller.signal }).then((r) => { if (!r.ok) throw new Error("Load failed"); return r.json(); }),
-    ]).then(([budgetData, categoryData]) => { setBudgets(budgetData.budgets ?? []); setCategories(categoryData); })
+    ]).then(([budgetData, categoryData]) => {
+      applyBudgetPayload(budgetData);
+      setCategories(categoryData);
+    })
       .catch(() => { if (!controller.signal.aborted) toast.error("دریافت بودجه انجام نشد"); });
     return () => controller.abort();
   }, [year, month]);
@@ -143,6 +166,28 @@ export default function BudgetPage() {
     });
   };
 
+  const rollover = () => {
+    start(async () => {
+      try {
+        const res = await fetch("/api/budgets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "rollover", year, month }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error("fail");
+        toast.success(
+          data.rolled
+            ? `${data.rolled} دسته با مانده ماه قبل رول‌اوور شد`
+            : "مانده‌ای برای انتقال نبود"
+        );
+        load();
+      } catch {
+        toast.error("رول‌اوور ناموفق بود");
+      }
+    });
+  };
+
   return (
     <>
       <Header title="بودجه" />
@@ -172,6 +217,9 @@ export default function BudgetPage() {
             >
               <Sparkles className="h-4 w-4 ml-2" />
               پیشنهاد از میانگین ۳ ماه
+            </Button>
+            <Button variant="outline" disabled={pending} onClick={rollover}>
+              رول‌اوور مانده
             </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <Button onClick={() => setOpen(true)}>
@@ -221,6 +269,42 @@ export default function BudgetPage() {
           </Dialog>
           </div>
         </div>
+
+        {alerts.length > 0 && (
+          <Card className="border-amber-500/40 bg-amber-500/5 p-4 space-y-2">
+            <p className="text-sm font-semibold flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              هشدار بودجه این ماه
+            </p>
+            {alerts.map((a) => (
+              <p key={a.id} className="text-xs text-muted-foreground">
+                {a.categoryName}: {a.percent}%
+                {a.level === "exceeded" ? " — رد شده" : " — نزدیک سقف"}
+              </p>
+            ))}
+          </Card>
+        )}
+
+        {trend3m.length > 0 && (
+          <Card className="p-4 border">
+            <p className="text-sm font-semibold mb-2">روند ۳ ماه (خرج)</p>
+            <MiniTrend
+              points={trend3m.map((t) => ({
+                label: `${t.month}`,
+                value: t.totalSpent,
+              }))}
+              colorClass="bg-rose-500/70"
+            />
+            <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+              {trend3m.map((t) => (
+                <span key={`${t.year}-${t.month}`}>
+                  {getJalaliMonthName(t.month)}: {formatToman(t.totalSpent)} /{" "}
+                  {formatToman(t.totalBudget)}
+                </span>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {budgets.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2">

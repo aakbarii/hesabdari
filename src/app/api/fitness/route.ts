@@ -1,3 +1,4 @@
+import { dateInput } from "@/lib/validation";
 import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -12,14 +13,14 @@ const workoutSchema = z.object({
   type: z.enum(["strength", "cardio", "walk", "flexibility", "other"]),
   durationMinutes: z.number().positive(),
   caloriesBurned: z.number().nonnegative().default(0),
-  date: z.string(),
+  date: dateInput,
   notes: z.string().optional().nullable(),
 });
 
 const metricSchema = z.object({
   weightKg: z.number().positive(),
   bodyFat: z.number().optional().nullable(),
-  date: z.string(),
+  date: dateInput,
   note: z.string().optional().nullable(),
 });
 
@@ -32,7 +33,7 @@ export async function GET() {
     .from(workouts)
     .where(eq(workouts.userId, auth))
     .orderBy(desc(workouts.date), desc(workouts.createdAt))
-    .limit(30)
+    .limit(60)
     .all();
 
   const userMetrics = await db
@@ -40,12 +41,62 @@ export async function GET() {
     .from(bodyMetrics)
     .where(eq(bodyMetrics.userId, auth))
     .orderBy(desc(bodyMetrics.date))
-    .limit(30)
+    .limit(60)
     .all();
 
+  const days7: string[] = [];
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  for (let i = 6; i >= 0; i--) {
+    const x = new Date(d);
+    x.setDate(d.getDate() - i);
+    days7.push(x.toISOString().slice(0, 10));
+  }
+  const today = days7[6];
+  const weekWorkouts = userWorkouts.filter((w) => days7.includes(w.date));
+  const weekMinutes = weekWorkouts.reduce((s, w) => s + w.durationMinutes, 0);
+  const weekCalories = weekWorkouts.reduce((s, w) => s + w.caloriesBurned, 0);
+  const todayWorkouts = userWorkouts.filter((w) => w.date === today);
+
+  const durationTrend = days7.map((date) => ({
+    date,
+    label: date.slice(5),
+    value: userWorkouts
+      .filter((w) => w.date === date)
+      .reduce((s, w) => s + w.durationMinutes, 0),
+  }));
+
+  const weightTrend = [...userMetrics]
+    .reverse()
+    .slice(-14)
+    .map((m) => ({
+      date: m.date,
+      label: m.date.slice(5),
+      value: m.weightKg,
+    }));
+
   return NextResponse.json({
-    workouts: userWorkouts,
-    metrics: userMetrics,
+    workouts: userWorkouts.slice(0, 30),
+    metrics: userMetrics.slice(0, 30),
+    templates: [
+      { title: "قدرتی فول‌بادی", type: "strength", durationMinutes: 45, caloriesBurned: 280 },
+      { title: "دویدن سبک", type: "cardio", durationMinutes: 30, caloriesBurned: 250 },
+      { title: "پیاده‌روی عصر", type: "walk", durationMinutes: 40, caloriesBurned: 180 },
+      { title: "یوگا و کشش", type: "flexibility", durationMinutes: 25, caloriesBurned: 90 },
+    ],
+    stats: {
+      weekMinutes,
+      weekCalories,
+      weekSessions: weekWorkouts.length,
+      todaySessions: todayWorkouts.length,
+      durationTrend,
+      weightTrend,
+      nextAction: todayWorkouts.length
+        ? "log_weight_or_rest"
+        : weekMinutes < 90
+          ? "start_session"
+          : "optional_session",
+    },
   });
 }
 

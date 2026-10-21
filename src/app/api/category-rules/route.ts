@@ -1,7 +1,7 @@
 import { readJsonObject } from "@/lib/validation";
 import { validateFinancialReferences } from "@/lib/financial-validation";
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { ensureDb, db, categoryRules, categories } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
@@ -59,4 +59,17 @@ export async function POST(request: Request) {
     .run();
 
   return NextResponse.json({ id });
+}
+
+export async function DELETE(request: Request) {
+  await ensureDb();
+  const auth = await requireUserId();
+  if (auth instanceof NextResponse) return auth;
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id" }, { status: 400 });
+  await db
+    .delete(categoryRules)
+    .where(and(eq(categoryRules.id, id), eq(categoryRules.userId, auth)))
+    .run();
+  return NextResponse.json({ success: true });
 }

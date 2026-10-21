@@ -8,6 +8,7 @@ import {
   updateUserAppearance,
   updateUserLocale,
   updateUserGender,
+  updateHealthTargets,
 } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 import { isCurrencyUnit } from "@/lib/currency";
@@ -28,6 +29,7 @@ function settingsPayload(settings: Awaited<ReturnType<typeof getUserSettings>>) 
     mobileNav: settings.mobileNav,
     locale: settings.locale,
     gender: settings.gender,
+    healthTargets: settings.healthTargets,
   };
 }
 
@@ -61,6 +63,16 @@ const patchSchema = z.object({
   mobileNav: z.array(z.string()).optional(),
   locale: z.enum(["fa", "en"]).optional(),
   gender: z.enum(["male", "female"]).optional(),
+  healthTargets: z
+    .object({
+      sleepHours: z.number().positive().max(16).optional(),
+      calories: z.number().positive().max(10000).optional(),
+      protein: z.number().nonnegative().max(500).optional(),
+      carbs: z.number().nonnegative().max(1000).optional(),
+      fat: z.number().nonnegative().max(400).optional(),
+      waterMl: z.number().positive().max(10000).optional(),
+    })
+    .optional(),
 });
 
 export async function PATCH(request: Request) {
@@ -83,6 +95,7 @@ export async function PATCH(request: Request) {
     mobileNav,
     locale,
     gender,
+    healthTargets,
   } = parsed.data;
 
   if (
@@ -92,9 +105,14 @@ export async function PATCH(request: Request) {
     visibleNav === undefined &&
     mobileNav === undefined &&
     !locale &&
-    !gender
+    !gender &&
+    !healthTargets
   ) {
     return NextResponse.json({ error: "تغییری ارسال نشد" }, { status: 400 });
+  }
+
+  if (healthTargets) {
+    await updateHealthTargets(userId, healthTargets);
   }
 
   if (currencyUnit && isCurrencyUnit(currencyUnit)) {

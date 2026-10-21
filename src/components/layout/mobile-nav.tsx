@@ -100,7 +100,7 @@ export function MobileNav() {
             </Link>
           );
         })}
-        <MobileMoreNav />
+        <MobileMoreNav key={pathname} />
       </div>
     </nav>
   );

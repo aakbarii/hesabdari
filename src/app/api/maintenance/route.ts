@@ -1,3 +1,4 @@
+import { dateInput } from "@/lib/validation";
 import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -12,8 +13,8 @@ const serviceSchema = z.object({
   serviceType: z.enum(["oil_change", "filter", "brake_pads", "insurance", "inspection", "tires", "other"]),
   currentMileage: z.number().nonnegative().default(0),
   nextDueMileage: z.number().optional().nullable(),
-  serviceDate: z.string(),
-  nextDueDate: z.string().optional().nullable(),
+  serviceDate: dateInput,
+  nextDueDate: dateInput.optional().nullable(),
   cost: z.number().nonnegative().default(0),
   notes: z.string().optional().nullable(),
 });

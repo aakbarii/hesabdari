@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Header } from "@/components/layout/header";
@@ -21,6 +22,7 @@ type Trip = {
 type Expense = { id: string; tripId: string; title: string; amount: number; date: string };
 
 export default function TravelPage() {
+  useRecordsRefresh(() => { void load(); });
   const { t, locale } = useLocale();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -31,6 +33,8 @@ export default function TravelPage() {
   const [expTitle, setExpTitle] = useState("");
   const [expAmount, setExpAmount] = useState("");
   const [pending, start] = useTransition();
+  const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
+  const [txAccountId, setTxAccountId] = useState("");
   const today = toISODate(new Date());
 
   const load = () =>
@@ -45,8 +49,42 @@ export default function TravelPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/accounts")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => {
+        const list = Array.isArray(d) ? d : d.accounts ?? [];
+        setAccounts(list);
+        if (list[0]) setTxAccountId(list[0].id);
+      })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const toTransaction = (expenseId: string) => {
+    if (!txAccountId) {
+      toast.error(locale === "en" ? "Pick an account" : "حساب را انتخاب کن");
+      return;
+    }
+    start(async () => {
+      try {
+        const res = await fetch("/api/travel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "to-transaction",
+            expenseId,
+            accountId: txAccountId,
+          }),
+        });
+        if (!res.ok) throw new Error("fail");
+        toast.success(
+          locale === "en" ? "Logged as transaction" : "به‌عنوان تراکنش ثبت شد"
+        );
+      } catch {
+        toast.error(t("common.error"));
+      }
+    });
+  };
 
   const spent = useMemo(
     () =>
@@ -183,16 +221,47 @@ export default function TravelPage() {
               <Button disabled={pending} onClick={addExpense}>
                 {t("common.add")}
               </Button>
+              {accounts.length > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    {locale === "en"
+                      ? "Account for ledger"
+                      : "حساب برای ثبت در دفتر"}
+                  </Label>
+                  <select
+                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    value={txAccountId}
+                    onChange={(e) => setTxAccountId(e.target.value)}
+                  >
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="space-y-2">
                 {expenses
                   .filter((e) => e.tripId === trip.id)
                   .map((e) => (
                     <div
                       key={e.id}
-                      className="flex justify-between rounded-xl border px-3 py-2 text-sm"
+                      className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm"
                     >
-                      <span>{e.title}</span>
-                      <span>{formatToman(e.amount)}</span>
+                      <span className="min-w-0 truncate">{e.title}</span>
+                      <span className="shrink-0 flex items-center gap-2">
+                        <span>{formatToman(e.amount)}</span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={pending || !txAccountId}
+                          onClick={() => toTransaction(e.id)}
+                        >
+                          {locale === "en" ? "To ledger" : "ثبت تراکنش"}
+                        </Button>
+                      </span>
                     </div>
                   ))}
               </div>

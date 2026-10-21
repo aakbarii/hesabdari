@@ -1,8 +1,10 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { toISODate } from "@/lib/format";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useConfirm } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Header } from "@/components/layout/header";
@@ -48,7 +50,18 @@ const emptyForm = {
 };
 
 export default function DebtsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">…</div>}>
+      <DebtsPageInner />
+    </Suspense>
+  );
+}
+
+function DebtsPageInner() {
+  useRecordsRefresh(() => { void load(); });
   const confirm = useConfirm();
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("highlight");
   const [debts, setDebts] = useState<Debt[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Debt | null>(null);
@@ -57,7 +70,10 @@ export default function DebtsPage() {
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     date: toISODate(new Date()),
+    accountId: "",
+    createTransaction: true,
   });
+  const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
 
   const load = () =>
     fetch("/api/debts")
@@ -66,6 +82,10 @@ export default function DebtsPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/accounts")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setAccounts(Array.isArray(d) ? d : d.accounts ?? []))
+      .catch(() => {});
   }, []);
 
   const openCreate = () => {
@@ -146,12 +166,23 @@ export default function DebtsPage() {
         debtId: paymentOpen,
         amount: parseInt(paymentForm.amount.replace(/,/g, "")),
         date: paymentForm.date,
+        accountId: paymentForm.accountId || null,
+        createTransaction: paymentForm.createTransaction && !!paymentForm.accountId,
       }),
     });
     if (res.ok) {
-      toast.success("پرداخت ثبت شد");
+      toast.success(
+        paymentForm.createTransaction && paymentForm.accountId
+          ? "پرداخت و تراکنش ثبت شد"
+          : "پرداخت ثبت شد"
+      );
       setPaymentOpen(null);
-      setPaymentForm({ amount: "", date: toISODate(new Date()) });
+      setPaymentForm({
+        amount: "",
+        date: toISODate(new Date()),
+        accountId: "",
+        createTransaction: true,
+      });
       load();
     }
   };
@@ -272,6 +303,7 @@ export default function DebtsPage() {
                   <DebtCard
                     key={d.id}
                     debt={d}
+                    highlighted={highlightId === d.id}
                     onPay={() => setPaymentOpen(d.id)}
                     onEdit={() => openEdit(d)}
                     onDelete={() => remove(d)}
@@ -289,6 +321,7 @@ export default function DebtsPage() {
                   <DebtCard
                     key={d.id}
                     debt={d}
+                    highlighted={highlightId === d.id}
                     onEdit={() => openEdit(d)}
                     onDelete={() => remove(d)}
                   />
@@ -325,6 +358,37 @@ export default function DebtsPage() {
                   }
                 />
               </div>
+              <div>
+                <Label>حساب بانکی (اختیاری)</Label>
+                <select
+                  className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+                  value={paymentForm.accountId}
+                  onChange={(e) =>
+                    setPaymentForm({ ...paymentForm, accountId: e.target.value })
+                  }
+                >
+                  <option value="">بدون تراکنش</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={paymentForm.createTransaction}
+                  onChange={(e) =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      createTransaction: e.target.checked,
+                    })
+                  }
+                  disabled={!paymentForm.accountId}
+                />
+                ثبت به‌عنوان تراکنش در دفتر
+              </label>
               <Button type="submit" className="w-full">
                 ثبت پرداخت
               </Button>
@@ -338,11 +402,13 @@ export default function DebtsPage() {
 
 function DebtCard({
   debt,
+  highlighted,
   onPay,
   onEdit,
   onDelete,
 }: {
   debt: Debt;
+  highlighted?: boolean;
   onPay?: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -358,7 +424,7 @@ function DebtCard({
       : "[&_[data-slot=progress-indicator]]:bg-red-500";
 
   return (
-    <Card>
+    <Card className={highlighted ? "ring-2 ring-primary border-primary/40" : undefined}>
       <CardContent className="py-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">

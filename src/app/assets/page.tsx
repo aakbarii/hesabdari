@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRecordsRefresh } from "@/components/use-records-refresh";
 
 import { useEffect, useState, useTransition } from "react";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -56,6 +57,7 @@ const emptyForm = {
 };
 
 export default function AssetsPage() {
+  useRecordsRefresh(() => { void load(); });
   const confirm = useConfirm();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [totalValue, setTotalValue] = useState(0);
@@ -63,6 +65,9 @@ export default function AssetsPage() {
   const [editing, setEditing] = useState<Asset | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [syncing, startSync] = useTransition();
+  const [priceHistory, setPriceHistory] = useState<
+    { id: string; assetId: string; unitPrice: number; recordedAt: string }[]
+  >([]);
 
   const load = () =>
     fetch("/api/assets")
@@ -70,6 +75,7 @@ export default function AssetsPage() {
       .then((d) => {
         setAssets(d.assets);
         setTotalValue(d.totalValue);
+        setPriceHistory(d.priceHistory ?? []);
       });
 
   useEffect(() => {
@@ -196,6 +202,28 @@ export default function AssetsPage() {
             </Button>
           </div>
         </div>
+
+        {priceHistory.length > 0 && (
+          <Card className="p-4 border">
+            <p className="text-sm font-semibold mb-2">تاریخچه قیمت (بعد از sync)</p>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {priceHistory.slice(0, 20).map((h) => {
+                const asset = assets.find((a) => a.id === h.assetId);
+                return (
+                  <div
+                    key={h.id}
+                    className="flex items-center justify-between text-xs rounded-lg border px-3 py-1.5"
+                  >
+                    <span>{asset?.name ?? h.assetId.slice(0, 6)}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {formatToman(h.unitPrice)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {assets.map((a) => (

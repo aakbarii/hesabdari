@@ -13,7 +13,7 @@ const nodeBin = process.env.SMOKE_NODE_BIN || process.execPath;
 const serverArgs = serverDir ? [path.join(serverDir, "server.js")] : ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(port)];
 const server = spawn(nodeBin, serverArgs, {
   cwd: serverDir,
-  env: { ...process.env, PORT: String(port), HOSTNAME: "127.0.0.1", HESABDARI_ROOT: serverDir || process.cwd(), HESABDARI_DATA_DIR: dataDir, SESSION_SECRET: "isolated-smoke-test-secret-do-not-use-in-production", NEXT_TELEMETRY_DISABLED: "1" },
+  env: { ...process.env, TURSO_DATABASE_URL: "", TURSO_AUTH_TOKEN: "", PORT: String(port), HOSTNAME: "127.0.0.1", HESABDARI_ROOT: serverDir || process.cwd(), HESABDARI_DATA_DIR: dataDir, SESSION_SECRET: "isolated-smoke-test-secret-do-not-use-in-production", NEXT_TELEMETRY_DISABLED: "1" },
   stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
 });
 let logs = "";
@@ -107,6 +107,74 @@ try {
   await request("/api/dashboard", { method: "PATCH", cookie, body: { widgets: ["not-a-widget"] }, status: 400 });
   await request("/api/settings", { method: "PATCH", cookie, body: { currencyUnit: "rial" } });
   await request(`/api/transactions/${tx.id}`, { method: "DELETE", cookie });
+
+  // Functional depth: every workbench resource is owner-scoped, edits detect stale data.
+  for (const resource of ["books", "courses", "workouts", "bodyMetrics", "meals", "waterLogs", "focusSessions", "dailyJournals", "vehicleServices", "sleepLogs", "medications", "trips", "tripExpenses", "habits", "todos", "routines", "transactions", "accounts", "budgets", "debts", "goals", "assets", "cycleEntries"]) await request(`/api/workbench?resource=${resource}`, { cookie });
+  await request("/api/workbench?resource=users", { cookie, status: 404 });
+  const wb = (await request("/api/workbench?resource=accounts", { cookie })).data.records.find(r => r.id === account.id);
+  const patch = { resource: "accounts", id: account.id, version: wb._version, values: { name: "Renamed safely" } };
+  await request("/api/workbench", { method: "PATCH", cookie, body: patch });
+  await request("/api/workbench", { method: "PATCH", cookie, body: patch, status: 409 });
+  if (authEnabled) await request("/api/workbench", { method: "PATCH", cookie: bob.cookie, body: patch, status: 404 });
+  const latest = (await request("/api/workbench?resource=accounts", { cookie })).data.records.find(r => r.id === account.id);
+  await request("/api/workbench", { method: "PATCH", cookie, body: { ...patch, version: latest._version, values: { userId: "other" } }, status: 400 });
+  await request("/api/growth", { method: "POST", cookie, body: { title: "Bad progress", author: "Test", totalPages: 10, currentPage: 11 }, status: 400 });
+  const book = (await request("/api/growth", { method: "POST", cookie, body: { title: "Editable book", author: "Test", totalPages: 100 } })).data;
+  const br = (await request("/api/workbench?resource=books", { cookie })).data.records.find(r => r.id === book.id);
+  await request("/api/workbench", { method: "PATCH", cookie, body: { resource: "books", id: book.id, version: br._version, values: { status: "completed", notes: "Actual takeaway" } } });
+  assert.equal((await request("/api/growth", { cookie })).data.books.find(r => r.id === book.id).currentPage, 100);
+  const focus = { clientId: "123e4567-e89b-42d3-a456-426614174000", taskName: "One actual outcome", durationMinutes: 10, category: "work", date: "2026-10-21" };
+  await request("/api/focus", { method: "POST", cookie, body: focus });
+  await request("/api/focus", { method: "POST", cookie, body: focus });
+  assert.equal((await request("/api/focus?date=2026-10-21", { cookie })).data.sessionCount, 1);
+  await request("/api/focus", { method: "POST", cookie, body: { ...focus, durationMinutes: 11 }, status: 409 });
+  await request("/api/sleep", { method: "POST", cookie, body: { date: "2026-10-21", hours: 7.5 } });
+  await request("/api/sleep", { method: "POST", cookie, body: { date: "2026-02-30", hours: 7 }, status: 400 });
+
+  // Multi-day cycle tracking, legacy preservation, archive/restore and private daily logs.
+  await request("/api/cycle",{method:"POST",cookie,body:{kind:"period_start",date:"2026-07-01",notes:"Preserve legacy history"}});
+  await request("/api/cycle",{method:"POST",cookie,body:{kind:"period_end",date:"2026-07-05"}});
+  let cycle=(await request("/api/cycle?today=2026-10-21",{cookie})).data;
+  const legacyPeriod=cycle.periods.find(p=>p.startDate==="2026-07-01");assert.ok(legacyPeriod.id.startsWith("legacy:"));assert.equal(legacyPeriod.endDate,"2026-07-05");
+  await request("/api/cycle/periods",{method:"POST",cookie,body:{startDate:"2026-08-01",endDate:"2026-08-05",notes:"Full range"}});
+  await request("/api/cycle/periods",{method:"POST",cookie,status:400,body:{startDate:"2026-09-05",endDate:"2026-09-01"}});
+  await request("/api/cycle/periods",{method:"POST",cookie,status:409,body:{startDate:"2026-08-03",endDate:"2026-08-06"}});
+  cycle=(await request("/api/cycle?today=2026-10-21",{cookie})).data;
+  const period=cycle.periods.find(p=>p.startDate==="2026-08-01");
+  await request("/api/cycle/periods",{method:"PATCH",cookie,body:{id:period.id,archived:true}});
+  assert.equal((await request("/api/cycle",{cookie})).data.archivedPeriods.length,1);
+  await request("/api/cycle/periods",{method:"PATCH",cookie,body:{id:period.id,archived:false}});
+  await request("/api/cycle/periods",{method:"POST",cookie,body:{id:legacyPeriod.id,startDate:"2026-07-02",endDate:"2026-07-06",notes:"Legacy edited without deleting markers"}});
+  cycle=(await request("/api/cycle",{cookie})).data;assert.equal(cycle.periods.length,2);assert.ok(cycle.entries.some(e=>e.date==="2026-07-01"));
+  const daily={action:"daily",date:"2026-10-20",flow:"medium",pain:3,mood:"tired",symptoms:["cramps","fatigue"],notes:"Daily note"};
+  await request("/api/cycle",{method:"POST",cookie,body:daily});
+  await request("/api/cycle",{method:"POST",cookie,body:{...daily,notes:"Updated note"}});
+  cycle=(await request("/api/cycle",{cookie})).data;assert.equal(cycle.daily.length,1);assert.equal(cycle.daily[0].notes,"Updated note");
+  if(authEnabled){await request("/api/cycle/periods",{method:"PATCH",cookie:bob.cookie,status:404,body:{id:period.id,archived:true}});assert.equal((await request("/api/cycle",{cookie:bob.cookie})).data.daily.length,0);}
+  // Personal care: real goals, weekday plans, immutable history and repeat-safe migration.
+  await request("/api/selfcare",{method:"POST",cookie,body:{action:"seed",packId:"morning"}});
+  await request("/api/selfcare",{method:"POST",cookie,body:{action:"seed",packId:"morning"}});
+  assert.equal((await request("/api/selfcare?date=2026-10-21",{cookie})).data.items.length,3);
+  const care={title:"Read for myself",description:"After dinner",category:"mind",timeOfDay:"evening",weekdays:[0,1,2,3,4,5,6],targetValue:10,unit:"pages"};
+  await request("/api/selfcare",{method:"POST",cookie,body:care});
+  let careData=(await request("/api/selfcare?date=2026-10-21",{cookie})).data;
+  const careItem=careData.items.find(item=>item.title===care.title);
+  await request("/api/selfcare",{method:"POST",cookie,body:{action:"log",itemId:careItem.id,date:"2026-10-20",value:4,notes:"Started"}});
+  await request("/api/selfcare",{method:"POST",cookie,body:{action:"log",itemId:careItem.id,date:"2026-10-20",value:10,notes:"Done"}});
+  await request("/api/selfcare",{method:"POST",cookie,body:{...care,id:careItem.id,targetValue:15}});
+  await request("/api/selfcare",{method:"POST",cookie,body:{action:"log",itemId:careItem.id,date:"2026-10-21",value:10}});
+  careData=(await request("/api/selfcare?date=2026-10-21",{cookie})).data;
+  assert.equal(careData.logs.find(log=>log.date==="2026-10-20"&&log.itemId===careItem.id).targetValue,10);
+  assert.equal(careData.logs.find(log=>log.date==="2026-10-21"&&log.itemId===careItem.id).targetValue,15);
+  assert.equal(careData.week.at(-2).completed,1);assert.equal(careData.week.at(-1).completed,0);
+  await request("/api/selfcare",{method:"PATCH",cookie,body:{id:careItem.id,archived:true}});
+  await request("/api/selfcare",{method:"POST",cookie,status:409,body:{action:"log",itemId:careItem.id,date:"2026-10-21",value:15}});
+  await request("/api/selfcare",{method:"PATCH",cookie,body:{id:careItem.id,archived:false}});
+  const oldCare={action:"import",days:[{date:"2026-10-19",ids:["journal","sleep"]}]};
+  await request("/api/selfcare",{method:"POST",cookie,body:oldCare});await request("/api/selfcare",{method:"POST",cookie,body:oldCare});
+  assert.equal((await request("/api/selfcare?date=2026-10-21",{cookie})).data.logs.filter(log=>log.date==="2026-10-19").length,2);
+  await request("/api/selfcare",{method:"POST",cookie,status:400,body:{...care,weekdays:[]}});
+  if(authEnabled){await request("/api/selfcare",{method:"POST",cookie:bob.cookie,status:404,body:{action:"log",itemId:careItem.id,date:"2026-10-21",value:15}});assert.equal((await request("/api/selfcare",{cookie:bob.cookie})).data.items.length,0);}
   await request("/api/auth/logout", { method: "POST", cookie, status: authEnabled ? 200 : 403 });
   console.log(`PASS: ${checks} HTTP checks, balances, ownership, validation, debt settlement, and all main modules.`);
 } catch (error) {
