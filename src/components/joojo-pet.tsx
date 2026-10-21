@@ -1,0 +1,178 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { Heart, Wheat, Moon, Pause, Play, Volume2, VolumeX, Minimize2, X } from "lucide-react";
+import { useAppearance } from "@/components/appearance-provider";
+import "./joojo-pet.css";
+
+type Action = "idle" | "walk" | "eat" | "sneeze" | "sleep" | "love";
+type Preferences = { collapsed: boolean; paused: boolean; sound: boolean };
+const PREF_KEY = "ravaal:joojo-pet:v1";
+const DURATIONS: Record<Action, number> = { idle: 12000, walk: 5200, eat: 4200, sneeze: 2000, sleep: 10000, love: 2600 };
+const PHRASES: Record<Action, string> = { idle: "من اینجام! 🎀", walk: "یه دور کوچولو بزنم…", eat: "جیک جیک! مرسی برای دونا 🌾", sneeze: "هاپچی! ✨", sleep: "یه چرت کوچولو…", love: "دوستت دارم! ♡" };
+
+function subscribeMotion(callback: () => void) {
+  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+function subscribeVisibility(callback: () => void) {
+  document.addEventListener("visibilitychange", callback);
+  return () => document.removeEventListener("visibilitychange", callback);
+}
+function readPreferences(): Preferences {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PREF_KEY) ?? "null");
+    // Sound always starts muted. Enabling it requires a gesture in this tab.
+    return { collapsed: saved?.collapsed === true, paused: saved?.paused === true, sound: false };
+  } catch { return { collapsed: false, paused: false, sound: false }; }
+}
+
+function LivingJoojo() {
+  const [preferences, setPreferences] = useState(readPreferences);
+  const [action, setAction] = useState<Action>("idle");
+  const [menu, setMenu] = useState(false);
+  const [x, setX] = useState(0);
+  const [facing, setFacing] = useState(1);
+  const lane = useRef<HTMLDivElement>(null);
+  const traveler = useRef<HTMLDivElement>(null);
+  const audio = useRef<AudioContext | null>(null);
+  const menuId = useId();
+  const reducedMotion = useSyncExternalStore(subscribeMotion, () => window.matchMedia("(prefers-reduced-motion: reduce)").matches, () => true);
+  const visible = useSyncExternalStore(subscribeVisibility, () => document.visibilityState === "visible", () => false);
+
+  function updatePreferences(next: Partial<Preferences>) {
+    const updated = { ...preferences, ...next };
+    setPreferences(updated);
+    try { localStorage.setItem(PREF_KEY, JSON.stringify({ collapsed: updated.collapsed, paused: updated.paused })); } catch { /* Optional device preference. */ }
+  }
+
+  function chirp() {
+    const ctx = audio.current;
+    if (!preferences.sound || !ctx || ctx.state !== "running") return;
+    try {
+      const now = ctx.currentTime;
+      for (let i = 0; i < 2; i++) {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const start = now + i * .16;
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(1500, start);
+        oscillator.frequency.exponentialRampToValueAtTime(2400, start + .045);
+        oscillator.frequency.exponentialRampToValueAtTime(1700, start + .11);
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(.025, start + .012);
+        gain.gain.exponentialRampToValueAtTime(.001, start + .12);
+        oscillator.connect(gain).connect(ctx.destination);
+        oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+        oscillator.start(start);
+        oscillator.stop(start + .13);
+      }
+    } catch { /* Audio is decorative and must never interrupt the app. */ }
+  }
+
+  async function toggleSound() {
+    if (preferences.sound) { updatePreferences({ sound: false }); return; }
+    try {
+      const Audio = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Audio) return;
+      audio.current ??= new Audio();
+      await audio.current.resume();
+      updatePreferences({ sound: audio.current.state === "running" });
+    } catch { updatePreferences({ sound: false }); }
+  }
+
+  function settle() {
+    if (lane.current && traveler.current) {
+      setX(Math.max(0, traveler.current.getBoundingClientRect().left - lane.current.getBoundingClientRect().left));
+    }
+    setAction("idle");
+  }
+
+  function interact(next: Action) {
+    settle();
+    setMenu(false);
+    setAction(next);
+    chirp();
+  }
+
+  useEffect(() => {
+    if (!visible || preferences.collapsed || menu) return;
+    if (action === "idle" && (preferences.paused || reducedMotion)) return;
+    const timer = window.setTimeout(() => {
+      if (action !== "idle") { setAction("idle"); return; }
+      const choices: Action[] = ["walk", "walk", "walk", "eat", "sneeze", "sleep", "love"];
+      const next = choices[Math.floor(Math.random() * choices.length)];
+      if (next === "walk") {
+        const available = Math.max(0, (lane.current?.clientWidth ?? 112) - 112);
+        const destination = Math.round(Math.random() * available);
+        setFacing(destination > x ? 1 : -1);
+        setX(destination);
+      }
+      setAction(next);
+    }, DURATIONS[action]);
+    return () => window.clearTimeout(timer);
+  }, [action, menu, preferences.collapsed, preferences.paused, reducedMotion, visible, x]);
+
+  useEffect(() => {
+    const element = lane.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setX(current => Math.min(current, Math.max(0, element.clientWidth - 112))));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [preferences.collapsed]);
+
+  useEffect(() => () => { void audio.current?.close().catch(() => {}); }, []);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenu(false);
+        traveler.current?.querySelector("button")?.focus();
+      }
+    };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [menu]);
+
+  if (preferences.collapsed) return <button type="button" className="joojo-pet-restore" onClick={() => { updatePreferences({ collapsed: false }); setAction("idle"); }} aria-label="برگرداندن جوجوی متحرک" title="جوجو رو برگردون 🎀"><Image src="/joojo/logo.webp" alt="" width={40} height={40} /><span>جوجو</span></button>;
+
+  return <>
+    <div ref={lane} className="joojo-pet-lane" data-resting={!visible || reducedMotion}>
+      <div ref={traveler} className="joojo-pet-traveler" data-action={action} style={{ left: x }}>
+        <span className="joojo-pet-speech" aria-hidden="true">{PHRASES[action]}</span>
+        <span className="joojo-pet-shadow" aria-hidden="true" />
+        <button type="button" className="joojo-pet-character" aria-label={`جوجو: ${PHRASES[action]}؛ بازکردن کنترل‌ها`} aria-expanded={menu} aria-controls={menu ? menuId : undefined} onClick={() => { settle(); setMenu(!menu); }}>
+          <span className="joojo-pet-direction" style={{ transform: `scaleX(${facing})` }}>
+            <Image src={action === "sleep" ? "/joojo/cozy.webp" : "/joojo/wave.webp"} alt="" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
+          </span>
+          {action === "eat" && <span className="joojo-pet-grains" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <i key={i} style={{ left: i * 7, bottom: (i % 3) * 4, animationDelay: `${i * .06}s` }} />)}</span>}
+          {action === "sneeze" && <span className="joojo-pet-puff" aria-hidden="true">✧ · ✧</span>}
+          {action === "love" && <span className="joojo-pet-hearts" aria-hidden="true">♡ ♥ ♡</span>}
+          {action === "sleep" && <span className="joojo-pet-zzz" aria-hidden="true">z Z z</span>}
+        </button>
+      </div>
+    </div>
+    {menu && <section id={menuId} className="joojo-pet-menu" aria-label="کنترل جوجو">
+      <div className="joojo-pet-menu-title"><strong>جوجوی پاپیون‌صورتی 🎀</strong><button type="button" aria-label="بستن کنترل جوجو" onClick={() => setMenu(false)}><X size={16} /></button></div>
+      <p>یه همراه کوچولو برای روزت؛ روی من بزن!</p>
+      <div className="joojo-pet-actions">
+        <button type="button" onClick={() => interact("eat")}><Wheat size={17} />دون بده</button>
+        <button type="button" onClick={() => interact("love")}><Heart size={17} />نازش کن</button>
+        <button type="button" onClick={() => interact("sleep")}><Moon size={17} />وقت چرت</button>
+        <button type="button" onClick={() => interact("sneeze")}><span aria-hidden="true">✧</span>یه عطسه!</button>
+        <button type="button" aria-pressed={preferences.paused} onClick={() => { settle(); updatePreferences({ paused: !preferences.paused }); }}>{preferences.paused ? <Play size={17} /> : <Pause size={17} />}{preferences.paused ? "حرکت خودکار" : "توقف حرکت"}</button>
+        <button type="button" aria-pressed={preferences.sound} onClick={() => void toggleSound()}>{preferences.sound ? <Volume2 size={17} /> : <VolumeX size={17} />}{preferences.sound ? "صدا روشنه" : "صدا خاموشه"}</button>
+      </div>
+      {reducedMotion && <p>با تنظیم کاهش حرکت دستگاه، حرکت خودکار خاموش است.</p>}
+      <button type="button" className="joojo-pet-minimize" onClick={() => { settle(); setMenu(false); updatePreferences({ collapsed: true }); }}><Minimize2 size={16} />جمعش کن؛ بعداً برمی‌گردم</button>
+    </section>}
+  </>;
+}
+
+export function JoojoPet() {
+  const { mood } = useAppearance();
+  return mood === "joojo" ? <LivingJoojo /> : null;
+}

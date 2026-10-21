@@ -9,6 +9,7 @@ import { OnboardingDialog } from "@/components/onboarding/onboarding-dialog";
 import { PageTransition } from "@/components/motion/page-transition";
 import { QuickAddFab } from "@/components/layout/quick-add-fab";
 import { ConfirmProvider } from "@/components/confirm-dialog";
+import { JoojoPet } from "@/components/joojo-pet";
 
 const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
@@ -65,6 +66,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
         </div>
         <QuickAddFab />
         <MobileNav />
+        <JoojoPet />
       </div>
     </ConfirmProvider>
   );
