@@ -1,7 +1,7 @@
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
-import { migrate } from "drizzle-orm/libsql/migrator";
 import fs from "fs";
+import { createHash } from "crypto";
 import path from "path";
 import * as schema from "./schema";
 
@@ -612,13 +612,46 @@ async function repairSchema(client: Client) {
 }
 
 
+/**
+ * Applies drizzle/*.sql in journal order. Runs each migration through executeMultiple,
+ * because the hosted libSQL endpoint rejects a single request that holds several statements
+ * (the stock drizzle migrator sends whole files that way). Tracking uses drizzle's own table,
+ * so databases migrated before this change keep working.
+ */
+async function applyMigrations(client: Client) {
+  const folder = path.join(/* turbopackIgnore: true */ appRoot, "drizzle");
+  await client.execute(
+    'CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (id INTEGER PRIMARY KEY, hash text NOT NULL, created_at numeric)'
+  );
+  const last = await client.execute(
+    'SELECT created_at FROM "__drizzle_migrations" ORDER BY created_at DESC LIMIT 1'
+  );
+  const lastApplied = last.rows.length ? Number(last.rows[0].created_at) : -Infinity;
+
+  const journal = JSON.parse(
+    fs.readFileSync(path.join(folder, "meta", "_journal.json"), "utf8")
+  ) as { entries: Array<{ tag: string; when: number }> };
+
+  for (const entry of journal.entries) {
+    if (entry.when <= lastApplied) continue;
+    const sql = fs.readFileSync(path.join(folder, `${entry.tag}.sql`), "utf8");
+    const hash = createHash("sha256").update(sql).digest("hex");
+    const statements = sql
+      .split("--> statement-breakpoint")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    for (const statement of statements) {
+      await client.executeMultiple(statement);
+    }
+    await client.execute({
+      sql: 'INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES (?, ?)',
+      args: [hash, entry.when],
+    });
+  }
+}
+
 export async function runMigrations() {
   const { client } = getConnection();
-  await migrate(db, {
-    migrationsFolder: path.join(
-      /* turbopackIgnore: true */ appRoot,
-      "drizzle"
-    ),
-  });
+  await applyMigrations(client);
   await repairSchema(client);
 }
