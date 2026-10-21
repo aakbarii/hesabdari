@@ -1,6 +1,12 @@
 import { NAV_GROUPS, NAV_ITEMS } from "@/lib/constants";
 
 export const APPEARANCE_MOODS = {
+  joojo: {
+    label: "جوجو مود",
+    labelEn: "JooJoo",
+    description: "دنیای پاپیون‌صورتی؛ جوجو، استیکر و دفترچه‌های پاستلی",
+    descriptionEn: "A pink-bow world of chicks, stickers and pastel notebooks",
+  },
   neutral: {
     label: "خنثی",
     labelEn: "Neutral",

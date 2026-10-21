@@ -67,6 +67,23 @@ export const db = new Proxy({} as Database, {
   },
 });
 
+// This legacy table was originally created only by repairSchema. Later journal
+// migrations ALTER it, so its baseline must exist before those migrations run.
+async function ensureFocusBaseline(client: Client) {
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS \`focus_sessions\` (
+      \`id\` text PRIMARY KEY NOT NULL,
+      \`user_id\` text NOT NULL,
+      \`task_name\` text NOT NULL,
+      \`duration_minutes\` integer DEFAULT 25 NOT NULL,
+      \`category\` text DEFAULT 'work' NOT NULL,
+      \`date\` text NOT NULL,
+      \`created_at\` integer NOT NULL,
+      FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON UPDATE no action ON DELETE cascade
+    );
+  `);
+}
+
 /** Creates or patches tables the migration journal does not cover. */
 async function repairSchema(client: Client) {
   const schemaRows = await client.execute(
@@ -254,18 +271,7 @@ async function repairSchema(client: Client) {
   }
 
   if (!tableExists("focus_sessions")) {
-    await client.executeMultiple(`
-      CREATE TABLE IF NOT EXISTS \`focus_sessions\` (
-        \`id\` text PRIMARY KEY NOT NULL,
-        \`user_id\` text NOT NULL,
-        \`task_name\` text NOT NULL,
-        \`duration_minutes\` integer DEFAULT 25 NOT NULL,
-        \`category\` text DEFAULT 'work' NOT NULL,
-        \`date\` text NOT NULL,
-        \`created_at\` integer NOT NULL,
-        FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON UPDATE no action ON DELETE cascade
-      );
-    `);
+    await ensureFocusBaseline(client);
   }
 
   if (!tableExists("daily_journals")) {
@@ -673,6 +679,7 @@ async function applyMigrations(client: Client) {
 
 export async function runMigrations() {
   const { client } = getConnection();
+  await ensureFocusBaseline(client);
   await applyMigrations(client);
   await repairSchema(client);
 }

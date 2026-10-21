@@ -6,6 +6,7 @@ const ModuleWorkbench = dynamic(() => import("@/components/module-workbench"), {
 import { ThemeToggle } from "./theme-toggle";
 import { GlobalSearch } from "./global-search";
 import { AppLogo } from "./app-logo";
+import { JoojoHeaderBadge } from "@/components/joojo-mode";
 
 export function Header({ title }: { title: string }) {
   const pathname = usePathname();
@@ -25,6 +26,7 @@ export function Header({ title }: { title: string }) {
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
+        <JoojoHeaderBadge />
         <div>
           <GlobalSearch />
         </div>

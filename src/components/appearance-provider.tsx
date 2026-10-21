@@ -81,10 +81,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   }, [mood, accent]);
 
   useEffect(() => {
-    if (isAuthPage) {
-      setLoaded(true);
-      return;
-    }
+    if (isAuthPage) return;
     const controller = new AbortController();
     fetch("/api/settings", { signal: controller.signal })
       .then((r) => {
@@ -137,10 +134,16 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     async (next: AppearanceMood) => {
       setMoodState(next);
       applyDomAppearance(next, accent);
-      const data = await patch({ appearanceMood: next });
-      if (data.appearanceMood) setMoodState(data.appearanceMood);
+      try {
+        const data = await patch({ appearanceMood: next });
+        if (data.appearanceMood) setMoodState(data.appearanceMood);
+      } catch (error) {
+        setMoodState(mood);
+        applyDomAppearance(mood, accent);
+        throw error;
+      }
     },
-    [accent, patch]
+    [accent, mood, patch]
   );
 
   const setAccent = useCallback(
@@ -197,7 +200,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       visibleNav,
       mobileNav,
       gender,
-      loaded,
+      loaded: loaded || isAuthPage,
       navGroups: filterNavGroups(visibleNav),
       mobilePrimary: filterMobilePrimary(visibleNav, mobileNav),
       setMood,
@@ -214,6 +217,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       mobileNav,
       gender,
       loaded,
+      isAuthPage,
       setMood,
       setAccent,
       setVisibleNav,

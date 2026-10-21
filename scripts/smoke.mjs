@@ -106,6 +106,16 @@ try {
   }
   await request("/api/dashboard", { method: "PATCH", cookie, body: { widgets: ["not-a-widget"] }, status: 400 });
   await request("/api/settings", { method: "PATCH", cookie, body: { currencyUnit: "rial" } });
+  // Switching the complete skin survives a fresh GET and retains the separate accent preference.
+  await request("/api/settings", { method: "PATCH", cookie, body: { appearanceMood: "joojo", accentColor: "indigo" } });
+  const joojoSettings = (await request("/api/settings", { cookie })).data;
+  assert.equal(joojoSettings.appearanceMood, "joojo");
+  assert.equal(joojoSettings.accentColor, "indigo");
+  if (authEnabled) assert.notEqual((await request("/api/settings", { cookie: bob.cookie })).data.appearanceMood, "joojo");
+  await request("/api/settings", { method: "PATCH", cookie, body: { appearanceMood: "neutral" } });
+  const restoredSettings = (await request("/api/settings", { cookie })).data;
+  assert.equal(restoredSettings.appearanceMood, "neutral");
+  assert.equal(restoredSettings.accentColor, "indigo");
   await request(`/api/transactions/${tx.id}`, { method: "DELETE", cookie });
 
   // Functional depth: every workbench resource is owner-scoped, edits detect stale data.

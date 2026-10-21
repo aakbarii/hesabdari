@@ -32,6 +32,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
+import { useAppearance } from "@/components/appearance-provider";
+import { JoojoHero } from "@/components/joojo-mode";
 import type { MessageKey } from "@/lib/i18n";
 import {
   formatToman,
@@ -128,6 +130,7 @@ const CHART_COLORS = [
 ];
 
 export default function DashboardPage() {
+  const { mood } = useAppearance();
   const { t, locale } = useLocale();
   const hero = useHeroSrc("dashboard");
   const { show: showHeroBanner } = useHeroes();
@@ -223,7 +226,7 @@ export default function DashboardPage() {
     <>
       <Header title="داشبورد" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
-        {hero.hidden ? (
+        {mood === "joojo" ? <JoojoHero title="امروزت رو با جوجو قشنگ بساز!" subtitle="یه قدم برای هدف‌هات، یه لبخند برای خودت؛ جوجو اینجاست که همراهت باشه." action={<><Link href="/life" className={buttonVariants()}>دفترچه امروز <ArrowLeft size={16} /></Link><Link href="/transactions?new=expense" className={buttonVariants({ variant: "outline" })}><Plus size={16} />ثبت تراکنش</Link></>} /> : hero.hidden ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-4">
             <div>
               <p className="font-semibold">امروز را با خیال آسوده شروع کن.</p>

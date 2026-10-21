@@ -2,12 +2,14 @@ import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { AppearanceProvider } from "@/components/appearance-provider";
+import { AppearanceIcons } from "@/components/appearance-icons";
 import { HeroProvider } from "@/components/hero-provider";
 import { LocaleProvider } from "@/components/locale-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
+import "./joojo.css";
 
 export const metadata: Metadata = {
   title: {
@@ -65,6 +67,7 @@ export default function RootLayout({
           <CurrencyProvider>
             <LocaleProvider>
               <AppearanceProvider>
+                <AppearanceIcons />
                 <HeroProvider>
                   <AppChrome>{children}</AppChrome>
                   <Toaster position="top-center" />

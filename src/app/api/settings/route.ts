@@ -46,6 +46,7 @@ const patchSchema = z.object({
   currencyUnit: z.enum(["toman", "rial"]).optional(),
   appearanceMood: z
     .enum([
+      "joojo",
       "neutral",
       "feminine",
       "masculine",

@@ -35,6 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/layout/app-logo";
+import { JoojoSidebarNote } from "@/components/joojo-mode";
 import { AUTH_ENABLED } from "@/lib/app-config";
 import { useAppearance } from "@/components/appearance-provider";
 import { useLocale } from "@/components/locale-provider";
@@ -96,6 +97,7 @@ export function Sidebar() {
         <AppLogo size="md" subtitle="سامانه جامع زندگی و مالی" />
       </div>
       <nav aria-label="منوی اصلی" className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
+        <JoojoSidebarNote />
         {navGroups.map((group) => (
           <div key={group.titleKey}>
             <p className="mb-1.5 px-3 text-[11px] font-medium text-muted-foreground/80">

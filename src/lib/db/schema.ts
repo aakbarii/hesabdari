@@ -235,6 +235,7 @@ export const userSettings = sqliteTable("user_settings", {
     .default("toman"),
   appearanceMood: text("appearance_mood", {
     enum: [
+      "joojo",
       "neutral",
       "feminine",
       "masculine",

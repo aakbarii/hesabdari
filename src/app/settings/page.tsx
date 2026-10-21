@@ -56,6 +56,7 @@ import {
   type Gender,
 } from "@/lib/appearance";
 import { useAppearance } from "@/components/appearance-provider";
+import { JoojoModeCard } from "@/components/joojo-mode";
 import { useLocale } from "@/components/locale-provider";
 import type { Locale, MessageKey } from "@/lib/i18n";
 import {
@@ -616,7 +617,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-primary/15 shadow-sm gap-0 py-0">
+        <Card id="appearance" className="scroll-mt-24 overflow-hidden border-primary/15 shadow-sm gap-0 py-0">
           <div className="h-24 relative overflow-hidden">
             {(() => {
               const r = resolveHero("settings");
@@ -645,12 +646,14 @@ export default function SettingsPage() {
             </div>
           </div>
           <CardContent className="space-y-6 py-5">
+            <JoojoModeCard />
             <div className="space-y-3">
               <p className="text-sm font-medium">
                 {locale === "en" ? "Theme mood" : "حال‌وهوا"}
               </p>
               <div className="grid gap-2 sm:grid-cols-3">
                 {(Object.keys(APPEARANCE_MOODS) as AppearanceMood[]).map((key) => {
+                  if (key === "joojo") return null;
                   const cfg = APPEARANCE_MOODS[key];
                   const selected = mood === key;
                   return (
@@ -682,6 +685,7 @@ export default function SettingsPage() {
 
             <div className="space-y-3">
               <p className="text-sm font-medium">رنگ اصلی</p>
+              {mood === "joojo" && <p className="text-xs text-muted-foreground">جوجو پالت صورتی اختصاصی دارد؛ رنگ انتخابی تو برای تم‌های دیگر حفظ می‌شود.</p>}
               <div className="flex flex-wrap gap-2.5">
                 {ACCENT_COLORS.map((c) => {
                   const selected = accent === c.id;

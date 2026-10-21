@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useAppearance } from "@/components/appearance-provider";
 
 interface AppLogoProps {
   className?: string;
@@ -21,6 +22,8 @@ export function AppLogo({
   href = "/",
   clickable = true,
 }: AppLogoProps) {
+  const { mood } = useAppearance();
+  const joojo = mood === "joojo";
   const sizeMap = {
     sm: { icon: 28, box: "h-7 w-7", text: "text-sm", sub: "text-[10px]" },
     md: { icon: 36, box: "h-9 w-9", text: "text-base", sub: "text-xs" },
@@ -39,8 +42,8 @@ export function AppLogo({
         )}
       >
         <Image
-          src="/icon.svg"
-          alt="لوگوی روال"
+          src={joojo ? "/joojo/logo.webp" : "/icon.svg"}
+          alt={joojo ? "جوجوی روال" : "لوگوی روال"}
           width={currentSize.icon}
           height={currentSize.icon}
           className="h-full w-full object-contain drop-shadow"
@@ -55,7 +58,7 @@ export function AppLogo({
               روال
             </span>
             <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              Life OS
+              {joojo ? "JooJoo ♡" : "Life OS"}
             </span>
           </div>
           <span className={cn("mt-1 text-muted-foreground font-medium truncate", currentSize.sub)}>
