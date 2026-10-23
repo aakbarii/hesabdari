@@ -116,3 +116,9 @@ html[data-appearance="joojo"] [data-slot="card"]:nth-child(3n) {
   .app-shell main > .motion-page > div { padding-inline: 16px; }
   .app-header h1 { font-size: 16px; }
 }
+
+/* Keep the server-rendered mascot visible until its interactive twin is ready. */
+@media (max-width: 1023px) {
+  .joojo-mascot-stage .joojo-static-mascot { display: block; }
+  .joojo-mascot-stage:has(.joojo-pet-inline-lane) .joojo-static-mascot { display: none; }
+}

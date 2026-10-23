@@ -10,6 +10,7 @@ import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 import "./joojo.css";
 import "./responsive.css";
+import "./motion.css";
 import { MobileViewport } from "@/components/mobile-viewport";
 
 export const metadata: Metadata = {

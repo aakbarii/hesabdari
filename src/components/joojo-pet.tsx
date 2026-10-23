@@ -5,15 +5,15 @@ import { usePathname } from "next/navigation";
 import { stellaImage, stellaForPage, type StellaVariant } from "@/lib/joojo-assets";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-import { Heart, Wheat, Moon, Pause, Play, Volume2, VolumeX, Minimize2, X } from "lucide-react";
+import { Heart, Wheat, Moon, Pause, Play, Volume2, VolumeX, Sparkles, Music2, X } from "lucide-react";
 import { useAppearance } from "@/components/appearance-provider";
 import "./joojo-pet.css";
 
-type Action = "idle" | "walk" | "eat" | "sneeze" | "sleep" | "love";
-type Preferences = { collapsed: boolean; paused: boolean; sound: boolean };
+type Action = "idle" | "walk" | "eat" | "sneeze" | "sleep" | "love" | "jump" | "dance";
+type Preferences = { paused: boolean; sound: boolean };
 const PREF_KEY = "ravaal:joojo-pet:v1";
-const DURATIONS: Record<Action, number> = { idle: 12000, walk: 5200, eat: 4200, sneeze: 2000, sleep: 10000, love: 2600 };
-const PHRASES: Record<Action, string> = { idle: "من اینجام! 🎀", walk: "یه دور کوچولو بزنم…", eat: "جیک جیک! مرسی برای دونا 🌾", sneeze: "هاپچی! ✨", sleep: "یه چرت کوچولو…", love: "دوستت دارم! ♡" };
+const DURATIONS: Record<Action, number> = { idle: 12000, walk: 5200, eat: 4200, sneeze: 2000, sleep: 10000, love: 2800, jump: 2400, dance: 3600 };
+const PHRASES: Record<Action, string> = { idle: "من اینجام! 🎀", walk: "یه دور کوچولو بزنم…", eat: "جیک جیک! مرسی برای دونا 🌾", sneeze: "هاپچی! ✨", sleep: "یه چرت کوچولو…", love: "دوستت دارم! ♡", jump: "یه پرش کوچولو! ✨", dance: "جیک‌جیک، وقت رقصه! ♫" };
 
 function subscribeMotion(callback: () => void) {
   const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -33,8 +33,8 @@ function readPreferences(): Preferences {
   try {
     const saved = JSON.parse(localStorage.getItem(PREF_KEY) ?? "null");
     // Sound always starts muted. Enabling it requires a gesture in this tab.
-    return { collapsed: saved?.collapsed === true, paused: saved?.paused === true, sound: false };
-  } catch { return { collapsed: false, paused: false, sound: false }; }
+    return { paused: saved?.paused === true, sound: false };
+  } catch { return { paused: false, sound: false }; }
 }
 
 function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVariant }) {
@@ -49,12 +49,15 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
   const audio = useRef<AudioContext | null>(null);
   const menuId = useId();
   const reducedMotion = useSyncExternalStore(subscribeMotion, () => window.matchMedia("(prefers-reduced-motion: reduce)").matches, () => true);
-  const visible = useSyncExternalStore(subscribeVisibility, () => document.visibilityState === "visible", () => false);
+  const [inView, setInView] = useState(true);
+  const pageVisible = useSyncExternalStore(subscribeVisibility, () => document.visibilityState === "visible", () => false);
+
+  const visible = pageVisible && inView;
 
   function updatePreferences(next: Partial<Preferences>) {
     const updated = { ...preferences, ...next };
     setPreferences(updated);
-    try { localStorage.setItem(PREF_KEY, JSON.stringify({ collapsed: updated.collapsed, paused: updated.paused })); } catch { /* Optional device preference. */ }
+    try { localStorage.setItem(PREF_KEY, JSON.stringify({ paused: updated.paused })); } catch { /* Optional device preference. */ }
   }
 
   function chirp() {
@@ -107,11 +110,11 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
   }
 
   useEffect(() => {
-    if (!visible || preferences.collapsed || menu) return;
+    if (!visible || menu) return;
     if (action === "idle" && (preferences.paused || reducedMotion)) return;
     const timer = window.setTimeout(() => {
       if (action !== "idle") { setAction("idle"); return; }
-      const choices: Action[] = ["walk", "walk", "walk", "eat", "sneeze", "sleep", "love"];
+      const choices: Action[] = ["walk", "eat", "sneeze", "sleep", "love", "jump", "dance"];
       const next = choices[Math.floor(Math.random() * choices.length)];
       if (next === "walk") {
         const available = Math.max(0, (lane.current?.clientWidth ?? size) - size);
@@ -122,15 +125,17 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
       setAction(next);
     }, DURATIONS[action]);
     return () => window.clearTimeout(timer);
-  }, [action, menu, preferences.collapsed, preferences.paused, reducedMotion, visible, x, size]);
+  }, [action, menu, preferences.paused, reducedMotion, visible, x, size]);
 
   useEffect(() => {
     const element = lane.current;
     if (!element) return;
     const observer = new ResizeObserver(() => setX(current => Math.min(current, Math.max(0, element.clientWidth - size))));
     observer.observe(element);
-    return () => observer.disconnect();
-  }, [preferences.collapsed, size]);
+    const visibility = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: "80px" });
+    visibility.observe(element);
+    return () => { observer.disconnect(); visibility.disconnect(); };
+  }, [size]);
 
   useEffect(() => () => { void audio.current?.close().catch(() => {}); }, []);
 
@@ -146,17 +151,17 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
     return () => document.removeEventListener("keydown", close);
   }, [menu]);
 
-  if (preferences.collapsed) return <button type="button" className={inline ? "joojo-pet-restore joojo-pet-inline-restore" : "joojo-pet-restore"} onClick={() => { updatePreferences({ collapsed: false }); setAction("idle"); }} aria-label="برگرداندن جوجوی متحرک" title="جوجو رو برگردون 🎀"><Image src="/joojo/stella-icon-192.png" alt="" width={40} height={40} /><span>جوجو</span></button>;
 
   return <>
-    <div ref={lane} className={inline ? "joojo-pet-lane joojo-pet-inline-lane" : "joojo-pet-lane"} data-resting={!visible || reducedMotion}>
-      <div ref={traveler} className="joojo-pet-traveler" data-action={action} style={{ left: x }}>
+    <div ref={lane} className={inline ? "joojo-pet-lane joojo-pet-inline-lane" : "joojo-pet-lane"} data-resting={!visible || reducedMotion || (preferences.paused && action === "idle")}>
+      <div ref={traveler} className="joojo-pet-traveler" data-action={action} style={{ transform: `translate3d(${x}px, 0, 0)` }}>
         <span className="joojo-pet-speech" aria-hidden="true">{PHRASES[action]}</span>
         <span className="joojo-pet-shadow" aria-hidden="true" />
         <button type="button" className="joojo-pet-character" aria-label={`جوجو: ${PHRASES[action]}؛ بازکردن کنترل‌ها`} aria-expanded={menu} aria-controls={menu ? menuId : undefined} onClick={() => { settle(); setMenu(!menu); }}>
           <span className="joojo-pet-direction" style={{ transform: `scaleX(${facing})` }}>
-            <Image src={stellaImage(action === "sleep" ? "dreamblast" : action === "eat" || action === "love" ? "reloaded" : variant)} alt="" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
+            <Image src={stellaImage(variant)} alt="" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
           </span>
+          {(action === "jump" || action === "dance") && <span className="joojo-pet-sparkles" aria-hidden="true"><i>✦</i><i>✧</i><i>✦</i></span>}
           {action === "eat" && <span className="joojo-pet-grains" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <i key={i} style={{ left: i * 7, bottom: (i % 3) * 4, animationDelay: `${i * .06}s` }} />)}</span>}
           {action === "sneeze" && <span className="joojo-pet-puff" aria-hidden="true">✧ · ✧</span>}
           {action === "love" && <span className="joojo-pet-hearts" aria-hidden="true">♡ ♥ ♡</span>}
@@ -172,11 +177,12 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
         <button type="button" onClick={() => interact("love")}><Heart size={17} />نازش کن</button>
         <button type="button" onClick={() => interact("sleep")}><Moon size={17} />وقت چرت</button>
         <button type="button" onClick={() => interact("sneeze")}><span aria-hidden="true">✧</span>یه عطسه!</button>
+        <button type="button" onClick={() => interact("jump")}><Sparkles size={17} />بپر بالا</button>
+        <button type="button" onClick={() => interact("dance")}><Music2 size={17} />برقص جوجو</button>
         <button type="button" aria-pressed={preferences.paused} onClick={() => { settle(); updatePreferences({ paused: !preferences.paused }); }}>{preferences.paused ? <Play size={17} /> : <Pause size={17} />}{preferences.paused ? "حرکت خودکار" : "توقف حرکت"}</button>
         <button type="button" aria-pressed={preferences.sound} onClick={() => void toggleSound()}>{preferences.sound ? <Volume2 size={17} /> : <VolumeX size={17} />}{preferences.sound ? "صدا روشنه" : "صدا خاموشه"}</button>
       </div>
       {reducedMotion && <p>با تنظیم کاهش حرکت دستگاه، حرکت خودکار خاموش است.</p>}
-      <button type="button" className="joojo-pet-minimize" onClick={() => { settle(); setMenu(false); updatePreferences({ collapsed: true }); }}><Minimize2 size={16} />جمعش کن؛ بعداً برمی‌گردم</button>
     </section>, document.body)}
   </>;
 }

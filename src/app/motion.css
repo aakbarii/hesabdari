@@ -1,0 +1,40 @@
+/* One motion language across every theme. Transform and opacity do the work. */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-page { animation: app-page-arrive 360ms ease-out backwards; }
+  .motion-stagger > * { animation-duration: 460ms; animation-fill-mode: backwards; }
+  .motion-stagger > *:nth-child(n+6) { animation-delay: 180ms; }
+  .motion-page [data-slot="card"] { animation: app-surface-arrive 460ms cubic-bezier(.22,1,.36,1) backwards; }
+  .motion-page [data-slot="card"][data-motion-state="pending"] { opacity: 0; animation: none; }
+  .motion-page [data-slot="card"][data-motion-state="shown"] { animation: app-surface-arrive 560ms cubic-bezier(.22,1,.36,1) backwards; }
+  .motion-page [data-slot="card"]:focus-within { opacity: 1; }
+  :is([data-slot="button"], [data-slot="dropdown-menu-item"], .app-mobile-nav a, .app-mobile-nav button, aside nav a, .joojo-pet-actions button) {
+    transition: translate 180ms cubic-bezier(.22,1,.36,1), scale 180ms cubic-bezier(.22,1,.36,1), background-color 180ms, color 180ms, border-color 180ms, box-shadow 220ms;
+  }
+  :is([data-slot="button"], .app-mobile-nav a, .app-mobile-nav button, .joojo-pet-actions button):active:not(:disabled) { scale: .96; }
+  :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]) { transition: border-color 200ms, box-shadow 200ms, background-color 200ms; }
+  .app-mobile-nav [aria-current="page"] > span:first-child { animation: app-nav-settle 400ms cubic-bezier(.22,1,.36,1) backwards; }
+  [data-slot="tabs-trigger"][data-active] { animation: app-tab-settle 240ms ease-out; }
+  [data-slot="progress-indicator"] { transition: transform 600ms cubic-bezier(.22,1,.36,1), width 600ms cubic-bezier(.22,1,.36,1); }
+  [data-slot="checkbox"][data-checked] svg { animation: app-check-arrive 240ms cubic-bezier(.22,1,.36,1); }
+  .joojo-hero { animation: app-surface-arrive 500ms cubic-bezier(.22,1,.36,1) backwards; }
+  .joojo-static-mascot { animation: app-mascot-arrive 650ms cubic-bezier(.22,1,.36,1) backwards; }
+  .joojo-pet-menu { animation: app-surface-arrive 220ms cubic-bezier(.22,1,.36,1) backwards; }
+  [data-slot="table-row"] { transition: background-color 180ms; }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .motion-page [data-slot="card"] { transition: translate 240ms cubic-bezier(.22,1,.36,1), box-shadow 240ms; }
+  .motion-page [data-slot="card"]:hover { translate: 0 -2px; }
+  [data-slot="button"]:hover:not(:disabled) { translate: 0 -1px; }
+  aside nav a:hover { translate: -2px 0; }
+}
+@keyframes app-page-arrive { from { opacity: .35; } to { opacity: 1; } }
+@keyframes app-surface-arrive { from { opacity: 0; transform: translate3d(0,10px,0) scale(.99); } to { opacity: 1; transform: none; } }
+@keyframes app-nav-settle { 0% { transform: translateY(3px) scale(.85); } 70% { transform: translateY(-1px) scale(1.04); } 100% { transform: none; } }
+@keyframes app-tab-settle { from { opacity: .65; scale: .97; } to { opacity: 1; scale: 1; } }
+@keyframes app-check-arrive { from { opacity: 0; transform: scale(.6) rotate(-12deg); } to { opacity: 1; transform: none; } }
+@keyframes app-mascot-arrive { from { opacity: 0; transform: translateY(8px) rotate(-5deg) scale(.9); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .motion-page *, .joojo-pet-lane *, .joojo-pet-menu { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  [data-motion-state="pending"] { opacity: 1 !important; }
+}
+@media print { [data-motion-state="pending"] { opacity: 1 !important; animation: none !important; } }
