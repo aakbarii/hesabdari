@@ -156,7 +156,7 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
   const currentSpeech = action === "idle" ? reactive.phrase : PHRASES[action];
   const currentImg =
     action === "sleep"
-      ? "/joojo/reactive/cozy-sleep.webp"
+      ? "/joojo/reactive/cozy-sleep.png"
       : action === "idle"
       ? (reactive.image || stellaImage(variant))
       : stellaImage(variant);

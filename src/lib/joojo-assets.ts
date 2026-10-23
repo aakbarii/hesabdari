@@ -8,4 +8,4 @@ export function stellaForPage(page?: string): StellaVariant {
   if (["journal", "relationships"].includes(page ?? "")) return "summermadness";
   return "classic";
 }
-export const stellaImage = (variant: StellaVariant) => `/joojo/stella-${variant}.webp`;
+export const stellaImage = (variant: StellaVariant) => `/joojo/stella-${variant}.png`;
