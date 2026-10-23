@@ -5,8 +5,8 @@
 .joojo-pet-direction { display: block; width: 100%; height: 100%; }
 .joojo-pet-body { width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 90%; user-select: none; filter: drop-shadow(0 4px 2px #61364b25); animation: joojo-breathe 3.2s ease-in-out infinite; }
 .joojo-pet-shadow { position: absolute; bottom: 1px; width: 62px; height: 9px; left: 25px; border-radius: 50%; background: #65394c25; filter: blur(3px); }
-.joojo-pet-speech { position: absolute; bottom: 119px; left: -7px; width: 128px; padding: 6px 8px; background: var(--card); color: var(--foreground); border: 1.5px solid var(--border); border-radius: 15px 15px 15px 3px; text-align: center; direction: rtl; font-size: 10px; line-height: 1.7; box-shadow: 0 3px 0 var(--joojo-shadow); opacity: 0; transform: translateY(5px); transition: opacity .2s, transform .2s; }
-.joojo-pet-traveler:not([data-action="idle"]) .joojo-pet-speech, .joojo-pet-traveler:focus-within .joojo-pet-speech, .joojo-pet-traveler:hover .joojo-pet-speech { opacity: 1; transform: none; }
+.joojo-pet-speech { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%) translateY(4px); width: max-content; max-width: 190px; padding: 6px 10px; background: var(--card); color: var(--foreground); border: 1.5px solid var(--border); border-radius: 16px 16px 16px 4px; text-align: center; direction: rtl; font-size: 10.5px; line-height: 1.6; box-shadow: 0 4px 14px -4px #61364b20, 0 2px 0 var(--joojo-shadow); opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+.joojo-pet-traveler:not([data-action="idle"]) .joojo-pet-speech, .joojo-pet-traveler:focus-within .joojo-pet-speech, .joojo-pet-traveler:hover .joojo-pet-speech { opacity: 1; transform: translateX(-50%) translateY(0); }
 .joojo-pet-traveler[data-action="walk"] .joojo-pet-body { animation: joojo-waddle .38s ease-in-out infinite; }
 .joojo-pet-traveler[data-action="eat"] .joojo-pet-body { animation: joojo-peck .65s ease-in-out 6; }
 .joojo-pet-traveler[data-action="sneeze"] .joojo-pet-body { animation: joojo-sneeze 1.7s ease-in-out both; }
@@ -84,4 +84,62 @@
   .joojo-pet-direction, .joojo-pet-traveler { transition: none !important; }
   .joojo-pet-lane *, .joojo-pet-menu { animation: none !important; }
   .joojo-pet-sparkles { display: none; }
+}
+
+/* Data-Reactive Mood Station Card */
+.joojo-pet-reactive-status {
+  padding: 10px 12px;
+  margin: 6px 0 12px;
+  border-radius: 16px;
+  background: var(--joojo-pink);
+  border: 1px dashed var(--border);
+  position: relative;
+}
+.joojo-pet-reactive-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.joojo-pet-reactive-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--card);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+}
+.joojo-pet-reactive-stat {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+.joojo-pet-reactive-title {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+.joojo-pet-reactive-subtitle {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+  margin: 2px 0 6px !important;
+}
+.joojo-pet-reactive-advice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--primary);
+  background: var(--card);
+  padding: 6px 9px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }

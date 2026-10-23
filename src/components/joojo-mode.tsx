@@ -9,6 +9,7 @@ import { useAppearance } from "@/components/appearance-provider";
 import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
 import { stellaForPage, stellaImage, type StellaVariant } from "@/lib/joojo-assets";
+import { useJoojoReactiveMood } from "@/lib/joojo-reactive";
 import { JoojoPet } from "@/components/joojo-pet";
 
 export function JoojoMascot({ className, pose = "wave", priority = false, variant }: { className?: string; pose?: "wave" | "cozy"; priority?: boolean; variant?: StellaVariant }) {
@@ -28,8 +29,29 @@ export function JoojoHero({ title, subtitle, action, className, heroKey }: { tit
 
 export function JoojoSidebarNote() {
   const { mood } = useAppearance();
+  const reactive = useJoojoReactiveMood();
   if (mood !== "joojo") return null;
-  return <div className="joojo-sidebar-note"><JoojoMascot pose="cozy" className="h-24 w-24" /><div><strong>جوجو کنارته ♡</strong><p>هر قدم کوچیکت ارزشمنده.</p><Link href="/selfcare">یه کم مراقب خودت باش <ArrowLeft size={12} /></Link></div></div>;
+  return (
+    <div className="joojo-sidebar-note">
+      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-border/70 bg-card shadow-xs">
+        <Image
+          src={reactive.image}
+          alt="جوجو"
+          width={40}
+          height={40}
+          className="h-full w-full object-contain p-0.5"
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <strong className="block truncate text-xs font-bold text-foreground">{reactive.title}</strong>
+        <p className="line-clamp-1 text-[11px] text-muted-foreground">{reactive.phrase}</p>
+        <Link href="/selfcare" className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-primary hover:underline">
+          <span>{reactive.badge}</span>
+          <ArrowLeft size={10} />
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 export function JoojoModeCard() {

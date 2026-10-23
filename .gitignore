@@ -55,3 +55,4 @@ next-env.d.ts
 /.superdesign/
 /.eslint-results.json
 /.npm-audit*.json
+/sites/

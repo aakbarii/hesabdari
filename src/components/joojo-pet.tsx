@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { stellaImage, stellaForPage, type StellaVariant } from "@/lib/joojo-assets";
+import { useJoojoReactiveMood } from "@/lib/joojo-reactive";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Heart, Wheat, Moon, Pause, Play, Volume2, VolumeX, Sparkles, Music2, X } from "lucide-react";
@@ -13,7 +14,7 @@ type Action = "idle" | "walk" | "eat" | "sneeze" | "sleep" | "love" | "jump" | "
 type Preferences = { paused: boolean; sound: boolean };
 const PREF_KEY = "ravaal:joojo-pet:v1";
 const DURATIONS: Record<Action, number> = { idle: 12000, walk: 5200, eat: 4200, sneeze: 2000, sleep: 10000, love: 2800, jump: 2400, dance: 3600 };
-const PHRASES: Record<Action, string> = { idle: "من اینجام! 🎀", walk: "یه دور کوچولو بزنم…", eat: "جیک جیک! مرسی برای دونا 🌾", sneeze: "هاپچی! ✨", sleep: "یه چرت کوچولو…", love: "دوستت دارم! ♡", jump: "یه پرش کوچولو! ✨", dance: "جیک‌جیک، وقت رقصه! ♫" };
+const PHRASES: Record<Action, string> = { idle: "من اینجام! 🎀", walk: "یه دور کوچولو بزنم…", eat: "جیک جیک! مرسی برای دونا 🌾", sneeze: "هاپچی! ✨", sleep: "یه چرت زیر پتو… zZz", love: "دوستت دارم! ♡", jump: "یه پرش کوچولو! ✨", dance: "جیک‌جیک، وقت رقصه! ♫" };
 
 function subscribeMotion(callback: () => void) {
   const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -39,6 +40,7 @@ function readPreferences(): Preferences {
 
 function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVariant }) {
   const size = inline ? 82 : 112;
+  const reactive = useJoojoReactiveMood();
   const [preferences, setPreferences] = useState(readPreferences);
   const [action, setAction] = useState<Action>("idle");
   const [menu, setMenu] = useState(false);
@@ -151,15 +153,22 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
     return () => document.removeEventListener("keydown", close);
   }, [menu]);
 
+  const currentSpeech = action === "idle" ? reactive.phrase : PHRASES[action];
+  const currentImg =
+    action === "sleep"
+      ? "/joojo/reactive/cozy-sleep.webp"
+      : action === "idle"
+      ? (reactive.image || stellaImage(variant))
+      : stellaImage(variant);
 
   return <>
     <div ref={lane} className={inline ? "joojo-pet-lane joojo-pet-inline-lane" : "joojo-pet-lane"} data-resting={!visible || reducedMotion || (preferences.paused && action === "idle")}>
       <div ref={traveler} className="joojo-pet-traveler" data-action={action} style={{ transform: `translate3d(${x}px, 0, 0)` }}>
-        <span className="joojo-pet-speech" aria-hidden="true">{PHRASES[action]}</span>
+        <span className="joojo-pet-speech" aria-hidden="true">{currentSpeech}</span>
         <span className="joojo-pet-shadow" aria-hidden="true" />
-        <button type="button" className="joojo-pet-character" aria-label={`جوجو: ${PHRASES[action]}؛ بازکردن کنترل‌ها`} aria-expanded={menu} aria-controls={menu ? menuId : undefined} onClick={() => { settle(); setMenu(!menu); }}>
+        <button type="button" className="joojo-pet-character" aria-label={`جوجو: ${currentSpeech}؛ بازکردن کنترل‌ها`} aria-expanded={menu} aria-controls={menu ? menuId : undefined} onClick={() => { settle(); setMenu(!menu); }}>
           <span className="joojo-pet-direction" style={{ transform: `scaleX(${facing})` }}>
-            <Image src={stellaImage(variant)} alt="" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
+            <Image src={currentImg} alt="جوجو" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
           </span>
           {(action === "jump" || action === "dance") && <span className="joojo-pet-sparkles" aria-hidden="true"><i>✦</i><i>✧</i><i>✦</i></span>}
           {action === "eat" && <span className="joojo-pet-grains" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <i key={i} style={{ left: i * 7, bottom: (i % 3) * 4, animationDelay: `${i * .06}s` }} />)}</span>}
@@ -171,7 +180,21 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
     </div>
     {menu && createPortal(<section id={menuId} className="joojo-pet-menu" aria-label="کنترل جوجو">
       <div className="joojo-pet-menu-title"><strong>جوجوی صورتی 🎀</strong><button type="button" aria-label="بستن کنترل جوجو" onClick={() => setMenu(false)}><X size={16} /></button></div>
-      <p>یه همراه کوچولو برای روزت؛ روی من بزن!</p>
+      
+      {/* Data-Reactive Mood Station Card */}
+      <div className="joojo-pet-reactive-status">
+        <div className="joojo-pet-reactive-header">
+          <span className="joojo-pet-reactive-badge">{reactive.badge}</span>
+          {reactive.statBadge && <span className="joojo-pet-reactive-stat">{reactive.statBadge}</span>}
+        </div>
+        <strong className="joojo-pet-reactive-title">{reactive.title}</strong>
+        <p className="joojo-pet-reactive-subtitle">{reactive.subtitle}</p>
+        <div className="joojo-pet-reactive-advice">
+          <span aria-hidden="true">💡</span>
+          <span>{reactive.advice}</span>
+        </div>
+      </div>
+
       <div className="joojo-pet-actions">
         <button type="button" onClick={() => interact("eat")}><Wheat size={17} />دون بده</button>
         <button type="button" onClick={() => interact("love")}><Heart size={17} />نازش کن</button>
@@ -182,7 +205,7 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
         <button type="button" aria-pressed={preferences.paused} onClick={() => { settle(); updatePreferences({ paused: !preferences.paused }); }}>{preferences.paused ? <Play size={17} /> : <Pause size={17} />}{preferences.paused ? "حرکت خودکار" : "توقف حرکت"}</button>
         <button type="button" aria-pressed={preferences.sound} onClick={() => void toggleSound()}>{preferences.sound ? <Volume2 size={17} /> : <VolumeX size={17} />}{preferences.sound ? "صدا روشنه" : "صدا خاموشه"}</button>
       </div>
-      {reducedMotion && <p>با تنظیم کاهش حرکت دستگاه، حرکت خودکار خاموش است.</p>}
+      {reducedMotion && <p className="mt-2 text-[10px] text-muted-foreground">با تنظیم کاهش حرکت دستگاه، حرکت خودکار خاموش است.</p>}
     </section>, document.body)}
   </>;
 }
