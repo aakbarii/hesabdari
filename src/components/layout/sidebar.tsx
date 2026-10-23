@@ -35,7 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/layout/app-logo";
-import { JoojoSidebarNote } from "@/components/joojo-mode";
+
 import { AUTH_ENABLED } from "@/lib/app-config";
 import { useAppearance } from "@/components/appearance-provider";
 import { useLocale } from "@/components/locale-provider";
@@ -94,10 +94,10 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:right-0 border-l border-border/70 bg-sidebar">
       <div className="flex h-16 items-center px-5 border-b border-border/70">
-        <AppLogo size="md" subtitle="هر روز، کمی مرتب‌تر" />
+        <AppLogo size="md" />
       </div>
       <nav aria-label="منوی اصلی" className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
-        <JoojoSidebarNote />
+
         {navGroups.map((group) => (
           <details key={`${group.titleKey}:${pathname}`} open={group.items.some(item => item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)) || group.titleKey === "nav.group.overview"}>
             <summary className="mb-1.5 cursor-pointer rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted">

@@ -43,8 +43,8 @@ try {
   const installResponse = await fetch(base + "/install/joojo", { redirect: "manual" });
   assert.equal(installResponse.status, 200, "Install page must work without a session");
   const installHtml = await installResponse.text();
-  assert.match(installHtml, /rel="apple-touch-icon"[^>]*href="\/joojo\/pink-icon-180\.png\?v=3"/);
-  assert.match(installHtml, /rel="manifest"[^>]*href="\/joojo\/manifest\.json\?v=3"/);
+  assert.match(installHtml, /rel="apple-touch-icon"[^>]*href="\/joojo\/stella-icon-180\.png\?v=4"/);
+  assert.match(installHtml, /rel="manifest"[^>]*href="\/joojo\/manifest\.json\?v=4"/);
   checks += 3;
   const me = (await request("/api/auth/me")).data;
   const authEnabled = !me.user;

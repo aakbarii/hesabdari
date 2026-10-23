@@ -1,0 +1,30 @@
+{
+  "page": "https://www.angrybirds.com/characters/stella-2/",
+  "copyright": "Angry Birds / Stella © Rovio Entertainment Ltd. Source attribution is not a redistribution license.",
+  "images": [
+    {
+      "name": "Classic",
+      "url": "https://www.angrybirds.com/wp-content/uploads/2022/05/ABCOM_202203_1000x1000_CharacterDimensio_Stella_Classic.png"
+    },
+    {
+      "name": "Reloaded",
+      "url": "https://www.angrybirds.com/wp-content/uploads/2022/05/ABCOM_202203_1000x1000_CharacterDimensio_Stella_Reloaded-1.png"
+    },
+    {
+      "name": "Journey",
+      "url": "https://www.angrybirds.com/wp-content/uploads/2022/05/ABCOM_202203_1000x1000_CharacterDimensio_Stella_Journey-1.png"
+    },
+    {
+      "name": "Dreamblast",
+      "url": "https://www.angrybirds.com/wp-content/uploads/2022/05/ABCOM_202203_1000x1000_CharacterDimensio_Stella_Dreamblast-1.png"
+    },
+    {
+      "name": "Movie",
+      "url": "https://www.angrybirds.com/wp-content/uploads/2022/05/ABCOM_202203_1000x1000_CharacterDimensio_Stella_Movie-1.png"
+    },
+    {
+      "name": "SummerMadness",
+      "url": "https://www.angrybirds.com/wp-content/uploads/2022/05/ABCOM_202203_1000x1000_CharacterDimensio_Stella_SummerMadness-1.png"
+    }
+  ]
+}

@@ -45,11 +45,11 @@ function loadingHtml() {
   <title>روال | Ravaal Life OS</title>
   <style>
     html,body{height:100%;margin:0;font-family:Tahoma,Segoe UI,sans-serif;
-      background:linear-gradient(160deg,#042f2e 0%,#064e3b 45%,#011b15 100%);
-      color:#ecfdf5;display:flex;align-items:center;justify-content:center}
+      background:linear-gradient(160deg,#fff8fa 0%,#fbe4ee 45%,#f7eef8 100%);
+      color:#48333e;display:flex;align-items:center;justify-content:center}
     .box{text-align:center}
     .spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.2);
-      border-top-color:#34d399;border-radius:50%;margin:16px auto 0;
+      border-top-color:#ad416b;border-radius:50%;margin:16px auto 0;
       animation:r .6s linear infinite}
     @keyframes r{to{transform:rotate(360deg)}}
     h1{font-size:24px;margin:0 0 4px;font-weight:800}
@@ -110,7 +110,7 @@ function createWindow(showSplash) {
     icon: path.join(__dirname, "icon.png"),
     show: true,
     autoHideMenuBar: true,
-    backgroundColor: "#0f766e",
+    backgroundColor: "#fff8fa",
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

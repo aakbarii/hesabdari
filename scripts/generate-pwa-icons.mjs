@@ -3,7 +3,7 @@ import path from "path";
 import sharp from "sharp";
 
 const root = path.resolve("public");
-const mascot = fs.readFileSync(path.join(root, "joojo", "pink-icon-512.png"));
+const mascot = fs.readFileSync(path.join(root, "joojo", "stella-icon-512.png"));
 
 const targets = [
   { name: "icon-192.png", size: 192 },

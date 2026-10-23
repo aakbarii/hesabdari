@@ -1,24 +1,20 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
-import { BookOpen, ListTodo, Check } from "lucide-react";
+import { Info, X } from "lucide-react";
 import { PLAYBOOKS } from "@/lib/module-playbooks";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { Popover, PopoverTrigger, PopoverContent, PopoverTitle } from "@/components/ui/popover";
+
 export function WorkflowGuide({ module }: { module: string }) {
   const guide = PLAYBOOKS[module];
-  const [pending, setPending] = useState(false);
-  const [created, setCreated] = useState(false);
+  const [open, setOpen] = useState(false);
   if (!guide) return null;
-  const createPlan = async () => {
-    setPending(true);
-    try {
-      const response = await fetch("/api/todos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: guide.title, description: [...guide.steps.map(step => `□ ${step}`), `مرور: ${guide.review}`, `بخش مرتبط: /${module}`].join("\n"), area: guide.area ?? "personal", priority: "medium" }) });
-      if (!response.ok) throw new Error();
-      setCreated(true); toast.success("برنامهٔ این بخش به کارها اضافه شد؛ جزئیاتش قابل ویرایش است.");
-      window.dispatchEvent(new Event("ravaal:records-updated"));
-    } catch { toast.error("برنامه ثبت نشد. دوباره تلاش کن."); }
-    finally { setPending(false); }
-  };
-  return <details className="px-1 py-1 text-muted-foreground"><summary className="cursor-pointer text-xs font-medium"><BookOpen className="ml-2 inline h-4 w-4 text-primary" /> راهنمای این بخش</summary><div className="mt-4 space-y-4 rounded-2xl border bg-card p-4 text-foreground"><p className="text-sm font-semibold">{guide.title}</p><ol className="mr-5 list-decimal space-y-3 text-sm leading-7">{guide.steps.map(step => <li key={step}>{step}</li>)}</ol><p className="rounded-xl bg-muted/60 p-3 text-xs leading-7"><strong>در مرور بعدی: </strong>{guide.review}</p><div className="flex flex-wrap items-center gap-3"><Button size="sm" variant="outline" disabled={pending || created} onClick={() => void createPlan()}>{created ? <Check className="h-4 w-4" /> : <ListTodo className="h-4 w-4" />}{pending ? "در حال ثبت…" : created ? "به کارها اضافه شد" : "این برنامه را به کارهای من اضافه کن"}</Button>{created && <Link href="/life" className="text-xs text-primary">دیدن و ویرایش برنامه ←</Link>}</div></div></details>;
+  return <Popover open={open} onOpenChange={setOpen}>
+    <PopoverTrigger render={<Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-full text-muted-foreground" />} aria-label="اطلاعات این بخش" title="اطلاعات این بخش"><Info className="h-[18px] w-[18px]" /></PopoverTrigger>
+    <PopoverContent side="bottom" align="start" sideOffset={8} className="section-info w-80 max-w-[calc(100vw-24px)] max-h-[min(60dvh,480px)] overflow-y-auto p-4" dir="rtl">
+      <div className="flex items-center justify-between gap-2"><PopoverTitle>{guide.title}</PopoverTitle><Button size="icon" variant="ghost" aria-label="بستن توضیحات" className="h-11 w-11 shrink-0" onClick={() => setOpen(false)}><X size={16} /></Button></div>
+      <ol className="list-inside list-decimal space-y-3 text-xs leading-7 text-muted-foreground">{guide.steps.map(step => <li key={step}>{step}</li>)}</ol>
+      <p className="mt-2 border-t pt-3 text-xs leading-7 text-muted-foreground">{guide.review}</p>
+    </PopoverContent>
+  </Popover>;
 }

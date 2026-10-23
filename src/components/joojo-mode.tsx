@@ -8,10 +8,11 @@ import { toast } from "sonner";
 import { useAppearance } from "@/components/appearance-provider";
 import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
+import { stellaForPage, stellaImage, type StellaVariant } from "@/lib/joojo-assets";
 import { JoojoPet } from "@/components/joojo-pet";
 
-export function JoojoMascot({ className, pose = "wave", priority = false }: { className?: string; pose?: "wave" | "cozy"; priority?: boolean }) {
-  return <Image src="/joojo/pink-mascot.webp" alt="جوجوی صورتی" width={420} height={420} sizes="(max-width: 640px) 160px, 240px" priority={priority} className={cn("joojo-mascot object-contain", className)} data-pose={pose} />;
+export function JoojoMascot({ className, pose = "wave", priority = false, variant }: { className?: string; pose?: "wave" | "cozy"; priority?: boolean; variant?: StellaVariant }) {
+  return <Image src={stellaImage(variant ?? (pose === "cozy" ? "dreamblast" : "classic"))} alt="جوجوی صورتی" width={420} height={420} sizes="(max-width: 640px) 160px, 240px" priority={priority} className={cn("joojo-mascot object-contain", className)} data-pose={pose} />;
 }
 
 export function JoojoHero({ title, subtitle, action, className, heroKey }: { title: string; subtitle?: string; action?: ReactNode; className?: string; heroKey?: string }) {
@@ -21,7 +22,7 @@ export function JoojoHero({ title, subtitle, action, className, heroKey }: { tit
       {subtitle && <p>{subtitle}</p>}
       {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
     </div>
-    <div className="joojo-mascot-stage"><div className="joojo-static-mascot" aria-hidden="true"><JoojoMascot pose={heroKey && ["sleep", "selfcare", "journal", "mood", "cycle"].includes(heroKey) ? "cozy" : "wave"} priority /></div><JoojoPet inline /></div>
+    <div className="joojo-mascot-stage"><div className="joojo-static-mascot" aria-hidden="true"><JoojoMascot variant={stellaForPage(heroKey)} priority /></div><JoojoPet inline variant={stellaForPage(heroKey)} /></div>
   </section>;
 }
 

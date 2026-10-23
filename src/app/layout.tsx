@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
   description: "روال (Ravaal Life OS) — سیستم جامع مدیریت مالی، بودجه‌بندی، رژیم و کالری‌شمار، تمرینات ورزشی، تمرکز و رشد فردی",
   applicationName: "روال (Ravaal)",
-  manifest: "/manifest.json?v=3",
+  manifest: "/manifest.json?v=4",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -30,10 +30,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/joojo/pink-icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/joojo/pink-icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/joojo/stella-icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/joojo/stella-icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/joojo/pink-icon-180.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/joojo/stella-icon-180.png", sizes: "180x180", type: "image/png" }],
   },
   other: {
     "mobile-web-app-capable": "yes",

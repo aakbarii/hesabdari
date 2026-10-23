@@ -40,7 +40,7 @@ export function AppLogo({
         )}
       >
         <Image
-          src="/joojo/pink-icon-192.png"
+          src="/joojo/stella-icon-192.png"
           alt="جوجوی روال"
           width={currentSize.icon}
           height={currentSize.icon}
@@ -56,9 +56,7 @@ export function AppLogo({
               روال
             </span>
           </div>
-          <span className={cn("mt-1 text-muted-foreground font-medium truncate", currentSize.sub)}>
-            {subtitle ?? "هر روز، کمی مرتب‌تر"}
-          </span>
+          {subtitle && <span className={cn("mt-1 text-muted-foreground font-medium truncate", currentSize.sub)}>{subtitle}</span>}
         </div>
       )}
     </div>

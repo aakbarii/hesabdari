@@ -1,5 +1,5 @@
 "use client";
-import { WorkflowGuide } from "./workflow-guide";
+
 import { useAppearance } from "@/components/appearance-provider";
 import { JoojoHero } from "@/components/joojo-mode";
 
@@ -146,5 +146,5 @@ function HeroVisual({
 
 export function PageHero(props: PageHeroProps) {
   const { mood } = useAppearance();
-  return <>{mood === "joojo" ? <JoojoHero {...props} /> : <HeroVisual {...props} />}<WorkflowGuide module={props.heroKey} /></>;
+  return <>{mood === "joojo" ? <JoojoHero {...props} /> : <HeroVisual {...props} />}</>;
 }

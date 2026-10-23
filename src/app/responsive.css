@@ -80,3 +80,39 @@
   .joojo-hero .joojo-mascot-stage { height: 90px; margin-top: 0; align-self: center; }
   .joojo-hero-copy > .mt-4 { margin-top: 10px; }
 }
+
+/* Mobile stationery: quiet pattern and translucent, softly tinted surfaces. */
+html[data-appearance="joojo"] .app-shell {
+  background-image: url('/joojo/rose-pattern.svg'), radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--joojo-pink) 80%, transparent), transparent 65%);
+  background-size: 180px 180px, 100% 900px;
+  background-repeat: repeat, no-repeat;
+}
+html[data-appearance="joojo"] [data-slot="card"] {
+  background: linear-gradient(145deg, var(--card) 25%, color-mix(in srgb, var(--joojo-pink) 65%, var(--card)));
+  box-shadow: 0 8px 30px -22px #a2567838;
+}
+html[data-appearance="joojo"] [data-slot="card"]:nth-child(3n+2) {
+  background: linear-gradient(145deg, var(--card) 25%, color-mix(in srgb, var(--joojo-cream) 85%, var(--card)));
+}
+html[data-appearance="joojo"] [data-slot="card"]:nth-child(3n) {
+  background: linear-gradient(145deg, var(--card) 25%, color-mix(in srgb, var(--joojo-lilac) 85%, var(--card)));
+}
+.section-info { box-shadow: 0 12px 40px #6f304523; }
+@media (max-width: 1023px) {
+  html[data-appearance="joojo"] .app-mobile-nav {
+    left: 12px; right: 12px; bottom: calc(8px + env(safe-area-inset-bottom));
+    width: auto; border: 1px solid var(--border); border-radius: 25px;
+    padding: 5px; background: color-mix(in srgb, var(--card) 95%, transparent);
+    box-shadow: 0 8px 32px -15px #94416640;
+  }
+  html[data-appearance="joojo"] .app-mobile-nav a[aria-current="page"] { border-radius: 19px; background: var(--joojo-pink); }
+  .app-header { padding-inline: 12px; gap: 4px; }
+  .app-header > div:last-child { gap: 2px; }
+}
+@media (max-width: 639px) {
+  html[data-appearance="joojo"] [data-slot="card"] { border-radius: 22px; }
+  .joojo-hero { position: relative; border-radius: 24px; padding: 18px; gap: 12px; }
+  .joojo-hero h2 { font-size: 20px; }
+  .app-shell main > .motion-page > div { padding-inline: 16px; }
+  .app-header h1 { font-size: 16px; }
+}

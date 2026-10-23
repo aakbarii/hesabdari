@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { stellaImage, stellaForPage, type StellaVariant } from "@/lib/joojo-assets";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Heart, Wheat, Moon, Pause, Play, Volume2, VolumeX, Minimize2, X } from "lucide-react";
@@ -35,7 +37,7 @@ function readPreferences(): Preferences {
   } catch { return { collapsed: false, paused: false, sound: false }; }
 }
 
-function LivingJoojo({ inline }: { inline: boolean }) {
+function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVariant }) {
   const size = inline ? 82 : 112;
   const [preferences, setPreferences] = useState(readPreferences);
   const [action, setAction] = useState<Action>("idle");
@@ -144,7 +146,7 @@ function LivingJoojo({ inline }: { inline: boolean }) {
     return () => document.removeEventListener("keydown", close);
   }, [menu]);
 
-  if (preferences.collapsed) return <button type="button" className={inline ? "joojo-pet-restore joojo-pet-inline-restore" : "joojo-pet-restore"} onClick={() => { updatePreferences({ collapsed: false }); setAction("idle"); }} aria-label="برگرداندن جوجوی متحرک" title="جوجو رو برگردون 🎀"><Image src="/joojo/pink-icon-192.png" alt="" width={40} height={40} /><span>جوجو</span></button>;
+  if (preferences.collapsed) return <button type="button" className={inline ? "joojo-pet-restore joojo-pet-inline-restore" : "joojo-pet-restore"} onClick={() => { updatePreferences({ collapsed: false }); setAction("idle"); }} aria-label="برگرداندن جوجوی متحرک" title="جوجو رو برگردون 🎀"><Image src="/joojo/stella-icon-192.png" alt="" width={40} height={40} /><span>جوجو</span></button>;
 
   return <>
     <div ref={lane} className={inline ? "joojo-pet-lane joojo-pet-inline-lane" : "joojo-pet-lane"} data-resting={!visible || reducedMotion}>
@@ -153,7 +155,7 @@ function LivingJoojo({ inline }: { inline: boolean }) {
         <span className="joojo-pet-shadow" aria-hidden="true" />
         <button type="button" className="joojo-pet-character" aria-label={`جوجو: ${PHRASES[action]}؛ بازکردن کنترل‌ها`} aria-expanded={menu} aria-controls={menu ? menuId : undefined} onClick={() => { settle(); setMenu(!menu); }}>
           <span className="joojo-pet-direction" style={{ transform: `scaleX(${facing})` }}>
-            <Image src="/joojo/pink-mascot.webp" alt="" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
+            <Image src={stellaImage(action === "sleep" ? "dreamblast" : action === "eat" || action === "love" ? "reloaded" : variant)} alt="" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
           </span>
           {action === "eat" && <span className="joojo-pet-grains" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <i key={i} style={{ left: i * 7, bottom: (i % 3) * 4, animationDelay: `${i * .06}s` }} />)}</span>}
           {action === "sneeze" && <span className="joojo-pet-puff" aria-hidden="true">✧ · ✧</span>}
@@ -179,8 +181,9 @@ function LivingJoojo({ inline }: { inline: boolean }) {
   </>;
 }
 
-export function JoojoPet({ inline = false }: { inline?: boolean }) {
+export function JoojoPet({ inline = false, variant }: { inline?: boolean; variant?: StellaVariant }) {
+  const pathname = usePathname();
   const { mood } = useAppearance();
   const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 1023px)").matches, () => false);
-  return mood === "joojo" && inline === compact ? <LivingJoojo inline={inline} /> : null;
+  return mood === "joojo" && inline === compact ? <LivingJoojo inline={inline} variant={variant ?? stellaForPage(pathname.split("/")[1])} /> : null;
 }
