@@ -48,6 +48,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { TodoWeekView } from "@/components/life/todo-week-view";
+import { HabitsTab } from "@/components/life/habits-tab";
 
 interface LifeSummary {
   todos: { total: number; today: number; overdue: number; done: number };
@@ -86,6 +87,16 @@ type TodoFilter = "active" | "today" | "overdue" | "done" | "all";
 export default function LifePage() {
   useRecordsRefresh(() => { void loadSummary(); void loadTodos(); void loadRoutines(); });
   const [tab, setTab] = useState("todos");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const targetTab = params.get("tab");
+      if (targetTab === "habits" || targetTab === "routines" || targetTab === "todos") {
+        setTab(targetTab);
+      }
+    }
+  }, []);
   const [summary, setSummary] = useState<LifeSummary | null>(null);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
@@ -421,18 +432,24 @@ export default function LifePage() {
               </TabsTrigger>
               <TabsTrigger value="routines" className="gap-2">
                 <Sunrise className="h-4 w-4" />
+                روتین‌ها
+              </TabsTrigger>
+              <TabsTrigger value="habits" className="gap-2">
+                <Flame className="h-4 w-4 text-orange-500" />
                 عادت‌ها
               </TabsTrigger>
             </TabsList>
-            <Button
-              onClick={() =>
-                tab === "todos" ? openCreateTodo() : openCreateRoutine()
-              }
-              disabled={tab === "todos" && todoView === "week"}
-            >
-              <Plus className="h-4 w-4 ml-1" />
-              {tab === "todos" ? "کار جدید" : "عادت جدید"}
-            </Button>
+            {tab !== "habits" && (
+              <Button
+                onClick={() =>
+                  tab === "todos" ? openCreateTodo() : openCreateRoutine()
+                }
+                disabled={tab === "todos" && todoView === "week"}
+              >
+                <Plus className="h-4 w-4 ml-1" />
+                {tab === "todos" ? "کار جدید" : "روتین جدید"}
+              </Button>
+            )}
           </div>
 
           <TabsContent value="todos" className="space-y-4 mt-4">
@@ -695,6 +712,9 @@ export default function LifePage() {
                 ))}
               </div>
             )}
+          </TabsContent>
+          <TabsContent value="habits" className="mt-4 space-y-4">
+            <HabitsTab />
           </TabsContent>
         </Tabs>
       </div>

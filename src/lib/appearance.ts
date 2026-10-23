@@ -99,12 +99,15 @@ export function filterNavForGender(
 
 export type NavHref = (typeof NAV_ITEMS)[number]["href"];
 
+export const DEFAULT_HIDDEN_NAV_HREFS = ["/nutrition", "/fitness"] as const;
+
 export function getAllNavHrefs(): string[] {
   return NAV_ITEMS.map((item) => item.href);
 }
 
 export function getDefaultVisibleNav(): string[] {
-  return getAllNavHrefs();
+  const hidden = new Set<string>(DEFAULT_HIDDEN_NAV_HREFS);
+  return getAllNavHrefs().filter((h) => !hidden.has(h));
 }
 
 export function isAppearanceMood(value: unknown): value is AppearanceMood {
@@ -172,10 +175,16 @@ export function normalizeVisibleNav(raw: unknown): string[] {
   const locked = LOCKED_NAV_HREFS as readonly string[];
   let list: string[];
   if (Array.isArray(raw)) {
+    const isLegacy = raw.some(
+      (h) => typeof h === "string" && ["/insights", "/bank-inbox", "/focus", "/travel", "/habits"].includes(h)
+    );
     const seen = new Set<string>();
     list = [];
     for (const h of raw) {
       if (typeof h === "string" && allSet.has(h) && !seen.has(h)) {
+        if (isLegacy && (DEFAULT_HIDDEN_NAV_HREFS as readonly string[]).includes(h)) {
+          continue;
+        }
         list.push(h);
         seen.add(h);
       }
@@ -203,21 +212,18 @@ export function moveNavItem(list: string[], from: number, to: number): string[] 
 export function filterNavGroups(visible: string[]) {
   const order = new Map(visible.map((h, i) => [h, i]));
   const set = new Set(visible);
+  const groupOrder = new Map(NAV_GROUPS.map((g, i) => [g.titleKey, i]));
 
-  const groups = NAV_GROUPS.map((group) => ({
+  return NAV_GROUPS.map((group) => ({
     ...group,
     items: [...group.items]
       .filter((item) => set.has(item.href))
       .sort(
         (a, b) => (order.get(a.href) ?? 999) - (order.get(b.href) ?? 999)
       ),
-  })).filter((group) => group.items.length > 0);
-
-  return groups.sort((a, b) => {
-    const ai = Math.min(...a.items.map((i) => order.get(i.href) ?? 999));
-    const bi = Math.min(...b.items.map((i) => order.get(i.href) ?? 999));
-    return ai - bi;
-  });
+  }))
+    .filter((group) => group.items.length > 0)
+    .sort((a, b) => (groupOrder.get(a.titleKey) ?? 0) - (groupOrder.get(b.titleKey) ?? 0));
 }
 
 const DEFAULT_MOBILE_NAV = [

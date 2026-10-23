@@ -58,10 +58,24 @@ export const NAV_GROUPS = [
     items: [{ href: "/", labelKey: "nav.dashboard", icon: "layout-dashboard" }],
   },
   {
-    titleKey: "nav.group.health",
+    titleKey: "nav.group.finance",
     items: [
-      { href: "/nutrition", labelKey: "nav.nutrition", icon: "utensils" },
-      { href: "/fitness", labelKey: "nav.fitness", icon: "dumbbell" },
+      { href: "/transactions", labelKey: "nav.transactions", icon: "arrow-left-right" },
+      { href: "/accounts", labelKey: "nav.accounts", icon: "wallet" },
+      { href: "/budget", labelKey: "nav.budget", icon: "piggy-bank" },
+      { href: "/debts", labelKey: "nav.debts", icon: "hand-coins" },
+      { href: "/assets", labelKey: "nav.assets", icon: "gem" },
+      { href: "/goals", labelKey: "nav.goals", icon: "target" },
+      { href: "/reports", labelKey: "nav.reports", icon: "bar-chart-3" },
+    ],
+  },
+  {
+    titleKey: "nav.group.life",
+    items: [
+      { href: "/life", labelKey: "nav.life", icon: "sunrise" },
+      { href: "/growth", labelKey: "nav.growth", icon: "book-open" },
+      { href: "/journal", labelKey: "nav.journal", icon: "smile" },
+      { href: "/maintenance", labelKey: "nav.maintenance", icon: "wrench" },
     ],
   },
   {
@@ -74,29 +88,10 @@ export const NAV_GROUPS = [
     ],
   },
   {
-    titleKey: "nav.group.life",
+    titleKey: "nav.group.health",
     items: [
-      { href: "/life", labelKey: "nav.life", icon: "sunrise" },
-      { href: "/habits", labelKey: "nav.habits", icon: "flame" },
-      { href: "/focus", labelKey: "nav.focus", icon: "timer" },
-      { href: "/growth", labelKey: "nav.growth", icon: "book-open" },
-      { href: "/journal", labelKey: "nav.journal", icon: "smile" },
-      { href: "/travel", labelKey: "nav.travel", icon: "plane" },
-      { href: "/maintenance", labelKey: "nav.maintenance", icon: "wrench" },
-    ],
-  },
-  {
-    titleKey: "nav.group.finance",
-    items: [
-      { href: "/transactions", labelKey: "nav.transactions", icon: "arrow-left-right" },
-      { href: "/bank-inbox", labelKey: "nav.bankInbox", icon: "inbox" },
-      { href: "/insights", labelKey: "nav.insights", icon: "sparkles" },
-      { href: "/accounts", labelKey: "nav.accounts", icon: "wallet" },
-      { href: "/budget", labelKey: "nav.budget", icon: "piggy-bank" },
-      { href: "/debts", labelKey: "nav.debts", icon: "hand-coins" },
-      { href: "/assets", labelKey: "nav.assets", icon: "gem" },
-      { href: "/goals", labelKey: "nav.goals", icon: "target" },
-      { href: "/reports", labelKey: "nav.reports", icon: "bar-chart-3" },
+      { href: "/nutrition", labelKey: "nav.nutrition", icon: "utensils" },
+      { href: "/fitness", labelKey: "nav.fitness", icon: "dumbbell" },
     ],
   },
   {

@@ -10,7 +10,6 @@ import {
   PiggyBank,
   HandCoins,
   BarChart3,
-
   Target,
   Gem,
   Settings,
@@ -35,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/layout/app-logo";
+import { JoojoSidebarNote } from "@/components/joojo-mode";
 
 import { AUTH_ENABLED } from "@/lib/app-config";
 import { useAppearance } from "@/components/appearance-provider";
@@ -96,14 +96,17 @@ export function Sidebar() {
       <div className="flex h-16 items-center px-5 border-b border-border/70">
         <AppLogo size="md" />
       </div>
-      <nav aria-label="منوی اصلی" className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
+      <nav aria-label="منوی اصلی" className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+        <JoojoSidebarNote />
 
         {navGroups.map((group) => (
-          <details key={`${group.titleKey}:${pathname}`} open={group.items.some(item => item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)) || group.titleKey === "nav.group.overview"}>
-            <summary className="mb-1.5 cursor-pointer rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted">
-              {t(group.titleKey as MessageKey)}
-            </summary>
-            <div className="space-y-1">
+          <div key={group.titleKey} className="space-y-1">
+            {group.titleKey !== "nav.group.overview" && (
+              <p className="px-3 pt-2 pb-1 text-[11px] font-bold text-muted-foreground/75 tracking-wider select-none">
+                {t(group.titleKey as MessageKey)}
+              </p>
+            )}
+            <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = iconMap[item.icon as keyof typeof iconMap];
                 const isActive =
@@ -116,19 +119,19 @@ export function Sidebar() {
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs"
+                        : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                     )}
                   >
-                    <Icon className="h-5 w-5" />
-                    {t(item.labelKey as MessageKey)}
+                    {Icon && <Icon className="h-4.5 w-4.5 shrink-0" />}
+                    <span className="truncate">{t(item.labelKey as MessageKey)}</span>
                   </Link>
                 );
               })}
             </div>
-          </details>
+          </div>
         ))}
       </nav>
       <div className="p-4 border-t space-y-2">
@@ -145,14 +148,16 @@ export function Sidebar() {
           </Link>
         )}
         {/* Login/logout temporarily disabled; restore with AUTH_ENABLED. */}
-        {AUTH_ENABLED && <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-muted-foreground"
-          onClick={logout}
-        >
-          <LogOut className="h-5 w-5" />
-          خروج
-        </Button>}
+        {AUTH_ENABLED && (
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 text-muted-foreground"
+            onClick={logout}
+          >
+            <LogOut className="h-5 w-5" />
+            خروج
+          </Button>
+        )}
       </div>
     </aside>
   );
