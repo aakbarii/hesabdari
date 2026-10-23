@@ -183,13 +183,13 @@ export function computeJoojoReactiveState(
   // 6. Default Cheerful Companion
   return {
     state: "idle_happy",
-    title: "جوجو کنارت رواله 🎀",
+    title: "جوجو همیشه کنارت هست 🎀",
     badge: "همراه روزانه",
     image: "/joojo/smiling.png",
     phrase: "من اینجام، کنارت برای یک روز آروم و منظم! ♡",
     subtitle: "جوجوی صورتی با لبخند شیرین",
     advice: "قدم‌های کوچک پیوسته، نتایج بزرگ می‌سازن.",
-    statBadge: "روال زندگی",
+    statBadge: "نظم زندگی",
   };
 }
 

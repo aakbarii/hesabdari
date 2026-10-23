@@ -21,7 +21,7 @@ export function Header({ title }: { title: string }) {
         </div>
         <div className="flex min-w-0 items-center gap-1">
           <p className="hidden">
-            روال
+            جوجو
           </p>
           <h1 key={title} className="text-base font-semibold tracking-tight motion-fade-in truncate leading-tight lg:text-lg">
             {title}

@@ -89,7 +89,7 @@ function toHtml(data: Record<string, unknown[]>) {
       return `<h2>${name}</h2><table border="1" cellpadding="4" cellspacing="0"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
     })
     .join("");
-  return `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"/><title>Ravaal Export</title><style>body{font-family:Tahoma,sans-serif;padding:24px}table{border-collapse:collapse;width:100%;margin-bottom:24px;font-size:12px}th{background:#eee}</style></head><body><h1>روال — پشتیبان</h1><p>برای PDF از مرورگر Print → Save as PDF را بزن.</p>${sections}</body></html>`;
+  return `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"/><title>Joojo Export</title><style>body{font-family:Tahoma,sans-serif;padding:24px}table{border-collapse:collapse;width:100%;margin-bottom:24px;font-size:12px}th{background:#eee}</style></head><body><h1>جوجو — پشتیبان</h1><p>برای PDF از مرورگر Print → Save as PDF را بزن.</p>${sections}</body></html>`;
 }
 
 export async function GET(request: Request) {

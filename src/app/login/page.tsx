@@ -72,7 +72,7 @@ function LoginForm() {
           <AppLogo size="lg" showText={false} clickable={false} />
           <div className="space-y-1">
             <h1 className="text-xl font-semibold tracking-tight">
-              {needsSetup ? "راه‌اندازی روال" : "ورود به روال"}
+              {needsSetup ? "راه‌اندازی جوجو" : "ورود به جوجو"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {needsSetup ? "حساب مدیر را بسازید و وارد شوید." : "برای ادامه وارد حساب خود شوید."}

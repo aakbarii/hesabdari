@@ -1,7 +1,7 @@
 import type { MessageKey } from "./fa";
 
 const en: Record<MessageKey, string> = {
-  "app.name": "Ravaal",
+  "app.name": "Joojo",
   "app.tagline": "Life & finance OS",
   "nav.dashboard": "Dashboard",
   "nav.nutrition": "Nutrition",
@@ -56,9 +56,9 @@ const en: Record<MessageKey, string> = {
   "settings.visible": "Visible",
   "settings.hidden": "Hidden",
   "pwa.ios.title": "Install on iPhone",
-  "pwa.ios.body": "In Safari tap Share, then Add to Home Screen to open Ravaal like an app.",
+  "pwa.ios.body": "In Safari tap Share, then Add to Home Screen to open Joojo like an app.",
   "pwa.android.title": "Install on Android",
-  "pwa.android.body": "Install Ravaal on your home screen like an app.",
+  "pwa.android.body": "Install Joojo on your home screen like an app.",
   "pwa.android.install": "Install app",
   "settings.backup": "Backup & export",
   "settings.backup.hint": "Download all your data as JSON, CSV (Excel), or HTML for Print-to-PDF",

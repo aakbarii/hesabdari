@@ -2,7 +2,7 @@
   "name": "hesabdari",
   "version": "0.1.1",
   "private": true,
-  "description": "Ravaal - Personal Life & Finance Management",
+  "description": "Joojo - Personal Life & Finance Management",
   "author": "Saman",
   "main": "electron/main.cjs",
   "scripts": {

@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "روال | همراه روزهای تو",
-  "short_name": "روال",
-  "description": "روال (Ravaal Life OS) — سیستم جامع مدیریت مالی، کالری‌شمار، تمرینات ورزشی، تمرکز و رشد فردی",
+  "name": "جوجو | همراه روزهای تو",
+  "short_name": "جوجو",
+  "description": "جوجو (Joojo Life OS) — سیستم جامع مدیریت زندگی و دارایی",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -7,7 +7,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "نصب با آیکون جوجو",
   manifest: "/joojo/manifest.json?v=4",
-  appleWebApp: { capable: true, title: "روال جوجو", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "جوجو", statusBarStyle: "default" },
   icons: {
     icon: [{ url: "/joojo/stella-icon-192.png?v=4", sizes: "192x192", type: "image/png" }],
     apple: [{ url: "/joojo/stella-icon-180.png?v=4", sizes: "180x180", type: "image/png" }],
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default function JoojoInstallPage() {
   return <div className="mx-auto max-w-lg space-y-6 p-6 text-center">
     <Image src="/joojo/stella-icon-192.png" alt="آیکون جوجوی صورتی" width={160} height={160} priority className="mx-auto rounded-[36px] shadow-lg border-2 border-border/60" />
-    <h1 className="text-2xl font-bold">روال با آیکون جوجو 🎀</h1>
+    <h1 className="text-2xl font-bold">نصب برنامه جوجو 🎀</h1>
     <p className="text-sm leading-8 text-muted-foreground">این صفحه مخصوص نصب با آیکون جوجوست. در Safari همین صفحه را باز نگه دار، دکمهٔ اشتراک‌گذاری را بزن و «Add to Home Screen» را انتخاب کن. در پیش‌نمایش، تصویر جوجو را بررسی کن و بعد «Add» بزن.</p>
 
     {/* Showcase of character poses */}

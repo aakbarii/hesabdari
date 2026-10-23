@@ -15,16 +15,16 @@ import { MobileViewport } from "@/components/mobile-viewport";
 
 export const metadata: Metadata = {
   title: {
-    default: "روال | سیستم هوشمند مدیریت زندگی و دارایی",
-    template: "%s | روال",
+    default: "جوجو | سیستم هوشمند مدیریت زندگی و دارایی",
+    template: "%s | جوجو",
   },
-  description: "روال (Ravaal Life OS) — سیستم جامع مدیریت مالی، بودجه‌بندی، رژیم و کالری‌شمار، تمرینات ورزشی، تمرکز و رشد فردی",
-  applicationName: "روال (Ravaal)",
+  description: "جوجو (Joojo Life OS) — سیستم جامع مدیریت مالی، بودجه‌بندی، رژیم و کالری‌شمار، تمرینات ورزشی، تمرکز و رشد فردی",
+  applicationName: "جوجو (Joojo)",
   manifest: "/manifest.json?v=4",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "روال",
+    title: "جوجو",
   },
   formatDetection: {
     telephone: false,

@@ -41,7 +41,7 @@ export function AppLogo({
       >
         <Image
           src="/joojo/stella-icon-192.png"
-          alt="جوجوی روال"
+          alt="جوجو"
           width={currentSize.icon}
           height={currentSize.icon}
           className="h-full w-full object-contain drop-shadow"
@@ -53,7 +53,7 @@ export function AppLogo({
         <div className="flex flex-col text-right leading-none">
           <div className="flex items-center gap-1.5">
             <span className={cn("font-semibold tracking-tight text-foreground", currentSize.text)}>
-              روال
+              جوجو
             </span>
           </div>
           {subtitle && <span className={cn("mt-1 text-muted-foreground font-medium truncate", currentSize.sub)}>{subtitle}</span>}

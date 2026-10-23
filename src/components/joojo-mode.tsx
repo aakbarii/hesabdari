@@ -22,7 +22,7 @@ export function JoojoHero({ title, subtitle, action, className, heroKey }: { tit
       <div className="joojo-hero-copy">
         <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full border border-pink-200/90 bg-white/80 px-3 py-1 text-[11px] font-semibold text-pink-600 shadow-xs backdrop-blur-xs">
           <span className="text-xs">✨</span>
-          <span>همراه اختصاصی روال شما ♡</span>
+          <span>همراه اختصاصی شما ♡</span>
         </div>
         <h2>{title}</h2>
         {subtitle && <p>{subtitle}</p>}
@@ -74,7 +74,7 @@ export function JoojoModeCard() {
     setPending(true);
     try {
       await setMood(active ? "neutral" : "joojo");
-      toast.success(active ? "به تم روال برگشتی" : "به دنیای جوجو خوش اومدی! 🎀");
+      toast.success(active ? "به تم کلاسیک برگشتی" : "به دنیای جوجو خوش اومدی! 🎀");
     } catch { toast.error("تم ذخیره نشد؛ دوباره تلاش کن"); }
     finally { setPending(false); }
   }

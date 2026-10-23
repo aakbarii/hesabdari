@@ -63,7 +63,7 @@ export default function RegisterPage() {
           <div className="mx-auto mb-3 flex items-center justify-center">
             <AppLogo size="xl" showText={false} clickable={false} />
           </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums">عضویت در روال</CardTitle>
+          <CardTitle className="text-2xl font-semibold tabular-nums">عضویت در جوجو</CardTitle>
           <p className="text-sm text-muted-foreground">حساب شخصی بسازید و برنامه‌ها و اطلاعات خودتان را مدیریت کنید.</p>
         </CardHeader>
         <CardContent>

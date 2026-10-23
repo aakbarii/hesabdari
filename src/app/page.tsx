@@ -301,7 +301,7 @@ export default function DashboardPage() {
           />
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
             <div className="max-w-xl space-y-3">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-emerald-50"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> فضای شخصی روال</span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-emerald-50"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> فضای شخصی جوجو</span>
               <h2 className="text-2xl font-semibold leading-relaxed sm:text-3xl">امروز را با خیال آسوده شروع کن.</h2>
               <p className="text-sm leading-7 text-emerald-50/80">دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.</p>
               <div className="flex flex-wrap gap-2 pt-1">

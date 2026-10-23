@@ -1,5 +1,5 @@
 const fa = {
-  "app.name": "روال",
+  "app.name": "جوجو",
   "app.tagline": "سامانه جامع زندگی و مالی",
   "nav.dashboard": "داشبورد",
   "nav.nutrition": "کالری و غذا",
@@ -56,7 +56,7 @@ const fa = {
   "pwa.ios.title": "نصب روی آیفون",
   "pwa.ios.body": "در Safari دکمه Share را بزن، بعد Add to Home Screen را انتخاب کن تا مثل اپ باز شود.",
   "pwa.android.title": "نصب روی اندروید",
-  "pwa.android.body": "روال را مثل اپ روی صفحهٔ اصلی نصب کن.",
+  "pwa.android.body": "جوجو را مثل اپ روی صفحهٔ اصلی نصب کن.",
   "pwa.android.install": "نصب اپ",
   "settings.backup": "پشتیبان و خروجی",
   "settings.backup.hint": "دانلود همهٔ داده‌ها به‌صورت JSON، CSV (اکسل) یا HTML برای چاپ PDF",
