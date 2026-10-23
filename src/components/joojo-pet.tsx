@@ -221,7 +221,7 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
         <div className="grid grid-cols-4 gap-1.5">
           {[
             { id: "/joojo/smiling.png", label: "خندان" },
-            { id: "/joojo/winking.png", label: "چشمک" },
+            { id: "/joojo/winking.png", label: "بازیگوش" },
             { id: "/joojo/floating.png", label: "پرواز" },
             { id: "/joojo/hatchling.png", label: "پشمالو" },
           ].map((item) => (

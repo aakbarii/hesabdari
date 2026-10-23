@@ -29,8 +29,8 @@ export default function JoojoInstallPage() {
           <span className="text-[10px] text-muted-foreground mt-1 font-medium">خندان</span>
         </div>
         <div className="flex flex-col items-center p-2 rounded-xl bg-background border border-border/50">
-          <Image src="/joojo/winking.png" alt="چشمک" width={48} height={48} className="h-12 w-12 object-contain" />
-          <span className="text-[10px] text-muted-foreground mt-1 font-medium">چشمک</span>
+          <Image src="/joojo/winking.png" alt="بازیگوش" width={48} height={48} className="h-12 w-12 object-contain" />
+          <span className="text-[10px] text-muted-foreground mt-1 font-medium">بازیگوش</span>
         </div>
         <div className="flex flex-col items-center p-2 rounded-xl bg-background border border-border/50">
           <Image src="/joojo/floating.png" alt="پرواز" width={48} height={48} className="h-12 w-12 object-contain" />
