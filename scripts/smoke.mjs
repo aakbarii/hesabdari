@@ -13,7 +13,7 @@ const nodeBin = process.env.SMOKE_NODE_BIN || process.execPath;
 const serverArgs = serverDir ? [path.join(serverDir, "server.js")] : ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(port)];
 const server = spawn(nodeBin, serverArgs, {
   cwd: serverDir,
-  env: { ...process.env, TURSO_DATABASE_URL: "", TURSO_AUTH_TOKEN: "", PORT: String(port), HOSTNAME: "127.0.0.1", HESABDARI_ROOT: serverDir || process.cwd(), HESABDARI_DATA_DIR: dataDir, SESSION_SECRET: "isolated-smoke-test-secret-do-not-use-in-production", NEXT_TELEMETRY_DISABLED: "1" },
+  env: { ...process.env, ADMIN_EMAIL: "admin@smoke.test", ADMIN_SETUP_TOKEN: "isolated-admin-setup-token", TURSO_DATABASE_URL: "", TURSO_AUTH_TOKEN: "", PORT: String(port), HOSTNAME: "127.0.0.1", HESABDARI_ROOT: serverDir || process.cwd(), HESABDARI_DATA_DIR: dataDir, SESSION_SECRET: "isolated-smoke-test-secret-do-not-use-in-production", NEXT_TELEMETRY_DISABLED: "1" },
   stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
 });
 let logs = "";
@@ -43,16 +43,41 @@ try {
   const installResponse = await fetch(base + "/install/joojo", { redirect: "manual" });
   assert.equal(installResponse.status, 200, "Install page must work without a session");
   const installHtml = await installResponse.text();
-  assert.match(installHtml, /rel="apple-touch-icon"[^>]*href="\/joojo\/icon-180\.png\?v=2"/);
-  assert.match(installHtml, /rel="manifest"[^>]*href="\/joojo\/manifest\.json\?v=2"/);
+  assert.match(installHtml, /rel="apple-touch-icon"[^>]*href="\/joojo\/pink-icon-180\.png\?v=3"/);
+  assert.match(installHtml, /rel="manifest"[^>]*href="\/joojo\/manifest\.json\?v=3"/);
   checks += 3;
   const me = (await request("/api/auth/me")).data;
   const authEnabled = !me.user;
   let alice, bob;
   if (authEnabled) {
     await request("/api/accounts", { status: 401 });
+    await request("/api/admin/users", { status: 401 });
+    await request("/api/auth/register", { method: "POST", body: { email: " ADMIN@smoke.test ", password: "Test-password-123", name: "Reserved", gender: "male" }, status: 403 });
+    await request("/api/auth/register", { method: "POST", body: { email: "spoof@smoke.test", password: "Test-password-123", name: "Spoof", gender: "male", role: "admin", isAdmin: true }, status: 400 });
+    await request("/api/auth/setup", { method: "POST", body: { email: "admin@smoke.test", password: "Test-password-123", setupToken: "wrong-token" }, status: 403 });
+    const admin = await request("/api/auth/setup", { method: "POST", body: { email: "admin@smoke.test", password: "Test-password-123", name: "مدیر آزمایشی", setupToken: "isolated-admin-setup-token" } });
+    assert.equal((await request("/api/auth/me", { cookie: admin.cookie })).data.user.role, "admin");
+    await request("/api/admin/users", { cookie: admin.cookie });
+    const adminPanel = await fetch(base + "/sanjabadmin", { headers: { Cookie: admin.cookie }, redirect: "manual" });
+    assert.equal(adminPanel.status, 200);
+    checks++;
     alice = await request("/api/auth/register", { method: "POST", body: { email: "alice@smoke.test", password: "Test-password-123", name: "آزمایش", gender: "female" } });
     bob = await request("/api/auth/register", { method: "POST", body: { email: "bob@smoke.test", password: "Test-password-123", name: "کاربر دوم", gender: "male" } });
+    assert.equal(alice.data.role, "user");
+    assert.equal(alice.data.isAdmin, false);
+    const ordinary = (await request("/api/auth/me", { cookie: alice.cookie })).data.user;
+    assert.equal(ordinary.role, "user");
+    assert.equal(ordinary.isAdmin, false);
+    await request("/api/admin/users", { cookie: alice.cookie, status: 403 });
+    await request(`/api/admin/users/${admin.data.userId}`, { cookie: alice.cookie, status: 403 });
+    await request("/api/profile", { method: "PATCH", cookie: alice.cookie, body: { email: "ADMIN@smoke.test" }, status: 403 });
+    await request("/api/profile", { method: "PATCH", cookie: alice.cookie, body: { role: "admin", isAdmin: true }, status: 400 });
+    assert.equal((await request("/api/auth/me", { cookie: alice.cookie })).data.user.role, "user");
+    const login = await request("/api/auth/login", { method: "POST", body: { email: " ALICE@SMOKE.TEST ", password: "Test-password-123" } });
+    assert.equal(login.data.user.role, "user");
+    await request("/api/admin/users", { cookie: login.cookie, status: 403 });
+    await request("/api/auth/setup", { method: "POST", cookie: alice.cookie, body: { email: "admin@smoke.test", password: "Test-password-123" }, status: 403 });
+    await request("/api/auth/register", { method: "POST", body: { email: "ALICE@smoke.test", password: "Test-password-123", name: "Duplicate", gender: "male" }, status: 400 });
   } else {
     assert.equal(me.user.id, "default-user");
     assert.equal(me.needsSetup, false);
@@ -70,6 +95,12 @@ try {
     alice = bob = {};
   }
   const cookie = alice.cookie;
+  const initialAppearance = (await request("/api/settings", { cookie })).data;
+  assert.equal(initialAppearance.appearanceMood, "joojo");
+  assert.equal(initialAppearance.accentColor, "rose");
+  assert.deepEqual(initialAppearance.widgets, ["balance", "monthly", "recent", "life"]);
+  await request("/api/settings", { method: "PATCH", cookie, body: { gender: "female" } });
+  assert.equal((await request("/api/settings", { cookie })).data.appearanceMood, "joojo", "Profile changes must preserve the chosen theme");
   const account = (await request("/api/accounts", { method: "POST", cookie, body: { name: "بانک آزمایشی", type: "bank", initialBalance: 100000 } })).data;
   const destination = (await request("/api/accounts", { method: "POST", cookie, body: { name: "نقدی", type: "cash" } })).data;
   let other;
@@ -116,13 +147,20 @@ try {
   await request("/api/settings", { method: "PATCH", cookie, body: { appearanceMood: "joojo", accentColor: "indigo" } });
   const joojoSettings = (await request("/api/settings", { cookie })).data;
   const adminPage = await fetch(base + "/sanjabadmin", { headers: cookie ? { Cookie: cookie } : {}, redirect: "manual" });
-  assert.equal(adminPage.status, 200);
+  if (!authEnabled) assert.equal(adminPage.status, 200);
+  else if (adminPage.status === 307) assert.equal(new URL(adminPage.headers.get("location"), base).pathname, "/");
+  else {
+    // Next may have started streaming before the nested server layout redirects.
+    assert.equal(adminPage.status, 200);
+    const html = await adminPage.text();
+    assert.ok(html.includes("NEXT_REDIRECT;replace;/;307") || html.includes('content="0;url=/"'), "A regular user must receive the streamed redirect, never the admin page");
+  }
   const oldAdminPage = await fetch(base + "/admin", { headers: cookie ? { Cookie: cookie } : {}, redirect: "manual" });
   assert.equal(oldAdminPage.status, 404);
   checks += 2;
   assert.equal(joojoSettings.appearanceMood, "joojo");
   assert.equal(joojoSettings.accentColor, "indigo");
-  if (authEnabled) assert.notEqual((await request("/api/settings", { cookie: bob.cookie })).data.appearanceMood, "joojo");
+  if (authEnabled) assert.notEqual((await request("/api/settings", { cookie: bob.cookie })).data.accentColor, "indigo");
   await request("/api/settings", { method: "PATCH", cookie, body: { appearanceMood: "neutral" } });
   const restoredSettings = (await request("/api/settings", { cookie })).data;
   assert.equal(restoredSettings.appearanceMood, "neutral");

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   allowedDevOrigins: ["192.168.172.168", "127.0.0.1"],
   serverExternalPackages: ["@libsql/client"],
   // Migrations are read from the drizzle folder at runtime; ship it with every serverless function.

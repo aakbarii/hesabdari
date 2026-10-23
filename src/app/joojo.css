@@ -1,198 +1,67 @@
-/* A complete, opt-in scrapbook skin. All workspace overrides stay scoped. */
+/* Quiet rose workspace: one accent, soft paper surfaces, clear hierarchy. */
 html[data-appearance="joojo"] {
-  --background: #fff9f0;
-  --foreground: #593647;
-  --card: #fffdfb;
-  --card-foreground: #593647;
-  --popover: #fffdfb;
-  --popover-foreground: #593647;
-  --primary: #b72b69 !important;
-  --primary-foreground: #fff;
-  --ring: #c64480 !important;
-  --secondary: #f6e8fc;
-  --secondary-foreground: #6f4082;
-  --muted: #f8edf1;
-  --muted-foreground: #816071;
-  --accent: #ffe2ed;
-  --accent-foreground: #882b54;
-  --border: #eed2dc;
-  --input: #dcb1c4;
-  --sidebar: #fff1f6;
-  --sidebar-foreground: #593647;
-  --sidebar-primary: #b72b69 !important;
-  --sidebar-accent: #fbd3e4;
-  --sidebar-accent-foreground: #86244e;
-  --sidebar-border: #edc4d6;
-  --radius: 1rem;
-  --chart-1: #be3973;
-  --chart-2: #8d60b9;
-  --chart-3: #bf850f;
-  --chart-4: #37897d;
-  --chart-5: #6887c0;
-  --joojo-pink: #ffe1ed;
-  --joojo-cream: #fff2c9;
-  --joojo-lilac: #eee2ff;
-  --joojo-shadow: #d5a1b6;
-  --joojo-paper: #fffdfb;
-  --joojo-dot: #e8b6cb;
+  --background: #fff8fa; --foreground: #48333e; --card: #ffffff; --card-foreground: #48333e;
+  --popover: #ffffff; --popover-foreground: #48333e;
+  --primary: #ad416b !important; --primary-foreground: #fff; --ring: #b94f78 !important;
+  --secondary: #faedf2; --secondary-foreground: #78445a; --muted: #f8f0f3; --muted-foreground: #846775;
+  --accent: #f9e4ed; --accent-foreground: #893853; --border: #efdee5; --input: #e6cdd8;
+  --sidebar: #fffdfd; --sidebar-foreground: #48333e; --sidebar-primary: #ad416b !important;
+  --sidebar-accent: #f9e4ed; --sidebar-accent-foreground: #893853; --sidebar-border: #efdee5;
+  --radius: 1rem; --chart-1: #b74d77; --chart-2: #a28ba8; --chart-3: #d8ac83; --chart-4: #7eaa9e; --chart-5: #9ba9c4;
+  --joojo-pink: #fbe9f0; --joojo-cream: #fcf4f5; --joojo-lilac: #f5edf3;
+  --joojo-paper: #ffffff; --joojo-shadow: #e8cad7;
 }
 html.dark[data-appearance="joojo"] {
-  --background: #251c2b;
-  --foreground: #fce7ef;
-  --card: #342536;
-  --card-foreground: #fce7ef;
-  --popover: #342536;
-  --popover-foreground: #fce7ef;
-  --primary: #f6a5ca !important;
-  --primary-foreground: #422039;
-  --ring: #f6a5ca !important;
-  --secondary: #44324f;
-  --secondary-foreground: #ebd6ff;
-  --muted: #422f43;
-  --muted-foreground: #d0afc3;
-  --accent: #543347;
-  --accent-foreground: #ffd4e7;
-  --border: #634258;
-  --input: #80556e;
-  --sidebar: #302132;
-  --sidebar-accent: #58364e;
-  --sidebar-accent-foreground: #ffdbeb;
-  --sidebar-border: #634258;
-  --sidebar-primary: #f6a5ca !important;
-  --joojo-pink: #4c2d43;
-  --joojo-cream: #44372e;
-  --joojo-lilac: #3f3152;
-  --joojo-shadow: #16101d;
-  --joojo-paper: #342536;
-  --joojo-dot: #5d3d53;
+  --background: #251e24; --foreground: #f4e5ec; --card: #30272e; --card-foreground: #f4e5ec;
+  --popover: #30272e; --popover-foreground: #f4e5ec; --primary: #eda9c4 !important;
+  --primary-foreground: #38212c; --ring: #eda9c4 !important;
+  --secondary: #3c2d37; --secondary-foreground: #ebcbd9; --muted: #3b3038; --muted-foreground: #c9aebc;
+  --accent: #49303e; --accent-foreground: #f8d5e5; --border: #51404b; --input: #705365;
+  --sidebar: #2b2229; --sidebar-foreground: #f4e5ec; --sidebar-primary: #eda9c4 !important;
+  --sidebar-accent: #49303e; --sidebar-accent-foreground: #f8d5e5; --sidebar-border: #51404b;
+  --joojo-pink: #402c38; --joojo-cream: #382a32; --joojo-lilac: #382d3c; --joojo-paper: #30272e; --joojo-shadow: #20171d;
 }
-html[data-appearance="joojo"] body { background: var(--background); }
-html[data-appearance="joojo"] .app-shell {
-  background-image: radial-gradient(var(--joojo-dot) .8px, transparent .8px);
-  background-size: 20px 20px;
-}
+html[data-appearance="joojo"] body, html[data-appearance="joojo"] .app-shell { background: var(--background); background-image: none; }
 html[data-appearance="joojo"] .app-shell::before { display: none; }
-html[data-appearance="joojo"] .app-shell header {
-  background: color-mix(in srgb, var(--joojo-paper) 94%, transparent);
-  border-bottom: 2px dashed var(--border);
-  box-shadow: 0 4px 0 color-mix(in srgb, var(--joojo-pink) 60%, transparent);
-}
-html[data-appearance="joojo"] aside {
-  background-image: repeating-linear-gradient(0deg, transparent 0 26px, color-mix(in srgb, var(--border) 40%, transparent) 26px 27px);
-  border-inline-end: 2px solid var(--border);
-}
-html[data-appearance="joojo"] aside nav > div > p { font-weight: 800; letter-spacing: .02em; }
-html[data-appearance="joojo"] aside nav a {
-  border-radius: 14px 22px 22px 14px;
-  border: 1px solid transparent;
-  min-height: 42px;
-}
-html[data-appearance="joojo"] aside nav a[aria-current="page"] {
-  border-color: var(--border);
-  box-shadow: 0 3px 0 var(--joojo-shadow);
-  background: var(--sidebar-accent);
-  font-weight: 800;
-}
-html[data-appearance="joojo"] aside nav a[aria-current="page"]::after { content: "🎀"; margin-inline-start: auto; font-size: 16px; }
-html[data-appearance="joojo"] aside nav a > svg {
-  box-sizing: content-box; padding: 7px; border-radius: 11px; background: var(--joojo-paper); color: var(--primary); width: 17px; height: 17px;
-}
-html[data-appearance="joojo"] [data-slot="card"] {
-  border: 2px solid var(--border);
-  border-radius: 24px 24px 18px 24px;
-  box-shadow: 0 5px 0 color-mix(in srgb, var(--joojo-shadow) 45%, transparent), 0 12px 25px -22px var(--foreground);
-  background: var(--card);
-}
-html[data-appearance="joojo"] [data-slot="card-header"] {
-  border-bottom: 1px dashed var(--border); padding-bottom: 14px;
-  background: linear-gradient(105deg, var(--joojo-pink), transparent 80%);
-}
-html[data-appearance="joojo"] [data-slot="card"]:nth-child(3n+2) [data-slot="card-header"] { background: linear-gradient(105deg, var(--joojo-cream), transparent 80%); }
-html[data-appearance="joojo"] [data-slot="card"]:nth-child(3n) [data-slot="card-header"] { background: linear-gradient(105deg, var(--joojo-lilac), transparent 80%); }
-html[data-appearance="joojo"] [data-slot="card-title"] { font-weight: 800; }
-html[data-appearance="joojo"] [data-slot="button"] { border-radius: 999px; }
-html[data-appearance="joojo"] [data-slot="button"].bg-primary {
-  border: 1px solid color-mix(in srgb, var(--primary) 75%, var(--foreground));
-  box-shadow: 0 3px 0 color-mix(in srgb, var(--primary) 65%, var(--foreground));
-}
-html[data-appearance="joojo"] [data-slot="button"]:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
-html[data-appearance="joojo"] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]) {
-  border-radius: 14px; border: 1.5px solid var(--input); background: var(--joojo-paper); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--border) 35%, transparent);
-}
-html[data-appearance="joojo"] [data-slot="tabs-list"] { border-radius: 18px; border: 1px solid var(--border); background: var(--joojo-pink); padding: 5px; height: auto; gap: 4px; }
-html[data-appearance="joojo"] [data-slot="tabs-trigger"] { border-radius: 13px; min-height: 34px; }
-html[data-appearance="joojo"] [data-slot="tabs-trigger"][data-active] { background: var(--joojo-paper); box-shadow: 0 2px 0 var(--joojo-shadow); }
-html[data-appearance="joojo"] :is([data-slot="dialog-content"], [data-slot="sheet-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"]) { border: 2px solid var(--border); border-radius: 24px; background: var(--popover); box-shadow: 0 8px 0 color-mix(in srgb, var(--joojo-shadow) 60%, transparent), 0 20px 70px #35152333; }
-html[data-appearance="joojo"] [data-slot="sheet-content"][data-side="bottom"] { border-radius: 28px 28px 0 0; }
-html[data-appearance="joojo"] [data-slot="sheet-header"] { background: var(--joojo-pink); border-bottom: 2px dashed var(--border); }
-html[data-appearance="joojo"] [data-slot="sheet-content"] a { background: var(--joojo-paper); border: 1.5px solid var(--border); box-shadow: 0 3px 0 var(--joojo-shadow); }
-html[data-appearance="joojo"] [data-slot="badge"] { border-radius: 9px 14px 9px 14px; border: 1px dashed currentColor; }
-html[data-appearance="joojo"] [data-slot="table-container"] { border: 1px solid var(--border); border-radius: 18px; background: var(--card); }
-html[data-appearance="joojo"] [data-slot="table-header"] { background: var(--joojo-pink); }
-html[data-appearance="joojo"] [data-slot="table-row"] { border-bottom-style: dashed; }
-html[data-appearance="joojo"] [role="timer"] { width: fit-content; max-width: 100%; margin-inline: auto; position: relative; padding: 30px 22px; border: 3px dashed var(--input); outline: 9px solid var(--joojo-pink); border-radius: 40% 40% 35% 35%; background: radial-gradient(ellipse at top, var(--joojo-cream), var(--joojo-paper) 75%); color: var(--primary); text-shadow: 0 3px 0 var(--joojo-pink); font-size: clamp(3.2rem, 11vw, 6rem); }
-html[data-appearance="joojo"] [role="timer"]::before { content: "🎀"; position: absolute; top: -24px; left: calc(50% - 15px); font-size: 30px; line-height: 1; }
-html[data-appearance="joojo"] input[type="checkbox"] { accent-color: var(--primary); width: 18px; height: 18px; }
-html[data-appearance="joojo"] [data-sonner-toast] { border: 2px solid var(--border); border-radius: 20px; background: var(--card); color: var(--foreground); box-shadow: 0 4px 0 var(--joojo-shadow); }
-html[data-appearance="joojo"] [data-slot="progress"] { height: 12px; border: 2px solid var(--border); background: var(--joojo-pink); border-radius: 999px; }
-html[data-appearance="joojo"] nav[aria-label="دسترسی سریع"] { margin: 0 10px 10px; border: 2px solid var(--border); border-radius: 25px; background: var(--card); box-shadow: 0 5px 0 var(--joojo-shadow); }
-html[data-appearance="joojo"] nav[aria-label="دسترسی سریع"] [aria-current="page"] { background: var(--joojo-pink); border-radius: 18px; }
-html[data-appearance="joojo"] ::selection { background: #f3b4d1; color: #49243a; }
-
-/* The illustrated stage replaces ordinary photographic banners. */
-.joojo-hero { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 32px; min-height: 250px; overflow: hidden; border: 2px solid var(--border); border-radius: 34px 34px 34px 12px; background: linear-gradient(120deg, var(--joojo-paper) 15%, var(--joojo-pink) 75%, var(--joojo-cream)); box-shadow: 0 7px 0 var(--joojo-shadow); }
-.joojo-hero::before { content: ""; position: absolute; inset: 12px; z-index: -1; border: 2px dashed var(--border); border-radius: 25px; pointer-events: none; }
-.joojo-hero-copy { flex: 1; min-width: 0; position: relative; z-index: 1; }
-.joojo-hero h2 { font-size: clamp(1.35rem, 2.5vw, 2rem); font-weight: 850; margin-top: 14px; line-height: 1.8; }
-.joojo-hero p { color: var(--muted-foreground); max-width: 540px; font-size: 14px; line-height: 2; }
-.joojo-label { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .03em; color: #922a58; background: #ffe4ef; border: 1px dashed #df96b4; border-radius: 99px; padding: 5px 12px; }
-.joojo-stickers { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
-.joojo-stickers span { display: inline-block; padding: 6px 11px; border: 2px solid var(--joojo-paper); border-radius: 8px; background: var(--joojo-cream); box-shadow: 0 2px 4px #71395215; font-size: 11px; font-weight: 700; transform: rotate(-4deg); }
-.joojo-stickers span:nth-child(2) { background: var(--joojo-lilac); transform: rotate(4deg); }
-.joojo-stickers span:nth-child(3) { background: var(--joojo-pink); transform: rotate(-2deg); }
-.joojo-mascot-stage { flex: 0 0 240px; position: relative; display: grid; place-items: center; align-self: stretch; }
-.joojo-mascot-stage::before { content: ""; position: absolute; width: 210px; height: 210px; background: var(--joojo-cream); border: 7px solid color-mix(in srgb, var(--joojo-paper) 70%, transparent); border-radius: 49% 51% 60% 40%; transform: rotate(12deg); z-index: -1; }
-.joojo-mascot-stage .joojo-mascot { width: 225px; height: 225px; filter: drop-shadow(0 10px 9px #8f4d6d20); animation: joojo-arrive .65s ease-out both; }
-.joojo-caption { background: var(--joojo-paper); font-size: 11px; color: var(--muted-foreground); padding: 5px 14px; border-radius: 99px; border: 1px solid var(--border); transform: rotate(-5deg); }
-.joojo-orbit { position: absolute; top: 7px; right: 0; color: #c68c1a; font-size: 36px; transform: rotate(12deg); }
-.joojo-heart { position: absolute; left: -4px; top: 30%; color: #c94484; font-size: 44px; transform: rotate(-15deg); }
-.joojo-sidebar-note { display: flex; align-items: center; border: 1.5px dashed var(--input); border-radius: 20px; padding: 7px; background: var(--joojo-paper); margin-bottom: 20px; }
-.joojo-sidebar-note strong { font-size: 12px; }
-.joojo-sidebar-note p { font-size: 10px; margin: 5px 0; color: var(--muted-foreground); }
-.joojo-sidebar-note a { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--primary); padding: 0; min-height: 28px !important; }
-.joojo-header-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--joojo-pink); border: 1px dashed var(--border); border-radius: 99px; font-size: 11px; font-weight: 750; }
-
-/* This preview remains visible in every theme, so discovery needs no menu hunt. */
-.joojo-mode-card { display: flex; align-items: center; gap: 24px; position: relative; border: 2px solid #efc2d5; border-radius: 26px; padding: 24px; background: linear-gradient(125deg, #fff8e6, #fff3f8 55%, #f5ebff); color: #593647; box-shadow: 0 5px 0 #eed1df; }
-.joojo-mode-card[data-active="true"] { border-color: #c64480; }
-.joojo-mode-card { flex-wrap: wrap; }
-.joojo-mode-copy { flex: 1; min-width: 0; }
-.joojo-mode-preview { position: relative; flex-shrink: 0; border-radius: 35% 65% 60% 40%; background: #ffe3ef; border: 5px solid #fff8; }
-.joojo-preview-star { position: absolute; top: -8px; right: -4px; font-size: 28px; color: #c68c1a; }
-.joojo-preview-bow { position: absolute; bottom: 4px; left: -10px; font-size: 26px; transform: rotate(-20deg); }
-.joojo-mode-copy h3 { display: flex; align-items: center; gap: 10px; font-size: 25px; font-weight: 850; margin: 10px 0 6px; }
-.joojo-mode-copy p { font-size: 12px; line-height: 2; color: #816071; max-width: 520px; }
-.joojo-activate { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; margin-top: 16px; border-radius: 999px; background: #ae2d65; color: #fff; font-size: 12px; font-weight: 750; border: 1px solid #8e2251; box-shadow: 0 4px 0 #7d204c; cursor: pointer; }
-.joojo-activate:hover { background: #942252; }
-.joojo-activate:active { transform: translateY(2px); box-shadow: 0 2px 0 #7d204c; }
-.joojo-activate:disabled { cursor: wait; opacity: .65; }
-@keyframes joojo-arrive { from { opacity: 0; transform: translateY(12px) rotate(-6deg) scale(.95); } to { opacity: 1; transform: none; } }
-@media (max-width: 639px) {
-  .joojo-hero { padding: 24px 20px; gap: 0; flex-wrap: wrap; }
-  .joojo-hero-copy { flex-basis: 100%; }
-  .joojo-hero h2 { max-width: 100%; font-size: 22px; }
-  .joojo-mascot-stage { flex-basis: 100%; height: 175px; margin-top: 18px; }
-  .joojo-mascot-stage .joojo-mascot { width: 160px; height: 160px; }
-  .joojo-mascot-stage::before { width: 155px; height: 155px; }
-  .joojo-caption { position: absolute; bottom: -7px; left: calc(50% - 130px); }
-  .joojo-heart { left: calc(50% - 115px); }
-  .joojo-orbit { right: calc(50% - 115px); }
-  .joojo-mode-card { flex-direction: column; gap: 12px; padding: 20px; text-align: center; }
-  .joojo-mode-copy h3 { justify-content: center; }
-  .joojo-mode-preview .joojo-mascot { height: 120px; width: 120px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .joojo-activate:active { transform: none; }
-  .joojo-mascot-stage .joojo-mascot { animation: none; }
-  html[data-appearance="joojo"] [data-slot="button"]:active { transform: none; }
-}
+html[data-appearance="joojo"] .app-header { background: color-mix(in srgb, var(--background) 94%, transparent); box-shadow: none; border-bottom: 1px solid var(--border); }
+html[data-appearance="joojo"] aside { background: var(--sidebar); border-inline-end: 1px solid var(--border); }
+html[data-appearance="joojo"] aside nav a { border-radius: 12px; min-height: 42px; }
+html[data-appearance="joojo"] aside nav a[aria-current="page"] { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); font-weight: 650; box-shadow: none; }
+html[data-appearance="joojo"] [data-slot="card"] { border: 1px solid var(--border); border-radius: 20px; background: var(--card); box-shadow: 0 4px 24px -20px #73395128; overflow: hidden; }
+html[data-appearance="joojo"] [data-slot="card-header"] { background: transparent; border: 0; }
+html[data-appearance="joojo"] [data-slot="card-title"] { font-weight: 650; }
+html[data-appearance="joojo"] [data-slot="button"] { border-radius: 12px; box-shadow: none; }
+html[data-appearance="joojo"] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]) { border-radius: 12px; background: var(--card); box-shadow: none; }
+html[data-appearance="joojo"] [data-slot="tabs-list"] { border: 0; border-radius: 12px; padding: 4px; background: var(--muted); height: auto; }
+html[data-appearance="joojo"] [data-slot="tabs-trigger"] { border-radius: 9px; min-height: 34px; }
+html[data-appearance="joojo"] :is([data-slot="dialog-content"], [data-slot="sheet-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"]) { border: 1px solid var(--border); border-radius: 20px; background: var(--popover); box-shadow: 0 20px 70px #35152320; }
+html[data-appearance="joojo"] [data-slot="sheet-content"][data-side="bottom"] { border-radius: 24px 24px 0 0; }
+html[data-appearance="joojo"] [data-slot="sheet-header"] { background: var(--popover); border-bottom: 1px solid var(--border); }
+html[data-appearance="joojo"] [data-slot="badge"] { border-radius: 7px; }
+html[data-appearance="joojo"] [data-slot="table-header"] { background: var(--muted); }
+html[data-appearance="joojo"] [role="timer"] { color: var(--primary); font-size: clamp(3rem, 11vw, 6rem); }
+html[data-appearance="joojo"] input[type="checkbox"] { accent-color: var(--primary); }
+html[data-appearance="joojo"] nav[aria-label="دسترسی سریع"] { background: var(--card); border-top: 1px solid var(--border); box-shadow: 0 -8px 30px -22px #73395130; }
+html[data-appearance="joojo"] ::selection { background: #f5c7db; color: #49243a; }
+.joojo-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 30px; min-height: 170px; border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(110deg, var(--joojo-paper), var(--joojo-pink)); }
+.joojo-hero-copy { flex: 1; min-width: 0; }
+.joojo-hero h2 { font-size: clamp(1.2rem, 2vw, 1.6rem); font-weight: 700; line-height: 1.8; }
+.joojo-hero p { color: var(--muted-foreground); max-width: 520px; font-size: 13px; line-height: 2; margin-top: 4px; }
+.joojo-label { display: inline-flex; align-items: center; gap: 6px; color: var(--primary); font-size: 11px; }
+.joojo-mascot-stage { flex: 0 0 130px; display: grid; place-items: center; position: relative; }
+.joojo-mascot-stage .joojo-mascot { width: 130px; height: 130px; }
+.joojo-sidebar-note { display: flex; align-items: center; gap: 8px; padding: 10px; margin-bottom: 16px; border-radius: 14px; background: var(--muted); }
+.joojo-sidebar-note .joojo-mascot { width: 42px; height: 42px; }
+.joojo-sidebar-note strong { font-size: 11px; font-weight: 600; }
+.joojo-sidebar-note p { display: none; }
+.joojo-sidebar-note a { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted-foreground); margin-top: 4px; }
+.joojo-header-badge { display: none; }
+.joojo-mode-card { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; border: 1px solid #eed8e2; border-radius: 20px; padding: 24px; background: #fff7fa; color: #48333e; }
+.joojo-mode-preview { flex-shrink: 0; }
+.joojo-mode-copy { flex: 1; min-width: 180px; }
+.joojo-mode-copy h3 { display: flex; align-items: center; gap: 8px; font-size: 21px; font-weight: 700; margin: 8px 0; }
+.joojo-mode-copy p { color: #846775; font-size: 12px; line-height: 2; }
+.joojo-activate { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; padding: 12px 20px; border-radius: 12px; background: #ad416b; color: white; font-size: 12px; cursor: pointer; }
+.joojo-activate:disabled { opacity: .6; cursor: wait; }
+.joojo-preview-star, .joojo-preview-bow { display: none; }
+@media(max-width: 639px) { .joojo-mode-card { gap: 12px; padding: 18px; } .joojo-mode-preview .joojo-mascot { width: 72px; height: 72px; } }

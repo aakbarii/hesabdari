@@ -117,8 +117,7 @@ export async function seedUserDefaults(
 
   const gender = opts?.gender;
   const nav = filterNavForGender(getDefaultVisibleNav(), gender);
-  const mood =
-    gender === "female" ? "feminine" : gender === "male" ? "masculine" : "neutral";
+  const mood = DEFAULT_APPEARANCE_MOOD;
 
   await db.insert(userSettings)
     .values({
@@ -128,6 +127,7 @@ export async function seedUserDefaults(
       currencyUnit: DEFAULT_CURRENCY_UNIT,
       gender: gender ?? null,
       appearanceMood: mood,
+      accentColor: DEFAULT_ACCENT_COLOR,
       visibleNav: JSON.stringify(nav),
     })
     .run();
@@ -136,7 +136,7 @@ export async function seedUserDefaults(
 }
 
 export async function getUserByEmail(email: string) {
-  return await db.select().from(users).where(eq(users.email, email)).get();
+  return await db.select().from(users).where(sql`lower(${users.email}) = ${email.trim().toLowerCase()}`).get();
 }
 
 export async function getUserById(userId: string) {
@@ -516,8 +516,8 @@ export async function getUserSettings(userId: string = DEFAULT_USER_ID) {
         dashboardWidgets: JSON.stringify(DEFAULT_DASHBOARD_WIDGETS),
         anomalyThreshold: 30,
         currencyUnit: DEFAULT_CURRENCY_UNIT,
-        appearanceMood: "neutral",
-        accentColor: "emerald",
+        appearanceMood: DEFAULT_APPEARANCE_MOOD,
+        accentColor: DEFAULT_ACCENT_COLOR,
         visibleNav: JSON.stringify(getDefaultVisibleNav()),
       })
       .run();
@@ -636,14 +636,12 @@ export async function updateUserGender(userId: string, gender: Gender) {
     nextNav.push("/cycle");
   }
   nextNav = filterNavForGender(nextNav, gender);
-  const mood = gender === "female" ? "feminine" : "masculine";
 
   await db
     .update(userSettings)
     .set({
       gender,
       visibleNav: JSON.stringify(normalizeVisibleNav(nextNav)),
-      appearanceMood: mood,
     })
     .where(eq(userSettings.userId, userId))
     .run();
@@ -1643,7 +1641,8 @@ export async function updateUserProfile(
   if (!user) return { error: "کاربر یافت نشد" as const };
 
   if (data.email && data.email !== user.email) {
-    if (await getUserByEmail(data.email)) {
+    const existing = await getUserByEmail(data.email);
+    if (existing && existing.id !== userId) {
       return { error: "این ایمیل قبلاً استفاده شده" as const };
     }
   }

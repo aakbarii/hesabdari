@@ -64,14 +64,15 @@ const iconMap = {
 export function MobileNav() {
   const pathname = usePathname();
   const { mobilePrimary } = useAppearance();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const shortLabels: Record<string, string> = locale === "en" ? { "/life": "Today", "/transactions": "Activity" } : { "/life": "امروز", "/transactions": "تراکنش" };
 
   return (
     <nav
       aria-label="دسترسی سریع"
-      className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border/70 bg-card/90 backdrop-blur-xl supports-[backdrop-filter]:bg-card/75 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_-28px_oklch(0.2_0.05_160/0.35)]"
+      className="app-mobile-nav lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border/70 bg-card/90 backdrop-blur-xl supports-[backdrop-filter]:bg-card/75 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_-28px_oklch(0.2_0.05_160/0.35)]"
     >
-      <div className="flex items-center justify-around px-2 py-2">
+      <div className="grid items-stretch gap-1 px-2 py-2" style={{ gridTemplateColumns: `repeat(${mobilePrimary.length + 1}, minmax(0, 1fr))` }}>
         {mobilePrimary.map((item) => {
           const Icon = iconMap[item.icon as keyof typeof iconMap];
           const isActive =
@@ -82,9 +83,11 @@ export function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              aria-label={t(item.labelKey as MessageKey)}
+              title={t(item.labelKey as MessageKey)}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "motion-soft motion-press flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-medium min-w-0",
+                "motion-soft motion-press flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium min-w-0",
                 isActive ? "text-primary scale-105" : "text-muted-foreground"
               )}
             >
@@ -96,7 +99,7 @@ export function MobileNav() {
               >
                 <Icon className="h-5 w-5" />
               </span>
-              <span className="truncate">{t(item.labelKey as MessageKey)}</span>
+              <span className="max-w-full truncate">{shortLabels[item.href] ?? t(item.labelKey as MessageKey)}</span>
             </Link>
           );
         })}

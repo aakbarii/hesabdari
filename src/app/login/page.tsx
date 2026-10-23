@@ -23,6 +23,7 @@ function LoginForm() {
   const [setupName, setSetupName] = useState("من");
   const [loading, setLoading] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
+  const [setupToken, setSetupToken] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -41,7 +42,7 @@ function LoginForm() {
       const res = await fetch(needsSetup ? "/api/auth/setup" : "/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(needsSetup ? { email, password, name: setupName } : { email, password }),
+        body: JSON.stringify(needsSetup ? { email, password, name: setupName, setupToken } : { email, password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "ورود انجام نشد");
@@ -84,6 +85,8 @@ function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="setup-name">نام</Label>
               <Input id="setup-name" value={setupName} onChange={(e) => setSetupName(e.target.value)} required />
+              <Label htmlFor="setup-token">کد راه‌اندازی مدیر</Label>
+              <Input id="setup-token" type="password" autoComplete="off" dir="ltr" value={setupToken} onChange={event => setSetupToken(event.target.value)} required />
             </div>
           )}
           <div className="space-y-2">
@@ -117,7 +120,7 @@ function LoginForm() {
           </Button>
         </form>
 
-        {!needsSetup && (
+        {(
           <div className="mt-6 flex items-center justify-between text-sm">
             <Link href="/forgot-password" className="text-muted-foreground hover:text-foreground">
               فراموشی رمز

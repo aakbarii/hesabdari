@@ -8,7 +8,10 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="relative min-w-0 w-full max-w-full overflow-x-auto"
+      role="region"
+      aria-label="جدول؛ برای ستون‌های بیشتر به طرفین پیمایش کنید"
+      tabIndex={0}
     >
       <table
         data-slot="table"

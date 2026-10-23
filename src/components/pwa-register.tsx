@@ -107,7 +107,7 @@ export function PwaRegister() {
   if (!showIosTip && !showAndroid) return null;
 
   return (
-    <div className="lg:hidden fixed inset-x-3 z-[60] bottom-[calc(5.5rem+env(safe-area-inset-bottom))] space-y-2">
+    <div className="app-pwa-prompt lg:hidden fixed inset-x-3 z-[60] bottom-[calc(6.25rem+env(safe-area-inset-bottom))] space-y-2">
       {showAndroid && (
         <div className="rounded-2xl border bg-card/95 p-4 shadow-lg backdrop-blur">
           <div className="flex items-start gap-3">

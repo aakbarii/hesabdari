@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { AppearanceProvider } from "@/components/appearance-provider";
-import { AppearanceIcons } from "@/components/appearance-icons";
 import { HeroProvider } from "@/components/hero-provider";
 import { LocaleProvider } from "@/components/locale-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -10,6 +9,8 @@ import { AppChrome } from "@/components/layout/app-chrome";
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 import "./joojo.css";
+import "./responsive.css";
+import { MobileViewport } from "@/components/mobile-viewport";
 
 export const metadata: Metadata = {
   title: {
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
   },
   description: "روال (Ravaal Life OS) — سیستم جامع مدیریت مالی، بودجه‌بندی، رژیم و کالری‌شمار، تمرینات ورزشی، تمرکز و رشد فردی",
   applicationName: "روال (Ravaal)",
-  manifest: "/manifest.json",
+  manifest: "/manifest.json?v=3",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -29,11 +30,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
-      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/joojo/pink-icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/joojo/pink-icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/joojo/pink-icon-180.png", sizes: "180x180", type: "image/png" }],
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -45,8 +45,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#10b981" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
+    { media: "(prefers-color-scheme: light)", color: "#fff8fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#251e24" },
   ],
 };
 
@@ -56,18 +56,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" dir="rtl" suppressHydrationWarning>
+    <html lang="fa" dir="rtl" data-appearance="joojo" suppressHydrationWarning>
       <body className="font-sans antialiased">
+        <MobileViewport />
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
           <CurrencyProvider>
             <LocaleProvider>
               <AppearanceProvider>
-                <AppearanceIcons />
                 <HeroProvider>
                   <AppChrome>{children}</AppChrome>
                   <Toaster position="top-center" />

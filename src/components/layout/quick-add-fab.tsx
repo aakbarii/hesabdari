@@ -5,7 +5,7 @@ import { parseTomanInput, getCurrencyLabel, getClientCurrency } from "@/lib/curr
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Plus, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -36,6 +36,11 @@ export function QuickAddFab() {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const show = () => setOpen(true);
+    window.addEventListener("ravaal:quick-add", show);
+    return () => window.removeEventListener("ravaal:quick-add", show);
+  }, []);
   const [type, setType] = useState<"expense" | "income">("expense");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -110,20 +115,6 @@ export function QuickAddFab() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={cn(
-          "lg:hidden fixed z-50 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] end-4 shadow-lg shadow-primary/25 rounded-full",
-          "flex h-14 w-14 items-center justify-center rounded-full",
-          "bg-primary text-primary-foreground shadow-lg",
-          "motion-press active:scale-95"
-        )}
-        aria-label="ثبت سریع"
-      >
-        <Plus className="h-7 w-7" />
-      </button>
-
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-2xl">
           <SheetHeader>
@@ -158,8 +149,9 @@ export function QuickAddFab() {
             </div>
 
             <div>
-              <Label>مبلغ ({getCurrencyLabel(getClientCurrency())})</Label>
+              <Label htmlFor="quick-add-amount">مبلغ ({getCurrencyLabel(getClientCurrency())})</Label>
               <AmountInput
+                id="quick-add-amount"
                 placeholder="مثلاً 50,000"
                 value={amount}
                 onValueChange={setAmount}
@@ -170,8 +162,9 @@ export function QuickAddFab() {
             </div>
 
             <div>
-              <Label>توضیح</Label>
+              <Label htmlFor="quick-add-description">توضیح</Label>
               <Input
+                id="quick-add-description"
                 placeholder="سوپرمارکت، بنزین، حقوق…"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}

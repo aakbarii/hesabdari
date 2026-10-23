@@ -228,7 +228,7 @@ export const userSettings = sqliteTable("user_settings", {
     .references(() => users.id, { onDelete: "cascade" }),
   dashboardWidgets: text("dashboard_widgets")
     .notNull()
-    .default('["balance","monthly","chart","recent","goals","forecast","anomalies"]'),
+    .default('["balance","monthly","recent","life"]'),
   anomalyThreshold: integer("anomaly_threshold").notNull().default(30),
   currencyUnit: text("currency_unit", { enum: ["toman", "rial"] })
     .notNull()
@@ -247,8 +247,8 @@ export const userSettings = sqliteTable("user_settings", {
     ],
   })
     .notNull()
-    .default("neutral"),
-  accentColor: text("accent_color").notNull().default("emerald"),
+    .default("joojo"),
+  accentColor: text("accent_color").notNull().default("rose"),
   visibleNav: text("visible_nav"),
   /** Ordered hrefs for bottom mobile tabs (up to 4) */
   mobileNav: text("mobile_nav"),

@@ -9,7 +9,7 @@ import {
   anyUserHasPassword,
   setupDefaultUserPassword,
 } from "@/lib/db/queries";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminEmail, isValidAdminSetupToken } from "@/lib/admin";
 import {
   SESSION_COOKIE,
   SESSION_COOKIE_OPTIONS,
@@ -17,10 +17,11 @@ import {
 } from "@/lib/auth";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email().toLowerCase(),
   password: z.string().min(6),
   name: z.string().min(1).optional(),
-});
+  setupToken: z.string().optional(),
+}).strict();
 
 export async function POST(request: Request) {
   await ensureDb();
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
   const { email, password, name } = parsed.data;
 
   // The first account to claim the legacy workspace must be the administrator.
-  if (!isAdminEmail(email)) {
+  if (!isAdminEmail(email) || !isValidAdminSetupToken(parsed.data.setupToken)) {
     return NextResponse.json({ error: "راه‌اندازی اولیه فقط برای مدیر مجاز است" }, { status: 403 });
   }
 

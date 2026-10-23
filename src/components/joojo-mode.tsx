@@ -8,22 +8,20 @@ import { toast } from "sonner";
 import { useAppearance } from "@/components/appearance-provider";
 import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
+import { JoojoPet } from "@/components/joojo-pet";
 
 export function JoojoMascot({ className, pose = "wave", priority = false }: { className?: string; pose?: "wave" | "cozy"; priority?: boolean }) {
-  return <Image src={`/joojo/${pose}.webp`} alt="جوجوی پاپیون‌صورتی" width={420} height={420} sizes="(max-width: 640px) 160px, 240px" priority={priority} className={cn("joojo-mascot object-contain", className)} />;
+  return <Image src="/joojo/pink-mascot.webp" alt="جوجوی صورتی" width={420} height={420} sizes="(max-width: 640px) 160px, 240px" priority={priority} className={cn("joojo-mascot object-contain", className)} data-pose={pose} />;
 }
 
 export function JoojoHero({ title, subtitle, action, className, heroKey }: { title: string; subtitle?: string; action?: ReactNode; className?: string; heroKey?: string }) {
-  const { locale } = useLocale();
   return <section className={cn("joojo-hero", className)}>
     <div className="joojo-hero-copy">
-      <span className="joojo-label"><Sparkles size={14} />{locale === "en" ? "A little joy, every day" : "یه ذره قشنگ‌تر، هر روز"}</span>
       <h2>{title}</h2>
       {subtitle && <p>{subtitle}</p>}
       {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
-      <div className="joojo-stickers" aria-hidden="true"><span>♡ قدم‌های کوچولو</span><span>✦ حال خوب</span><span>🎀 با جوجو</span></div>
     </div>
-    <div className="joojo-mascot-stage" aria-hidden="true"><span className="joojo-orbit">✦</span><span className="joojo-heart">♡</span><JoojoMascot pose={heroKey && ["sleep", "selfcare", "journal", "mood", "cycle"].includes(heroKey) ? "cozy" : "wave"} priority /><span className="joojo-caption">hello, little sunshine!</span></div>
+    <div className="joojo-mascot-stage"><div className="joojo-static-mascot" aria-hidden="true"><JoojoMascot pose={heroKey && ["sleep", "selfcare", "journal", "mood", "cycle"].includes(heroKey) ? "cozy" : "wave"} priority /></div><JoojoPet inline /></div>
   </section>;
 }
 
@@ -48,7 +46,7 @@ export function JoojoModeCard() {
   }
   return <div className="joojo-mode-card" data-active={active}>
     <div className="joojo-mode-preview" aria-hidden="true"><span className="joojo-preview-star">✦</span><JoojoMascot className="h-36 w-36" /><span className="joojo-preview-bow">🎀</span></div>
-    <div className="joojo-mode-copy"><span className="joojo-label">{locale === "en" ? "A whole new little world" : "یه دنیای کوچولوی تازه"}</span><h3>{locale === "en" ? "JooJoo mode" : "جوجو مود"} <Heart size={20} /></h3><p>{locale === "en" ? "Meet your pink-bow companion. Sticker notebooks, candy buttons and a dreamy little world across the app." : "با جوجوی پاپیون‌صورتی: دفترچه‌های استیکری، دکمه‌های آبنباتی، منوی عروسکی و یه عالمه جزئیات بامزه در تمام برنامه."}</p><p>{locale === "en" ? "App logo, browser icon and new home-screen installs also use JooJoo." : "لوگوی برنامه، آیکون مرورگر و نصب جدید روی صفحهٔ اصلی هم جوجویی می‌شوند."}</p><button type="button" disabled={pending || !loaded} onClick={toggle} className="joojo-activate" aria-pressed={active}>{pending ? <LoaderCircle className="animate-spin" size={16} /> : active ? <Check size={16} /> : <Sparkles size={16} />}{locale === "en" ? (active ? "Leave JooJoo mode" : "Enter JooJoo world") : (active ? "خروج از جوجو مود" : "بریم تو دنیای جوجو")}</button></div>
+    <div className="joojo-mode-copy"><span className="joojo-label">{locale === "en" ? "A whole new little world" : "یه دنیای کوچولوی تازه"}</span><h3>{locale === "en" ? "JooJoo mode" : "جوجو مود"} <Heart size={20} /></h3><p>{locale === "en" ? "Soft rose, quiet cards and a playful little companion." : "صورتی ملایم، کارت‌های خلوت و یک همراه کوچولوی زنده برای روزت."}</p><p>{locale === "en" ? "App logo, browser icon and new home-screen installs also use JooJoo." : "جوجو، آیکون پیش‌فرض برنامه و نصب روی موبایل است."}</p><button type="button" disabled={pending || !loaded} onClick={toggle} className="joojo-activate" aria-pressed={active}>{pending ? <LoaderCircle className="animate-spin" size={16} /> : active ? <Check size={16} /> : <Sparkles size={16} />}{locale === "en" ? (active ? "Leave JooJoo mode" : "Enter JooJoo world") : (active ? "خروج از جوجو مود" : "بریم تو دنیای جوجو")}</button></div>
     {active && <div className="basis-full text-sm leading-7"><a href="/install/joojo" className="font-bold underline underline-offset-4">{locale === "en" ? "Install with the JooJoo icon" : "نصب روی موبایل با آیکون جوجو 🎀"}</a><p>{locale === "en" ? "On iPhone, install again from this page to update an existing Home Screen icon." : "برای تغییر آیکون قبلی آیفون، از صفحهٔ نصب جوجو دوباره Add to Home Screen بزن."}</p></div>}
   </div>;
 }

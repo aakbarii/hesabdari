@@ -180,10 +180,6 @@ export type DashboardWidgetId = keyof typeof DASHBOARD_WIDGETS;
 export const DEFAULT_DASHBOARD_WIDGETS: DashboardWidgetId[] = [
   "balance",
   "monthly",
-  "chart",
   "recent",
-  "goals",
   "life",
-  "forecast",
-  "anomalies",
 ];

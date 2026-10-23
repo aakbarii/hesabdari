@@ -9,13 +9,14 @@ import {
 } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 import { AUTH_ENABLED } from "@/lib/app-config";
+import { isAdminEmail } from "@/lib/admin";
 
 const schema = z.object({
   name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
+  email: z.string().trim().email().toLowerCase().optional(),
   currentPassword: z.string().min(1).optional(),
   newPassword: z.string().min(6).optional(),
-});
+}).strict();
 
 export async function GET() {
   await ensureDb();
@@ -51,6 +52,9 @@ export async function PATCH(request: Request) {
   }
 
   const { name, email, currentPassword, newPassword } = parsed.data;
+  if (email && email !== user.email.trim().toLowerCase() && (isAdminEmail(email) || isAdminEmail(user.email))) {
+    return NextResponse.json({ error: "ایمیل مدیر از طریق تنظیمات حساب قابل تغییر یا انتخاب نیست" }, { status: 403 });
+  }
   if (!AUTH_ENABLED && (currentPassword || newPassword)) {
     return NextResponse.json({ error: "مدیریت رمز فعلاً غیرفعال است" }, { status: 403 });
   }

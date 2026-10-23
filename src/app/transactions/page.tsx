@@ -9,6 +9,7 @@ import { Header } from "@/components/layout/header";
 import { PageHero } from "@/components/layout/page-hero";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -106,6 +107,7 @@ export default function TransactionsPage() {
   const confirm = useConfirm();
   const requestVersion = useRef(0);
   const [loadError, setLoadError] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -158,6 +160,7 @@ export default function TransactionsPage() {
 
   const load = useCallback(async (signal?: AbortSignal) => {
     const version = ++requestVersion.current;
+    setLoading(true);
     const qs = buildQuery();
     const getList = async (url: string) => {
       const response = await fetch(url, { signal });
@@ -190,6 +193,8 @@ export default function TransactionsPage() {
         setLoadError(true);
         toast.error("دریافت تراکنش‌ها انجام نشد. دوباره تلاش کنید.");
       }
+    } finally {
+      if (!signal?.aborted && version === requestVersion.current) setLoading(false);
     }
   }, [buildQuery]);
 
@@ -402,18 +407,17 @@ export default function TransactionsPage() {
             <Plus className="h-4 w-4 ml-2" />
             تراکنش جدید
           </Button>
-          <Button variant="outline" onClick={() => setTransferOpen(true)}>
-            <ArrowLeftRight className="h-4 w-4 ml-2" />
-            انتقال
-          </Button>
-          <Button variant="outline" onClick={() => setRecurringOpen(true)}>
-            <RefreshCw className="h-4 w-4 ml-2" />
-            تکراری
-          </Button>
           <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
             <Filter className="h-4 w-4 ml-2" />
             فیلتر
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger aria-label="گزینه‌های تراکنش" render={<Button variant="ghost" />}>گزینه‌ها</DropdownMenuTrigger>
+            <DropdownMenuContent className="min-w-48" align="end">
+              <DropdownMenuItem className="min-h-11" onClick={() => setTransferOpen(true)}><ArrowLeftRight />انتقال بین حساب‌ها</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-11" onClick={() => setRecurringOpen(true)}><RefreshCw />ثبت تراکنش تکراری</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {showFilters && (
@@ -494,7 +498,7 @@ export default function TransactionsPage() {
         )}
 
         {loadError && <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm"><p>بارگذاری اطلاعات انجام نشد.</p><Button variant="outline" onClick={() => { void load(); }}>تلاش دوباره</Button></div>}
-        <Tabs defaultValue="all">
+        {loading ? <Card><CardContent role="status" className="py-10 text-center text-sm text-muted-foreground">در حال دریافت تراکنش‌ها…</CardContent></Card> : <Tabs defaultValue="all">
           <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
             <TabsTrigger value="all">همه ({transactions.length + transfers.length})</TabsTrigger>
             <TabsTrigger value="income">درآمد</TabsTrigger>
@@ -567,7 +571,7 @@ export default function TransactionsPage() {
               <EmptyState title="تراکنش تکراری ندارید" description="حقوق، اجاره یا اشتراک ماهانه را اینجا تعریف کنید." actionLabel="افزودن تکراری" onAction={() => setRecurringOpen(true)} />
             )}
           </TabsContent>
-        </Tabs>
+        </Tabs>}
 
         {/* New transaction dialog */}
         <Dialog open={txOpen} onOpenChange={setTxOpen}>
@@ -775,8 +779,8 @@ function TransactionRow({
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/40">
-        <div className="flex items-center gap-3">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${tx.type === "income" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-600 dark:text-red-400"}`}>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tx.type === "income" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-600 dark:text-red-400"}`}>
             {tx.type === "income" ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
           </div>
           <div>
@@ -784,19 +788,20 @@ function TransactionRow({
             <p className="text-xs text-muted-foreground">{tx.accountName} · {formatJalaliDate(tx.date)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <p className={`whitespace-nowrap text-sm font-semibold tabular-nums ${tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+        <div className="flex min-w-0 w-full flex-wrap items-center gap-1 sm:w-auto sm:gap-2">
+          <p className={`me-auto max-w-full text-sm font-semibold tabular-nums sm:me-0 ${tx.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
             {tx.type === "income" ? "+" : "-"}{formatToman(tx.amount)}
           </p>
           {tx.categoryName && <Badge variant="secondary" className="text-[10px] hidden sm:inline-flex">{tx.categoryName}</Badge>}
           {tx.receiptPath && (
-            <a href={`/api/receipts/${tx.receiptPath}`} target="_blank" rel="noopener noreferrer">
+            <a href={`/api/receipts/${tx.receiptPath}`} target="_blank" rel="noopener noreferrer" aria-label="مشاهده رسید" className="inline-flex h-11 w-11 items-center justify-center rounded-xl hover:bg-muted">
               <ImageIcon className="h-4 w-4 text-primary" />
             </a>
           )}
-          <label className="cursor-pointer">
+          <label className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl hover:bg-muted focus-within:ring-2 focus-within:ring-ring">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
-            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
+            <span className="sr-only">افزودن رسید</span>
+            <input type="file" accept="image/*,.pdf" className="sr-only" onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) onUploadReceipt(tx.id, f);
             }} />
@@ -830,8 +835,8 @@ function TransferRow({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <p className="whitespace-nowrap text-sm font-semibold tabular-nums text-blue-600 dark:text-blue-400">
+        <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto">
+          <p className="me-auto max-w-full text-sm font-semibold tabular-nums text-blue-600 dark:text-blue-400 sm:me-0">
             {formatToman(transfer.amount)}
           </p>
           <Button

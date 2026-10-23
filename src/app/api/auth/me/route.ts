@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureDb, getUserById, anyUserHasPassword, getUserSettings } from "@/lib/db/queries";
 import { getRequestUserId } from "@/lib/api-auth";
-import { isAdminEmail, isAdminSetupAvailable } from "@/lib/admin";
+import { getUserRole, isAdminSetupAvailable } from "@/lib/admin";
 
 export async function GET() {
   await ensureDb();
@@ -22,7 +22,8 @@ export async function GET() {
       id: user.id,
       email: user.email,
       name: user.name,
-      isAdmin: isAdminEmail(user.email),
+      role: getUserRole(user.email),
+      isAdmin: getUserRole(user.email) === "admin",
     },
     needsSetup: false,
     onboardingCompleted: settings.onboardingCompleted,

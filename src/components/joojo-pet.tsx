@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Heart, Wheat, Moon, Pause, Play, Volume2, VolumeX, Minimize2, X } from "lucide-react";
 import { useAppearance } from "@/components/appearance-provider";
@@ -21,6 +22,11 @@ function subscribeVisibility(callback: () => void) {
   document.addEventListener("visibilitychange", callback);
   return () => document.removeEventListener("visibilitychange", callback);
 }
+function subscribeCompact(callback: () => void) {
+  const query = window.matchMedia("(max-width: 1023px)");
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
 function readPreferences(): Preferences {
   try {
     const saved = JSON.parse(localStorage.getItem(PREF_KEY) ?? "null");
@@ -29,7 +35,8 @@ function readPreferences(): Preferences {
   } catch { return { collapsed: false, paused: false, sound: false }; }
 }
 
-function LivingJoojo() {
+function LivingJoojo({ inline }: { inline: boolean }) {
+  const size = inline ? 82 : 112;
   const [preferences, setPreferences] = useState(readPreferences);
   const [action, setAction] = useState<Action>("idle");
   const [menu, setMenu] = useState(false);
@@ -105,7 +112,7 @@ function LivingJoojo() {
       const choices: Action[] = ["walk", "walk", "walk", "eat", "sneeze", "sleep", "love"];
       const next = choices[Math.floor(Math.random() * choices.length)];
       if (next === "walk") {
-        const available = Math.max(0, (lane.current?.clientWidth ?? 112) - 112);
+        const available = Math.max(0, (lane.current?.clientWidth ?? size) - size);
         const destination = Math.round(Math.random() * available);
         setFacing(destination > x ? 1 : -1);
         setX(destination);
@@ -113,15 +120,15 @@ function LivingJoojo() {
       setAction(next);
     }, DURATIONS[action]);
     return () => window.clearTimeout(timer);
-  }, [action, menu, preferences.collapsed, preferences.paused, reducedMotion, visible, x]);
+  }, [action, menu, preferences.collapsed, preferences.paused, reducedMotion, visible, x, size]);
 
   useEffect(() => {
     const element = lane.current;
     if (!element) return;
-    const observer = new ResizeObserver(() => setX(current => Math.min(current, Math.max(0, element.clientWidth - 112))));
+    const observer = new ResizeObserver(() => setX(current => Math.min(current, Math.max(0, element.clientWidth - size))));
     observer.observe(element);
     return () => observer.disconnect();
-  }, [preferences.collapsed]);
+  }, [preferences.collapsed, size]);
 
   useEffect(() => () => { void audio.current?.close().catch(() => {}); }, []);
 
@@ -137,16 +144,16 @@ function LivingJoojo() {
     return () => document.removeEventListener("keydown", close);
   }, [menu]);
 
-  if (preferences.collapsed) return <button type="button" className="joojo-pet-restore" onClick={() => { updatePreferences({ collapsed: false }); setAction("idle"); }} aria-label="برگرداندن جوجوی متحرک" title="جوجو رو برگردون 🎀"><Image src="/joojo/logo.webp" alt="" width={40} height={40} /><span>جوجو</span></button>;
+  if (preferences.collapsed) return <button type="button" className={inline ? "joojo-pet-restore joojo-pet-inline-restore" : "joojo-pet-restore"} onClick={() => { updatePreferences({ collapsed: false }); setAction("idle"); }} aria-label="برگرداندن جوجوی متحرک" title="جوجو رو برگردون 🎀"><Image src="/joojo/pink-icon-192.png" alt="" width={40} height={40} /><span>جوجو</span></button>;
 
   return <>
-    <div ref={lane} className="joojo-pet-lane" data-resting={!visible || reducedMotion}>
+    <div ref={lane} className={inline ? "joojo-pet-lane joojo-pet-inline-lane" : "joojo-pet-lane"} data-resting={!visible || reducedMotion}>
       <div ref={traveler} className="joojo-pet-traveler" data-action={action} style={{ left: x }}>
         <span className="joojo-pet-speech" aria-hidden="true">{PHRASES[action]}</span>
         <span className="joojo-pet-shadow" aria-hidden="true" />
         <button type="button" className="joojo-pet-character" aria-label={`جوجو: ${PHRASES[action]}؛ بازکردن کنترل‌ها`} aria-expanded={menu} aria-controls={menu ? menuId : undefined} onClick={() => { settle(); setMenu(!menu); }}>
           <span className="joojo-pet-direction" style={{ transform: `scaleX(${facing})` }}>
-            <Image src={action === "sleep" ? "/joojo/cozy.webp" : "/joojo/wave.webp"} alt="" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
+            <Image src="/joojo/pink-mascot.webp" alt="" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
           </span>
           {action === "eat" && <span className="joojo-pet-grains" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <i key={i} style={{ left: i * 7, bottom: (i % 3) * 4, animationDelay: `${i * .06}s` }} />)}</span>}
           {action === "sneeze" && <span className="joojo-pet-puff" aria-hidden="true">✧ · ✧</span>}
@@ -155,8 +162,8 @@ function LivingJoojo() {
         </button>
       </div>
     </div>
-    {menu && <section id={menuId} className="joojo-pet-menu" aria-label="کنترل جوجو">
-      <div className="joojo-pet-menu-title"><strong>جوجوی پاپیون‌صورتی 🎀</strong><button type="button" aria-label="بستن کنترل جوجو" onClick={() => setMenu(false)}><X size={16} /></button></div>
+    {menu && createPortal(<section id={menuId} className="joojo-pet-menu" aria-label="کنترل جوجو">
+      <div className="joojo-pet-menu-title"><strong>جوجوی صورتی 🎀</strong><button type="button" aria-label="بستن کنترل جوجو" onClick={() => setMenu(false)}><X size={16} /></button></div>
       <p>یه همراه کوچولو برای روزت؛ روی من بزن!</p>
       <div className="joojo-pet-actions">
         <button type="button" onClick={() => interact("eat")}><Wheat size={17} />دون بده</button>
@@ -168,11 +175,12 @@ function LivingJoojo() {
       </div>
       {reducedMotion && <p>با تنظیم کاهش حرکت دستگاه، حرکت خودکار خاموش است.</p>}
       <button type="button" className="joojo-pet-minimize" onClick={() => { settle(); setMenu(false); updatePreferences({ collapsed: true }); }}><Minimize2 size={16} />جمعش کن؛ بعداً برمی‌گردم</button>
-    </section>}
+    </section>, document.body)}
   </>;
 }
 
-export function JoojoPet() {
+export function JoojoPet({ inline = false }: { inline?: boolean }) {
   const { mood } = useAppearance();
-  return mood === "joojo" ? <LivingJoojo /> : null;
+  const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 1023px)").matches, () => false);
+  return mood === "joojo" && inline === compact ? <LivingJoojo inline={inline} /> : null;
 }

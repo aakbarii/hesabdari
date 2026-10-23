@@ -4,14 +4,14 @@ export const APPEARANCE_MOODS = {
   joojo: {
     label: "جوجو مود",
     labelEn: "JooJoo",
-    description: "دنیای پاپیون‌صورتی؛ جوجو، استیکر و دفترچه‌های پاستلی",
+    description: "صورتی ملایم، کارت‌های خلوت و جوجوی صورتی",
     descriptionEn: "A pink-bow world of chicks, stickers and pastel notebooks",
   },
   neutral: {
     label: "خنثی",
     labelEn: "Neutral",
-    description: "سبز آرامش‌بخش — حالت پیش‌فرض روال",
-    descriptionEn: "Calm emerald — Ravaal default",
+    description: "سبز آرامش‌بخش",
+    descriptionEn: "Calm emerald",
   },
   feminine: {
     label: "دخترانه",
@@ -73,8 +73,8 @@ export const ACCENT_COLORS = [
 
 export type AccentColorId = (typeof ACCENT_COLORS)[number]["id"];
 
-export const DEFAULT_APPEARANCE_MOOD: AppearanceMood = "neutral";
-export const DEFAULT_ACCENT_COLOR: AccentColorId = "emerald";
+export const DEFAULT_APPEARANCE_MOOD: AppearanceMood = "joojo";
+export const DEFAULT_ACCENT_COLOR: AccentColorId = "rose";
 
 /** Routes that cannot be hidden from navigation */
 export const LOCKED_NAV_HREFS = ["/", "/settings"] as const;

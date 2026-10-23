@@ -94,15 +94,15 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:right-0 border-l border-border/70 bg-sidebar">
       <div className="flex h-16 items-center px-5 border-b border-border/70">
-        <AppLogo size="md" subtitle="سامانه جامع زندگی و مالی" />
+        <AppLogo size="md" subtitle="هر روز، کمی مرتب‌تر" />
       </div>
       <nav aria-label="منوی اصلی" className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
         <JoojoSidebarNote />
         {navGroups.map((group) => (
-          <div key={group.titleKey}>
-            <p className="mb-1.5 px-3 text-[11px] font-medium text-muted-foreground/80">
+          <details key={`${group.titleKey}:${pathname}`} open={group.items.some(item => item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)) || group.titleKey === "nav.group.overview"}>
+            <summary className="mb-1.5 cursor-pointer rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted">
               {t(group.titleKey as MessageKey)}
-            </p>
+            </summary>
             <div className="space-y-1">
               {group.items.map((item) => {
                 const Icon = iconMap[item.icon as keyof typeof iconMap];
@@ -128,7 +128,7 @@ export function Sidebar() {
                 );
               })}
             </div>
-          </div>
+          </details>
         ))}
       </nav>
       <div className="p-4 border-t space-y-2">

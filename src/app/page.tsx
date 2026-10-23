@@ -277,11 +277,11 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-semibold leading-relaxed sm:text-3xl">امروز را با خیال آسوده شروع کن.</h2>
               <p className="text-sm leading-7 text-emerald-50/80">دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.</p>
               <div className="flex flex-wrap gap-2 pt-1">
-                <Link href="/transactions?new=expense" className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50"><Plus className="h-4 w-4" /> ثبت تراکنش</Link>
+                <Link href="/transactions?new=expense" className="hidden sm:inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50"><Plus className="h-4 w-4" /> ثبت تراکنش</Link>
                 <Link href="/life" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm transition hover:bg-white/10">برنامه امروز <ArrowLeft className="h-4 w-4" /></Link>
               </div>
             </div>
-            {data && <div className="w-full rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm sm:w-auto sm:min-w-56">
+            {data && <div className="dashboard-balance min-w-0 w-full rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm sm:w-auto sm:min-w-56">
               <p className="text-xs text-emerald-50/75">مانده این ماه · {getJalaliMonthName(data.month)}</p>
               <p className="mt-3 text-xl font-semibold tabular-nums sm:text-2xl">{formatToman(data.monthly.balance)}</p>
               <Link href="/reports" className="mt-4 inline-flex items-center gap-2 text-xs text-emerald-50/80 hover:text-white">مشاهده گزارش مالی <ArrowLeft className="h-3.5 w-3.5" /></Link>
@@ -289,13 +289,13 @@ export default function DashboardPage() {
           </div>
         </section>
         )}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:flex-wrap sm:justify-between">
+          <div className="flex min-w-0 gap-2">
             <Link
               href="/transactions?new=expense"
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "bg-red-600 text-white hover:bg-red-600/90"
+                "min-h-11 flex-1 px-2 text-xs sm:flex-none sm:px-3 sm:text-sm bg-red-600 text-white hover:bg-red-600/90"
               )}
             >
               <ArrowDownRight className="h-4 w-4 ml-1" />
@@ -305,7 +305,7 @@ export default function DashboardPage() {
               href="/transactions?new=income"
               className={cn(
                 buttonVariants({ variant: "outline" }),
-                "text-emerald-700 border-emerald-200"
+                "min-h-11 flex-1 px-2 text-xs sm:flex-none sm:px-3 sm:text-sm text-emerald-700 border-emerald-200 dark:text-emerald-300 dark:border-emerald-800"
               )}
             >
               <ArrowUpRight className="h-4 w-4 ml-1" />
@@ -314,10 +314,12 @@ export default function DashboardPage() {
           </div>
           <Sheet>
             <SheetTrigger
+              aria-label="تنظیم ویجت‌ها"
+              title="تنظیم ویجت‌ها"
               className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted"
             >
               <Settings2 className="h-4 w-4" />
-              تنظیم ویجت‌ها
+              <span className="sr-only sm:not-sr-only">تنظیم ویجت‌ها</span>
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader>
@@ -383,9 +385,9 @@ export default function DashboardPage() {
             <Button variant="outline" onClick={() => setReload((value) => value + 1)}><RefreshCw className="h-4 w-4" /> تلاش دوباره</Button>
           </CardContent></Card>
         ) : loading ? (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="dashboard-summary grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden">
+              <Card key={i} className={cn("overflow-hidden", i === 1 && "col-span-2 md:col-span-1")}>
                 <CardContent className="h-28 motion-skeleton rounded-lg" />
               </Card>
             ))}
@@ -394,9 +396,9 @@ export default function DashboardPage() {
           <>
             {widgets.length === 0 && <Card><CardContent className="py-10 text-center text-muted-foreground">ویجت‌های دلخواهتان را از «تنظیم ویجت‌ها» فعال کنید.</CardContent></Card>}
             {show("balance") || show("monthly") ? (
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="dashboard-summary grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
                 {show("balance") && (
-                  <Card className="motion-lift">
+                  <Card className="motion-lift col-span-2 md:col-span-1">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <CardTitle className="text-sm font-medium text-muted-foreground">
                         موجودی کل

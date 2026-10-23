@@ -48,7 +48,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4">
+    <div className="relative min-h-dvh flex items-center justify-center p-4 py-8">
       <Image
         src={PAGE_HEROES.login}
         alt=""
@@ -64,27 +64,33 @@ export default function RegisterPage() {
             <AppLogo size="xl" showText={false} clickable={false} />
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">عضویت در روال</CardTitle>
-          <p className="text-sm text-muted-foreground">حساب کاربری جدید خود را ایجاد کنید</p>
+          <p className="text-sm text-muted-foreground">حساب شخصی بسازید و برنامه‌ها و اطلاعات خودتان را مدیریت کنید.</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label>نام</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} required />
+              <Label htmlFor="register-name">نام</Label>
+              <Input id="register-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label>ایمیل</Label>
+              <Label htmlFor="register-email">ایمیل</Label>
               <Input
                 type="email"
+                id="register-email"
+                autoComplete="email"
+                dir="ltr"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label>رمز عبور (حداقل ۶ کاراکتر)</Label>
+              <Label htmlFor="register-password">رمز عبور (حداقل ۶ کاراکتر)</Label>
               <Input
                 type="password"
+                id="register-password"
+                autoComplete="new-password"
+                dir="ltr"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={6}
@@ -93,10 +99,11 @@ export default function RegisterPage() {
             </div>
             <div className="space-y-2">
               <Label>جنسیت</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label="جنسیت">
                 <button
                   type="button"
                   onClick={() => setGender("male")}
+                  aria-pressed={gender === "male"}
                   className={cn(
                     "rounded-xl border px-3 py-3 text-sm font-medium transition-colors",
                     gender === "male"
@@ -109,6 +116,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setGender("female")}
+                  aria-pressed={gender === "female"}
                   className={cn(
                     "rounded-xl border px-3 py-3 text-sm font-medium transition-colors",
                     gender === "female"

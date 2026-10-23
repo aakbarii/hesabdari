@@ -28,6 +28,12 @@
 .joojo-pet-minimize { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 40px; margin-top: 12px; font-size: 11px; color: var(--muted-foreground); cursor: pointer; }
 .joojo-pet-restore { position: fixed; bottom: 22px; left: 16px; z-index: 45; display: flex; align-items: center; gap: 5px; padding: 5px 5px 5px 11px; border: 2px solid var(--border); border-radius: 99px; background: var(--card); color: var(--foreground); box-shadow: 0 3px 0 var(--joojo-shadow); font-size: 11px; cursor: pointer; }
 .joojo-pet-restore img { border-radius: 50%; }
+.joojo-pet-lane.joojo-pet-inline-lane { position: relative; inset: auto; width: 100%; height: 138px; z-index: 1; }
+.joojo-pet-inline-lane .joojo-pet-traveler { width: 82px; height: 115px; }
+.joojo-pet-inline-lane .joojo-pet-character { width: 82px; height: 105px; }
+.joojo-pet-inline-lane .joojo-pet-shadow { width: 48px; left: 17px; }
+.joojo-pet-inline-lane .joojo-pet-speech { display: none; }
+.joojo-pet-restore.joojo-pet-inline-restore { position: relative; inset: auto; flex-direction: column; width: 76px; padding: 8px; }
 [data-resting="true"] .joojo-pet-body, [data-resting="true"] :is(.joojo-pet-zzz, .joojo-pet-grains i, .joojo-pet-puff, .joojo-pet-hearts) { animation: none; }
 [data-resting="true"] .joojo-pet-traveler { transition: none; }
 @keyframes joojo-breathe { 0%, 100% { transform: scale(1) rotate(-1deg); } 50% { transform: scale(1.025, 1.04) rotate(1deg); } }
@@ -46,3 +52,7 @@
 @media (prefers-reduced-motion: reduce) {
   .joojo-pet-body, .joojo-pet-traveler, .joojo-pet-speech, .joojo-pet-zzz, .joojo-pet-grains i, .joojo-pet-puff, .joojo-pet-hearts { animation: none !important; transition: none !important; }
 }
+
+.joojo-pet-traveler[data-action="idle"] .joojo-pet-speech { visibility: hidden; }
+.joojo-pet-inline-lane { align-self: center; }
+@media (max-width: 639px) { .joojo-hero .joojo-mascot-stage { height: 112px; } }

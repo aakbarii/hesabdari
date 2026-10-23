@@ -2,6 +2,7 @@ import { readJsonObject } from "@/lib/validation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { getUserRole } from "@/lib/admin";
 import { ensureDb, getUserByEmail } from "@/lib/db/queries";
 import {
   SESSION_COOKIE,
@@ -10,9 +11,9 @@ import {
 } from "@/lib/auth";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email().toLowerCase(),
   password: z.string().min(1),
-});
+}).strict();
 
 export async function POST(request: Request) {
   await ensureDb();
@@ -39,6 +40,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    user: { id: user.id, email: user.email, name: user.name },
+    user: { id: user.id, email: user.email, name: user.name, role: getUserRole(user.email), isAdmin: getUserRole(user.email) === "admin" },
   });
 }

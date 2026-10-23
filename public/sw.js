@@ -1,5 +1,5 @@
-const CACHE = "hesabdari-static-v5";
-const PRECACHE = ["/offline.html", "/manifest.json", "/icon-192.png", "/apple-touch-icon.png"];
+const CACHE = "hesabdari-static-v6";
+const PRECACHE = ["/offline.html", "/manifest.json?v=3", "/joojo/pink-icon-192.png", "/joojo/pink-icon-180.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
