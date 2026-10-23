@@ -5,7 +5,7 @@ import sharp from "sharp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
-const masterIconPath = "C:/Users/amin/.gemini/antigravity/brain/daf4be3b-c732-43b6-878d-0a913f252c7f/.user_uploaded/media_1792748206335_e86ce9e0.jpg";
+const masterIconPath = path.join(rootDir, "public", "joojo", "centered-icon.png");
 
 if (!fs.existsSync(masterIconPath)) {
   console.error("Master icon not found at:", masterIconPath);

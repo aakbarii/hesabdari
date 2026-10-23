@@ -143,3 +143,11 @@
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }
+
+.joojo-pet-gallery {
+  margin: 8px 0 12px;
+  padding: 10px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--muted) 70%, transparent);
+  border: 1px solid var(--border);
+}

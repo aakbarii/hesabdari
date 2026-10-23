@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Heart, Wheat, Moon, Pause, Play, Volume2, VolumeX, Sparkles, Music2, X } from "lucide-react";
 import { useAppearance } from "@/components/appearance-provider";
+import { cn } from "@/lib/utils";
 import "./joojo-pet.css";
 
 type Action = "idle" | "walk" | "eat" | "sneeze" | "sleep" | "love" | "jump" | "dance";
@@ -41,6 +42,7 @@ function readPreferences(): Preferences {
 function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVariant }) {
   const size = inline ? 82 : 112;
   const reactive = useJoojoReactiveMood();
+  const [pinnedPose, setPinnedPose] = useState<string | null>(null);
   const [preferences, setPreferences] = useState(readPreferences);
   const [action, setAction] = useState<Action>("idle");
   const [menu, setMenu] = useState(false);
@@ -153,13 +155,20 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
     return () => document.removeEventListener("keydown", close);
   }, [menu]);
 
+  const actionImageMap: Partial<Record<Action, string>> = {
+    jump: "/joojo/floating.png",
+    dance: "/joojo/winking.png",
+    love: "/joojo/hatchling.png",
+    sleep: "/joojo/hatchling.png",
+    eat: "/joojo/smiling.png",
+    sneeze: "/joojo/winking.png",
+  };
+
   const currentSpeech = action === "idle" ? reactive.phrase : PHRASES[action];
   const currentImg =
-    action === "sleep"
-      ? "/joojo/hatchling.png"
-      : action === "idle"
-      ? (reactive.image || stellaImage(variant))
-      : stellaImage(variant);
+    action !== "idle" && actionImageMap[action]
+      ? actionImageMap[action]!
+      : (pinnedPose ?? (reactive.image || stellaImage(variant)));
 
   return <>
     <div ref={lane} className={inline ? "joojo-pet-lane joojo-pet-inline-lane" : "joojo-pet-lane"} data-resting={!visible || reducedMotion || (preferences.paused && action === "idle")}>
@@ -192,6 +201,48 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
         <div className="joojo-pet-reactive-advice">
           <span aria-hidden="true">💡</span>
           <span>{reactive.advice}</span>
+        </div>
+      </div>
+
+      {/* Visual Pose Switcher */}
+      <div className="joojo-pet-gallery">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-bold text-foreground">حالت نمایشی جوجو:</span>
+          {pinnedPose && (
+            <button
+              type="button"
+              className="text-[9.5px] text-primary hover:underline cursor-pointer"
+              onClick={() => setPinnedPose(null)}
+            >
+              حالت هوشمند ↺
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {[
+            { id: "/joojo/smiling.png", label: "خندان" },
+            { id: "/joojo/winking.png", label: "چشمک" },
+            { id: "/joojo/floating.png", label: "پرواز" },
+            { id: "/joojo/hatchling.png", label: "پشمالو" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={cn(
+                "flex flex-col items-center justify-center p-1.5 rounded-xl border bg-card transition-all text-[9.5px] cursor-pointer",
+                (pinnedPose === item.id || (!pinnedPose && currentImg === item.id))
+                  ? "border-primary bg-primary/10 font-bold shadow-xs scale-105"
+                  : "border-border/70 hover:bg-muted"
+              )}
+              onClick={() => {
+                setPinnedPose(item.id);
+                chirp();
+              }}
+            >
+              <Image src={item.id} alt={item.label} width={34} height={34} className="h-8 w-8 object-contain" />
+              <span className="mt-1">{item.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
