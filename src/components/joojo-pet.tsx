@@ -40,7 +40,7 @@ function readPreferences(): Preferences {
 }
 
 function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVariant }) {
-  const size = inline ? 82 : 112;
+  const size = inline ? 104 : 112;
   const reactive = useJoojoReactiveMood();
   const [pinnedPose, setPinnedPose] = useState<string | null>(null);
   const [preferences, setPreferences] = useState(readPreferences);

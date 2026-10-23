@@ -87,14 +87,14 @@ export function MobileNav() {
               title={t(item.labelKey as MessageKey)}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "motion-soft motion-press flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium min-w-0",
-                isActive ? "text-primary scale-105" : "text-muted-foreground"
+                "motion-soft motion-press flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 text-[10px] font-medium min-w-0 transition-transform",
+                isActive ? "text-primary font-bold scale-105" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <span
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-                  isActive && "bg-primary/12"
+                  isActive && "bg-primary/15 text-primary shadow-xs"
                 )}
               >
                 <Icon className="h-5 w-5" />

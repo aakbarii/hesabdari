@@ -226,7 +226,35 @@ export default function DashboardPage() {
     <>
       <Header title="داشبورد" />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
-        {mood === "joojo" ? <JoojoHero title="امروزت رو با جوجو قشنگ بساز!" subtitle="یه قدم برای هدف‌هات، یه لبخند برای خودت؛ جوجو اینجاست که همراهت باشه." action={<><Link href="/life" className={buttonVariants()}>دفترچه امروز <ArrowLeft size={16} /></Link><Link href="/transactions?new=expense" className={buttonVariants({ variant: "outline" })}><Plus size={16} />ثبت تراکنش</Link></>} /> : hero.hidden ? (
+        {mood === "joojo" ? (
+          <JoojoHero
+            heroKey="dashboard"
+            title="امروزت رو با جوجو قشنگ بساز! 🌸"
+            subtitle="یه قدم برای هدف‌هات، یه لبخند برای خودت؛ جوجو اینجاست که همراهت باشه ♡"
+            action={
+              <>
+                <Link
+                  href="/life"
+                  className={cn(
+                    buttonVariants(),
+                    "rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-sm shadow-rose-300/40 font-bold px-4"
+                  )}
+                >
+                  دفترچه امروز <ArrowLeft size={16} />
+                </Link>
+                <Link
+                  href="/transactions?new=expense"
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "rounded-full bg-white/80 border-rose-200/90 text-foreground hover:bg-pink-50/80 font-medium px-4"
+                  )}
+                >
+                  <Plus size={16} />ثبت سریع
+                </Link>
+              </>
+            }
+          />
+        ) : hero.hidden ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-4">
             <div>
               <p className="font-semibold">امروز را با خیال آسوده شروع کن.</p>
@@ -295,7 +323,7 @@ export default function DashboardPage() {
               href="/transactions?new=expense"
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "min-h-11 flex-1 px-2 text-xs sm:flex-none sm:px-3 sm:text-sm bg-red-600 text-white hover:bg-red-600/90"
+                "min-h-11 flex-1 px-3 text-xs sm:flex-none sm:px-4 sm:text-sm rounded-2xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-sm shadow-rose-300/40 border-0"
               )}
             >
               <ArrowDownRight className="h-4 w-4 ml-1" />
@@ -305,7 +333,7 @@ export default function DashboardPage() {
               href="/transactions?new=income"
               className={cn(
                 buttonVariants({ variant: "outline" }),
-                "min-h-11 flex-1 px-2 text-xs sm:flex-none sm:px-3 sm:text-sm text-emerald-700 border-emerald-200 dark:text-emerald-300 dark:border-emerald-800"
+                "min-h-11 flex-1 px-3 text-xs sm:flex-none sm:px-4 sm:text-sm rounded-2xl font-semibold bg-emerald-50/80 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/60"
               )}
             >
               <ArrowUpRight className="h-4 w-4 ml-1" />
@@ -316,9 +344,9 @@ export default function DashboardPage() {
             <SheetTrigger
               aria-label="تنظیم ویجت‌ها"
               title="تنظیم ویجت‌ها"
-              className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted"
+              className="inline-flex items-center gap-2 rounded-2xl border border-border/80 bg-card/80 px-3.5 py-2.5 text-xs sm:text-sm font-medium hover:bg-muted/80 backdrop-blur-xs transition shadow-xs"
             >
-              <Settings2 className="h-4 w-4" />
+              <Settings2 className="h-4 w-4 text-muted-foreground" />
               <span className="sr-only sm:not-sr-only">تنظیم ویجت‌ها</span>
             </SheetTrigger>
             <SheetContent side="left">
@@ -398,15 +426,17 @@ export default function DashboardPage() {
             {show("balance") || show("monthly") ? (
               <div className="dashboard-summary grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
                 {show("balance") && (
-                  <Card className="motion-lift col-span-2 md:col-span-1">
+                  <Card className="motion-lift col-span-2 md:col-span-1 rounded-[26px] border-border/70 shadow-xs hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                      <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                         موجودی کل
                       </CardTitle>
-                      <Wallet className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-pink-100/80 text-pink-600 dark:bg-pink-950/40">
+                        <Wallet className="h-4 w-4" />
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-2xl font-semibold">
+                      <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                         {formatToman(data.totalBalance)}
                       </p>
                     </CardContent>
@@ -414,28 +444,32 @@ export default function DashboardPage() {
                 )}
                 {show("monthly") && (
                   <>
-                    <Card className="motion-lift">
+                    <Card className="motion-lift rounded-[26px] border-border/70 shadow-xs hover:shadow-md transition-shadow">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                           درآمد {getJalaliMonthName(data.month)}
                         </CardTitle>
-                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-emerald-100/80 text-emerald-600 dark:bg-emerald-950/40">
+                          <TrendingUp className="h-4 w-4" />
+                        </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+                        <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                           {formatToman(data.monthly.income)}
                         </p>
                       </CardContent>
                     </Card>
-                    <Card className="motion-lift">
+                    <Card className="motion-lift rounded-[26px] border-border/70 shadow-xs hover:shadow-md transition-shadow">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                           هزینه {getJalaliMonthName(data.month)}
                         </CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-500" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-rose-100/80 text-rose-500 dark:bg-rose-950/40">
+                          <TrendingDown className="h-4 w-4" />
+                        </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
+                        <p className="text-xl sm:text-2xl font-bold text-rose-500 dark:text-rose-400">
                           {formatToman(data.monthly.expense)}
                         </p>
                       </CardContent>

@@ -35,7 +35,17 @@ export function Header({ title }: { title: string }) {
           <GlobalSearch />
         </div>
         <ModuleWorkbench key={pathname} module={pathname.split("/")[1] || "dashboard"} />
-        {pathname !== "/transactions" && <Button className="lg:hidden" size="icon" aria-label="ثبت سریع" title="ثبت سریع" onClick={() => window.dispatchEvent(new Event("ravaal:quick-add"))}><Plus className="h-5 w-5" /></Button>}
+        {pathname !== "/transactions" && (
+          <Button
+            className="lg:hidden rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-300/40 hover:from-rose-600 hover:to-pink-600 border-0"
+            size="icon"
+            aria-label="ثبت سریع"
+            title="ثبت سریع"
+            onClick={() => window.dispatchEvent(new Event("ravaal:quick-add"))}
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        )}
         <div className="hidden sm:block"><ThemeToggle /></div>
       </div>
     </header>

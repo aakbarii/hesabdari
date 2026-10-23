@@ -51,21 +51,21 @@
   .dashboard-balance > a { grid-column: 2; grid-row: 1; font-size: 10px; }
   .dashboard-summary [data-slot="card-content"] p { font-size: 16px; }
   .dashboard-summary [data-slot="card"]:first-child [data-slot="card-content"] p { font-size: 22px; }
-  /* Keep the mascot, but let the page's actual tools enter the first screen. */
-  .joojo-hero { display: grid; grid-template-columns: minmax(0, 1fr) 82px; gap: 8px; padding: 22px 17px; min-height: 0; }
+  /* Roomy, feminine mascot hero on tablets & small laptops */
+  .joojo-hero { display: grid; grid-template-columns: minmax(0, 1fr) 115px; gap: 14px; padding: 22px 20px; min-height: 0; align-items: center; border-radius: 26px; }
   .joojo-hero-copy { min-width: 0; }
-  .joojo-hero h2 { font-size: 19px; margin-top: 10px; line-height: 1.7; }
-  .joojo-hero p { font-size: 12px; line-height: 1.9; }
-  .joojo-hero .joojo-label { font-size: 9px; padding: 4px 7px; }
-  .joojo-hero .joojo-mascot-stage { width: 82px; height: 125px; margin-top: 12px; align-self: start; }
-  .joojo-hero .joojo-mascot-stage .joojo-mascot { width: 98px; height: 112px; max-width: none; }
-  .joojo-hero .joojo-mascot-stage::before { width: 82px; height: 82px; border-width: 4px; }
+  .joojo-hero h2 { font-size: 19px; margin-top: 4px; line-height: 1.6; }
+  .joojo-hero p { font-size: 12.5px; line-height: 1.85; }
+  .joojo-hero .joojo-label { font-size: 10px; padding: 4px 8px; border-radius: 9999px; }
+  .joojo-hero .joojo-mascot-stage { width: 115px; height: 125px; margin-top: 0; align-self: center; }
+  .joojo-hero .joojo-mascot-stage .joojo-mascot { width: 110px; height: 110px; max-width: none; }
+  .joojo-hero .joojo-mascot-stage::before { width: 95px; height: 95px; border-width: 4px; }
   .joojo-hero :is(.joojo-caption, .joojo-heart, .joojo-orbit) { display: none; }
-  .joojo-hero .joojo-stickers { gap: 7px; margin-top: 15px; }
-  .joojo-hero .joojo-stickers span { font-size: 9px; padding: 4px 7px; }
+  .joojo-hero .joojo-stickers { gap: 8px; margin-top: 14px; }
+  .joojo-hero .joojo-stickers span { font-size: 10px; padding: 4px 9px; border-radius: 9999px; }
   .joojo-hero .joojo-stickers span:last-child { display: none; }
-  .joojo-hero-copy > .mt-4 { gap: 8px; }
-  .joojo-hero-copy > .mt-4 a { width: 100%; min-height: 44px; justify-content: center; padding-inline: 8px; font-size: 12px; }
+  .joojo-hero-copy > .mt-4 { gap: 10px; display: flex; flex-wrap: wrap; }
+  .joojo-hero-copy > .mt-4 a { flex: 1 1 120px; min-height: 42px; justify-content: center; padding-inline: 14px; font-size: 12.5px; border-radius: 9999px; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .app-header { transition: box-shadow .2s; }
@@ -75,10 +75,12 @@
 [data-slot="dialog-content"] .grid > *, [data-slot="sheet-content"] .grid > * { min-width: 0; }
 :is([data-slot="dialog-content"], [data-slot="sheet-content"]) :is(input, select, textarea) { min-width: 0; max-width: 100%; }
 @media (max-width: 639px) {
-  .joojo-hero { padding: 18px; border-radius: 20px; }
-  .joojo-hero h2 { margin-top: 0; font-size: 18px; }
-  .joojo-hero .joojo-mascot-stage { height: 90px; margin-top: 0; align-self: center; }
-  .joojo-hero-copy > .mt-4 { margin-top: 10px; }
+  .joojo-hero { padding: 18px 16px; border-radius: 24px; grid-template-columns: minmax(0, 1fr) 96px; gap: 10px; }
+  .joojo-hero h2 { margin-top: 2px; font-size: 17px; line-height: 1.55; }
+  .joojo-hero .joojo-mascot-stage { width: 96px; height: 105px; margin-top: 0; align-self: center; }
+  .joojo-hero .joojo-mascot-stage .joojo-mascot { width: 96px; height: 96px; }
+  .joojo-hero-copy > .mt-4 { margin-top: 12px; gap: 8px; }
+  .joojo-hero-copy > .mt-4 a { flex: 1 1 110px; min-height: 40px; font-size: 12px; }
 }
 
 /* Mobile stationery: quiet pattern and translucent, softly tinted surfaces. */

@@ -25,10 +25,10 @@
 .joojo-pet-actions button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 8px 5px; border-radius: 14px; border: 1px solid var(--border); background: var(--joojo-pink); font-size: 11px; cursor: pointer; }
 .joojo-pet-actions button:nth-child(3n) { background: var(--joojo-lilac); }
 .joojo-pet-actions button:hover { border-color: var(--primary); }
-.joojo-pet-lane.joojo-pet-inline-lane { position: relative; inset: auto; width: 100%; height: 138px; z-index: 1; }
-.joojo-pet-inline-lane .joojo-pet-traveler { width: 82px; height: 115px; }
-.joojo-pet-inline-lane .joojo-pet-character { width: 82px; height: 105px; }
-.joojo-pet-inline-lane .joojo-pet-shadow { width: 48px; left: 17px; }
+.joojo-pet-lane.joojo-pet-inline-lane { position: relative; inset: auto; width: 100%; height: 125px; z-index: 1; }
+.joojo-pet-inline-lane .joojo-pet-traveler { width: 104px; height: 120px; }
+.joojo-pet-inline-lane .joojo-pet-character { width: 104px; height: 110px; }
+.joojo-pet-inline-lane .joojo-pet-shadow { width: 56px; left: 24px; }
 .joojo-pet-inline-lane .joojo-pet-speech { display: none; }
 [data-resting="true"] .joojo-pet-body, [data-resting="true"] :is(.joojo-pet-zzz, .joojo-pet-grains i, .joojo-pet-puff, .joojo-pet-hearts) { animation: none; }
 [data-resting="true"] .joojo-pet-traveler { transition: none; }

@@ -17,14 +17,25 @@ export function JoojoMascot({ className, pose = "wave", priority = false, varian
 }
 
 export function JoojoHero({ title, subtitle, action, className, heroKey }: { title: string; subtitle?: string; action?: ReactNode; className?: string; heroKey?: string }) {
-  return <section className={cn("joojo-hero", className)}>
-    <div className="joojo-hero-copy">
-      <h2>{title}</h2>
-      {subtitle && <p>{subtitle}</p>}
-      {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
-    </div>
-    <div className="joojo-mascot-stage"><div className="joojo-static-mascot" aria-hidden="true"><JoojoMascot variant={stellaForPage(heroKey)} priority /></div><JoojoPet inline variant={stellaForPage(heroKey)} /></div>
-  </section>;
+  return (
+    <section className={cn("joojo-hero", className)}>
+      <div className="joojo-hero-copy">
+        <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full border border-pink-200/90 bg-white/80 px-3 py-1 text-[11px] font-semibold text-pink-600 shadow-xs backdrop-blur-xs">
+          <span className="text-xs">✨</span>
+          <span>همراه اختصاصی روال شما ♡</span>
+        </div>
+        <h2>{title}</h2>
+        {subtitle && <p>{subtitle}</p>}
+        {action && <div className="mt-4 flex flex-wrap gap-2.5">{action}</div>}
+      </div>
+      <div className="joojo-mascot-stage">
+        <div className="joojo-static-mascot" aria-hidden="true">
+          <JoojoMascot variant={stellaForPage(heroKey)} priority />
+        </div>
+        <JoojoPet inline variant={stellaForPage(heroKey)} />
+      </div>
+    </section>
+  );
 }
 
 export function JoojoSidebarNote() {
