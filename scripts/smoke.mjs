@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -51,49 +52,24 @@ try {
   let alice, bob;
   if (authEnabled) {
     await request("/api/accounts", { status: 401 });
-    await request("/api/admin/users", { status: 401 });
-    await request("/api/auth/register", { method: "POST", body: { email: " ADMIN@smoke.test ", password: "Test-password-123", name: "Reserved", gender: "male" }, status: 403 });
-    await request("/api/auth/register", { method: "POST", body: { email: "spoof@smoke.test", password: "Test-password-123", name: "Spoof", gender: "male", role: "admin", isAdmin: true }, status: 400 });
-    await request("/api/auth/setup", { method: "POST", body: { email: "admin@smoke.test", password: "Test-password-123", setupToken: "wrong-token" }, status: 403 });
-    const admin = await request("/api/auth/setup", { method: "POST", body: { email: "admin@smoke.test", password: "Test-password-123", name: "مدیر آزمایشی", setupToken: "isolated-admin-setup-token" } });
-    assert.equal((await request("/api/auth/me", { cookie: admin.cookie })).data.user.role, "admin");
-    await request("/api/admin/users", { cookie: admin.cookie });
-    const adminPanel = await fetch(base + "/sanjabadmin", { headers: { Cookie: admin.cookie }, redirect: "manual" });
-    assert.equal(adminPanel.status, 200);
-    checks++;
-    alice = await request("/api/auth/register", { method: "POST", body: { email: "alice@smoke.test", password: "Test-password-123", name: "آزمایش", gender: "female" } });
-    bob = await request("/api/auth/register", { method: "POST", body: { email: "bob@smoke.test", password: "Test-password-123", name: "کاربر دوم", gender: "male" } });
-    assert.equal(alice.data.role, "user");
-    assert.equal(alice.data.isAdmin, false);
-    const ordinary = (await request("/api/auth/me", { cookie: alice.cookie })).data.user;
-    assert.equal(ordinary.role, "user");
-    assert.equal(ordinary.isAdmin, false);
-    await request("/api/admin/users", { cookie: alice.cookie, status: 403 });
-    await request(`/api/admin/users/${admin.data.userId}`, { cookie: alice.cookie, status: 403 });
-    await request("/api/profile", { method: "PATCH", cookie: alice.cookie, body: { email: "ADMIN@smoke.test" }, status: 403 });
-    await request("/api/profile", { method: "PATCH", cookie: alice.cookie, body: { role: "admin", isAdmin: true }, status: 400 });
-    assert.equal((await request("/api/auth/me", { cookie: alice.cookie })).data.user.role, "user");
-    const login = await request("/api/auth/login", { method: "POST", body: { email: " ALICE@SMOKE.TEST ", password: "Test-password-123" } });
-    assert.equal(login.data.user.role, "user");
-    await request("/api/admin/users", { cookie: login.cookie, status: 403 });
-    await request("/api/auth/setup", { method: "POST", cookie: alice.cookie, body: { email: "admin@smoke.test", password: "Test-password-123" }, status: 403 });
-    await request("/api/auth/register", { method: "POST", body: { email: "ALICE@smoke.test", password: "Test-password-123", name: "Duplicate", gender: "male" }, status: 400 });
-  } else {
-    assert.equal(me.user.id, "default-user");
-    assert.equal(me.needsSetup, false);
-    await request("/api/accounts");
-    for (const route of ["login", "register", "forgot-password", "reset-password"]) {
-      const page = await fetch(`${base}/${route}`, { redirect: "manual" });
-      assert.equal(page.status, 307);
-      assert.equal(new URL(page.headers.get("location"), base).pathname, "/");
-      checks++;
+    for (const route of ["login", "register", "setup", "forgot-password", "reset-password"]) await request("/api/auth/"+route, { method: "POST", body: {}, status: 410 });
+    // Financial fixtures use this test's private signing key and disposable DB.
+    // Real passkey ceremonies/signatures are covered by passkey-smoke.mjs.
+    const { createClient } = await import("@libsql/client");
+    const fixtures = createClient({ url: "file:"+path.join(dataDir,"hesabdari.db").split(path.sep).join("/") });
+    const cookieFor = id => { const payload=Buffer.from(JSON.stringify({userId:id,exp:Date.now()+3600000,method:"passkey-v1"})).toString("base64url");return "joojo_passkey_session="+payload+"."+createHmac("sha256","isolated-smoke-test-secret-do-not-use-in-production").update(payload).digest("base64url"); };
+    try { for (const id of ["smoke-alice","smoke-bob","smoke-admin"]) {
+      await fixtures.execute({sql:"INSERT INTO users(id,email,name,created_at) VALUES(?,?,?,?)",args:[id,id === "smoke-admin" ? "admin@smoke.test" : id+"@passkey.local.invalid",id,Math.floor(Date.now()/1000)]});
+      for (const type of ["expense","income"]) await fixtures.execute({sql:"INSERT INTO categories(id,user_id,name,type,color,created_at) VALUES(?,?,?,?,?,?)",args:[id+type,id,type,type,"#f43f5e",Math.floor(Date.now()/1000)]});
     }
-    for (const route of ["login", "register", "setup", "logout"]) {
-      await request(`/api/auth/${route}`, { method: "POST", body: {}, status: 403 });
-    }
-    await request("/api/profile", { method: "PATCH", body: { newPassword: "test-password" }, status: 403 });
-    alice = bob = {};
-  }
+    } finally { fixtures.close(); }
+    alice={cookie:cookieFor("smoke-alice")};bob={cookie:cookieFor("smoke-bob")};
+    assert.equal((await request("/api/auth/me",{cookie:alice.cookie})).data.user.role,"user");
+    assert.equal((await request("/api/auth/me",{cookie:cookieFor("smoke-admin")})).data.user.role,"admin");
+    await request("/api/admin/users",{cookie:alice.cookie,status:403});
+    await request("/api/admin/users",{cookie:cookieFor("smoke-admin")});
+    await request("/api/profile",{method:"PATCH",cookie:alice.cookie,body:{email:"admin@smoke.test"},status:400});
+  } else { throw new Error("This smoke suite requires passkey authentication"); }
   const cookie = alice.cookie;
   const initialAppearance = (await request("/api/settings", { cookie })).data;
   assert.equal(initialAppearance.appearanceMood, "joojo");
@@ -238,9 +214,12 @@ try {
   console.log(`PASS: ${checks} HTTP checks, balances, ownership, validation, debt settlement, and all main modules.`);
 } catch (error) {
   console.error(logs.slice(-4000));
+  console.error(error);
   throw error;
 } finally {
   server.kill();
   await new Promise((resolve) => { if (server.exitCode !== null) resolve(); else server.once("exit", resolve); });
-  rmSync(dataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  const target=path.resolve(dataDir);
+  assert.ok(target.startsWith(path.resolve(tmpdir())+path.sep)&&path.basename(target).startsWith("hesabdari-smoke-"));
+  try { rmSync(target, { recursive: true, force: true, maxRetries: 6, retryDelay: 200 }); } catch (cleanupError) { if (cleanupError.code !== "EBUSY") throw cleanupError; }
 }

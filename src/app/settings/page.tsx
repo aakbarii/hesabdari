@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { PasskeySettings } from "@/components/passkey-settings";
-import { AUTH_ENABLED } from "@/lib/app-config";
+
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -25,7 +25,6 @@ import { toast } from "sonner";
 import {
   Check,
   Coins,
-  User,
   Tags,
   Pencil,
   Trash2,
@@ -54,7 +53,7 @@ import {
   moveNavItem,
   type AccentColorId,
   type AppearanceMood,
-  type Gender,
+
 } from "@/lib/appearance";
 import { useAppearance } from "@/components/appearance-provider";
 import { JoojoModeCard } from "@/components/joojo-mode";
@@ -76,11 +75,6 @@ import {
 
 const SAMPLE_AMOUNT = 1_250_000;
 
-interface Profile {
-  passwordless?: boolean;
-  name: string;
-  email: string;
-}
 
 
 interface Category {
@@ -103,7 +97,7 @@ export default function SettingsPage() {
     setAccent,
     setVisibleNav,
     setMobileNav,
-    setGender,
+
   } = useAppearance();
   const { locale, setLocale, t } = useLocale();
   const {
@@ -113,12 +107,6 @@ export default function SettingsPage() {
     reset: resetHero,
     upload: uploadHero,
   } = useHeroes();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [catOpen, setCatOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
@@ -133,13 +121,6 @@ export default function SettingsPage() {
   const [ruleForm, setRuleForm] = useState({ keyword: "", categoryId: "" });
 
   const load = () => {
-    fetch("/api/profile")
-      .then((r) => r.json())
-      .then((d) => {
-        setProfile(d);
-        setName(d.name ?? "");
-        setEmail(d.email ?? "");
-      });
     fetch("/api/categories")
       .then((r) => r.json())
       .then(setCategories);
@@ -252,44 +233,6 @@ export default function SettingsPage() {
     }
   };
 
-  const selectGender = async (next: Gender) => {
-    if (next === gender) return;
-    try {
-      await setGender(next);
-      toast.success(next === "male" ? "پروفایل مردانه" : "پروفایل زنانه");
-    } catch {
-      toast.error(t("common.error"));
-    }
-  };
-
-  const saveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const body: Record<string, string> = { name, email };
-      if (newPassword) {
-        body.currentPassword = currentPassword;
-        body.newPassword = newPassword;
-      }
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "خطا");
-      toast.success("پروفایل ذخیره شد");
-      setCurrentPassword("");
-      setNewPassword("");
-      load();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "خطا");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-
   const openCreateCat = () => {
     setEditingCat(null);
     setCatForm({ name: "", type: "expense", color: CATEGORY_COLORS[0] });
@@ -387,83 +330,7 @@ export default function SettingsPage() {
         </Card>
 
         <PasskeySettings />
-        {!profile?.passwordless && <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <User className="h-5 w-5 text-primary" />
-              پروفایل
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={saveProfile} className="space-y-4">
-              <div className="space-y-2">
-                <Label>نام</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label>ایمیل</Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>جنسیت</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      ["male", "مرد"],
-                      ["female", "زن"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => selectGender(id)}
-                      className={cn(
-                        "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
-                        gender === id
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "hover:bg-muted"
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  برای مرد، بخش پریود و چرخه از منو حذف می‌شود.
-                </p>
-              </div>
-              {/* Password management is paused together with login. */}
-              {AUTH_ENABLED && <div className="border-t pt-4 space-y-3">
-                <p className="text-sm text-muted-foreground">تغییر رمز (اختیاری)</p>
-                <div className="space-y-2">
-                  <Label>رمز فعلی</Label>
-                  <Input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>رمز جدید</Label>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    minLength={6}
-                  />
-                </div>
-              </div>}
-              <Button type="submit" disabled={saving}>
-                {saving ? "..." : "ذخیره پروفایل"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>}
+
 
 
         <Card>

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     return reply({ error: "درخواست ورود از آدرس معتبر سایت ارسال نشده است" }, 403);
   }
   const parsed = bodySchema.safeParse(await readJsonObject(request));
-  if (!parsed.success) return reply({ error: "نام، نام خانوادگی، شماره موبایل و عکس را بررسی کن" }, 400);
+  if (!parsed.success) return reply({ error: "نام و نام خانوادگی را بررسی کن" }, 400);
   await ensureDb();
   const { action, profile, credential: response } = parsed.data;
   const jar = await cookies();
@@ -96,11 +96,10 @@ export async function POST(request: Request) {
       if (!verified.verified) return reply({ error: "تأیید دستگاه معتبر نیست" }, 401);
       const data = passkeyProfileSchema.parse(JSON.parse(String(challenge.profile)));
       const info = verified.registrationInfo;
-      // Phone is contact data, never an unverified account lookup/recovery key.
       const email = `${userId}@passkey.local.invalid`;
       if (!link && isAdminEmail(email)) return reply({ error: "ایجاد حساب انجام نشد؛ دوباره تلاش کن" }, 409);
       await db.transaction(async tx => {
-        const fields = { firstName: data.firstName, lastName: data.lastName, name: `${data.firstName} ${data.lastName}`, phone: data.phone, avatarId: data.avatarId };
+        const fields = { firstName: data.firstName, lastName: data.lastName, name: `${data.firstName} ${data.lastName}` };
         if (link) await tx.update(users).set(fields).where(eq(users.id, userId)).run();
         else { await tx.insert(users).values({ id: userId, email, ...fields }).run(); await seedUserDefaults(userId, undefined, tx); }
         await tx.insert(passkeyCredentials).values({ id: info.credential.id, userId, publicKey: Buffer.from(info.credential.publicKey), counter: info.credential.counter, transports: JSON.stringify(info.credential.transports ?? []), deviceType: info.credentialDeviceType, backedUp: info.credentialBackedUp, createdAt: Date.now() }).run();

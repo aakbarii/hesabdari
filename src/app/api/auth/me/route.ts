@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { ensureDb, getUserById, anyUserHasPassword, getUserSettings } from "@/lib/db/queries";
+import { ensureDb, getUserById, getUserSettings } from "@/lib/db/queries";
 import { getRequestUserId } from "@/lib/api-auth";
-import { getUserRole, isAdminSetupAvailable } from "@/lib/admin";
+import { getUserRole } from "@/lib/admin";
 
 export async function GET() {
   await ensureDb();
@@ -9,7 +9,7 @@ export async function GET() {
   if (!userId) {
     return NextResponse.json({
       user: null,
-      needsSetup: isAdminSetupAvailable() && !(await anyUserHasPassword()),
+      needsSetup: false,
     });
   }
   const user = await getUserById(userId);
@@ -24,9 +24,6 @@ export async function GET() {
       name: user.name,
       firstName: user.firstName,
       lastName: user.lastName,
-      phone: user.phone,
-      avatarId: user.avatarId,
-      passwordless: !user.passwordHash,
       role: getUserRole(user.email),
       isAdmin: getUserRole(user.email) === "admin",
     },

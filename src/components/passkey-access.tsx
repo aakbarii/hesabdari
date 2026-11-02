@@ -34,7 +34,7 @@ export function PasskeyAccess({ register = false, returnPath = "/" }: { register
   }, [router, returnPath]);
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setError("");
-    if (register && !passkeyProfileSchema.safeParse(profile).success) { setError("نام، نام خانوادگی و شماره موبایل معتبر را وارد کن."); return; }
+    if (register && !passkeyProfileSchema.safeParse(profile).success) { setError("نام و نام خانوادگی را وارد کن."); return; }
     setBusy(true);
     try {
       const { startRegistration, startAuthentication } = await import("@simplewebauthn/browser");
@@ -57,7 +57,6 @@ export function PasskeyAccess({ register = false, returnPath = "/" }: { register
         <Button type="submit" disabled={busy || supported !== true} className="min-h-12 w-full gap-2">{busy ? <LoaderCircle className="animate-spin" size={20} /> : <Fingerprint size={20} />}{busy ? "منتظر تأیید دستگاه…" : register ? "ساخت حساب با Face ID یا اثر انگشت" : "ورود با Face ID یا اثر انگشت"}</Button>
       </form>
       <p className="text-center text-xs leading-6 text-muted-foreground">گوشی ممکن است Face ID، اثر انگشت یا قفل دستگاه را پیشنهاد دهد. اطلاعات بیومتریک در دستگاهت می‌ماند. ورودت روی این دستگاه حفظ می‌شود.</p>
-      <Link href={`/login?method=legacy&from=${encodeURIComponent(returnPath)}`} className="block text-center text-xs text-muted-foreground underline underline-offset-4">حساب قبلی یا ورود مدیر</Link>
     </section>
   </div>;
 }

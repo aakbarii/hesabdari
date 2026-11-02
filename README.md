@@ -77,12 +77,10 @@ TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… npx tsx scripts/migrate-loc
 
 توجه: مدیر می‌تواند اطلاعات همهٔ کاربران را ببیند. رمز عبور و کلیدهای 2FA در پنل نمایش داده نمی‌شوند.
 
-### Passwordless device sign-in
+### Passkey-only sign-in
 
-New accounts use first name, last name, an Iranian contact phone and a built-in avatar, followed by a discoverable WebAuthn passkey. Device user verification is required on registration and login. Face ID, fingerprint or device unlock is selected by the operating system; biometric data never reaches this server. No SMS/email sending service is needed. Phone numbers are unverified contact data, are deliberately not unique and cannot claim or recover another account.
+Registration collects only first and last names, then creates a discoverable device passkey with required user verification. No phone, profile image, password, SMS or email is needed. Password login/registration/setup/recovery return HTTP 410 and password pages redirect to login. The legacy login component is removed.
 
-Use the same HTTPS domain for registration and subsequent logins. RP ID and allowed origin are derived from the served URL; optionally set server-only `PASSKEY_ORIGIN` to the exact canonical HTTPS origin. Local development accepts localhost/127.0.0.1. Vercel preview domains have separate passkeys.
+Sessions use the versioned joojo_passkey_session HttpOnly cookie for up to 400 days, refreshed by the proxy. Old signed sessions lack the passkey-v1 method and are invalid even if their cookie is renamed. Existing database records are not deleted; no data reset is needed.
 
-Existing email accounts retain `/login?method=legacy`. After signing in, Settings → device sign-in can attach a passkey to the same account, keeping all data and the server-derived role. Sessions use a signed HttpOnly, SameSite=Lax cookie (Secure in production), up to 400 days and renewed by the existing proxy. No session token is placed in localStorage.
-
-Schema repair adds the nullable profile fields, public credentials, expiring one-use challenges and durable rate limits without resetting users. Keys/profile/default seeding are committed in a single database transaction. Challenges are origin-bound, expire after five minutes and are consumed atomically. `npm run test:passkeys` uses a disposable database and software ES256 authenticator to check signatures, required user verification, replay/expiry/counter handling, profile persistence, throttling and legacy-account linking; it does not perform a physical Face ID or fingerprint test.
+Passkeys are bound to the exact HTTPS origin (optionally configure server-only PASSKEY_ORIGIN). Face ID, fingerprint or device unlock is chosen by the operating system; biometric data stays on the device. npm run test:passkeys checks real software-authenticator signatures, user verification, replay/counter/expiry protection and retired password endpoints. npm run test:smoke exercises financial functionality with isolated signed fixtures.

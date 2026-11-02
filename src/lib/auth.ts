@@ -1,6 +1,6 @@
 import { getSessionSecret } from "./session-secret";
 
-export const SESSION_COOKIE = "hesabdari_session";
+export const SESSION_COOKIE = "joojo_passkey_session";
 /** Persistent session; refreshed by the proxy, within the browser 400-day limit. */
 const SESSION_DAYS = 400;
 
@@ -40,7 +40,7 @@ async function getHmacKey(secret: string): Promise<CryptoKey> {
 export async function signSession(userId: string): Promise<string> {
   const exp = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
   const payload = bytesToBase64Url(
-    new TextEncoder().encode(JSON.stringify({ userId, exp }))
+    new TextEncoder().encode(JSON.stringify({ userId, exp, method: "passkey-v1" }))
   );
   const key = await getHmacKey(getSecret());
   const sig = await crypto.subtle.sign(
@@ -72,8 +72,8 @@ export async function verifySession(token: string): Promise<string | null> {
 
     const data = JSON.parse(
       new TextDecoder().decode(base64UrlToBytes(payload))
-    ) as { userId?: string; exp?: number };
-    if (typeof data.userId !== "string" || !data.userId ||
+    ) as { userId?: string; exp?: number; method?: string };
+    if (data.method !== "passkey-v1" || typeof data.userId !== "string" || !data.userId ||
       typeof data.exp !== "number" || !Number.isFinite(data.exp) || data.exp <= Date.now()) return null;
     return data.userId;
   } catch {
