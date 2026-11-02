@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { PasskeySettings } from "@/components/passkey-settings";
 import { AUTH_ENABLED } from "@/lib/app-config";
 
 import { useEffect, useState } from "react";
@@ -76,6 +77,7 @@ import {
 const SAMPLE_AMOUNT = 1_250_000;
 
 interface Profile {
+  passwordless?: boolean;
   name: string;
   email: string;
 }
@@ -111,7 +113,7 @@ export default function SettingsPage() {
     reset: resetHero,
     upload: uploadHero,
   } = useHeroes();
-  const [, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -384,7 +386,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <PasskeySettings />
+        {!profile?.passwordless && <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <User className="h-5 w-5 text-primary" />
@@ -460,7 +463,7 @@ export default function SettingsPage() {
               </Button>
             </form>
           </CardContent>
-        </Card>
+        </Card>}
 
 
         <Card>

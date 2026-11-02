@@ -89,10 +89,11 @@ async function seedDefaultUser() {
 
 export async function seedUserDefaults(
   userId: string,
-  opts?: { gender?: "male" | "female" }
+  opts?: { gender?: "male" | "female" },
+  store: Pick<typeof db, "insert" | "select"> = db
 ) {
   for (const [i, name] of DEFAULT_EXPENSE_CATEGORIES.entries()) {
-    await db.insert(categories)
+    await store.insert(categories)
       .values({
         id: nanoid(),
         userId,
@@ -104,7 +105,7 @@ export async function seedUserDefaults(
   }
 
   for (const [i, name] of DEFAULT_INCOME_CATEGORIES.entries()) {
-    await db.insert(categories)
+    await store.insert(categories)
       .values({
         id: nanoid(),
         userId,
@@ -119,7 +120,7 @@ export async function seedUserDefaults(
   const nav = filterNavForGender(getDefaultVisibleNav(), gender);
   const mood = DEFAULT_APPEARANCE_MOOD;
 
-  await db.insert(userSettings)
+  await store.insert(userSettings)
     .values({
       userId,
       dashboardWidgets: JSON.stringify(DEFAULT_DASHBOARD_WIDGETS),
@@ -132,7 +133,7 @@ export async function seedUserDefaults(
     })
     .run();
 
-  await seedDefaultCategoryRules(userId);
+  await seedDefaultCategoryRules(userId, store);
 }
 
 export async function getUserByEmail(email: string) {
@@ -177,8 +178,8 @@ export async function setupDefaultUserPassword(
   return DEFAULT_USER_ID;
 }
 
-async function seedDefaultCategoryRules(userId: string) {
-  const expenseCats = await db
+async function seedDefaultCategoryRules(userId: string, store: Pick<typeof db, "insert" | "select"> = db) {
+  const expenseCats = await store
     .select()
     .from(categories)
     .where(eq(categories.userId, userId))
@@ -200,7 +201,7 @@ async function seedDefaultCategoryRules(userId: string) {
   for (const [keyword, catName] of rules) {
     const cat = expenseCats.find((c) => c.name === catName);
     if (cat) {
-      const exists = await db
+      const exists = await store
         .select()
         .from(categoryRules)
         .where(
@@ -211,7 +212,7 @@ async function seedDefaultCategoryRules(userId: string) {
         )
         .get();
       if (!exists) {
-        await db.insert(categoryRules)
+        await store.insert(categoryRules)
           .values({
             id: nanoid(),
             userId,

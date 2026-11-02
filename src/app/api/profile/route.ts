@@ -9,9 +9,14 @@ import {
 } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 import { AUTH_ENABLED } from "@/lib/app-config";
+import { db } from "@/lib/db";
+import { users, passkeyCredentials } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { passkeyProfileSchema } from "@/lib/passkey-profile";
 import { isAdminEmail } from "@/lib/admin";
 
 const schema = z.object({
+  passkeyProfile: passkeyProfileSchema.optional(),
   name: z.string().min(1).optional(),
   email: z.string().trim().email().toLowerCase().optional(),
   currentPassword: z.string().min(1).optional(),
@@ -28,7 +33,9 @@ export async function GET() {
     return NextResponse.json({ error: "کاربر یافت نشد" }, { status: 404 });
   }
 
+  const keys = await db.select({ id: passkeyCredentials.id }).from(passkeyCredentials).where(eq(passkeyCredentials.userId, user.id)).all();
   return NextResponse.json({
+    firstName: user.firstName, lastName: user.lastName, phone: user.phone, avatarId: user.avatarId, passwordless: !user.passwordHash, passkeyCount: keys.length,
     id: user.id,
     name: user.name,
     email: user.email,
@@ -49,6 +56,13 @@ export async function PATCH(request: Request) {
   const user = await getUserById(auth);
   if (!user) {
     return NextResponse.json({ error: "کاربر یافت نشد" }, { status: 404 });
+  }
+
+  if (parsed.data.passkeyProfile) {
+    if (Object.keys(parsed.data).length !== 1) return NextResponse.json({ error: "درخواست نامعتبر" }, { status: 400 });
+    const data = parsed.data.passkeyProfile;
+    await db.update(users).set({ ...data, name: data.firstName + " " + data.lastName }).where(eq(users.id, auth)).run();
+    return NextResponse.json({ ok: true });
   }
 
   const { name, email, currentPassword, newPassword } = parsed.data;

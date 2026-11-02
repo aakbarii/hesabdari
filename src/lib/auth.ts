@@ -1,8 +1,8 @@
 import { getSessionSecret } from "./session-secret";
 
 export const SESSION_COOKIE = "hesabdari_session";
-/** ~1 year — browsers typically allow up to ~400 days */
-const SESSION_DAYS = 365;
+/** Persistent session; refreshed by the proxy, within the browser 400-day limit. */
+const SESSION_DAYS = 400;
 
 const getSecret = getSessionSecret;
 

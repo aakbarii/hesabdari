@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { PROFILE_AVATARS } from "@/lib/passkey-profile";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -74,6 +76,7 @@ export function Sidebar() {
   const { navGroups } = useAppearance();
   const { t } = useLocale();
   const [userName, setUserName] = useState("");
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -81,6 +84,7 @@ export function Sidebar() {
       .then((r) => r.json())
       .then((d) => {
         setUserName(d.user?.name ?? "");
+        setAvatar(PROFILE_AVATARS.includes(d.user?.avatarId) ? d.user.avatarId : null);
         setIsAdmin(Boolean(d.user?.isAdmin));
       })
       .catch(() => {});
@@ -136,7 +140,7 @@ export function Sidebar() {
       </nav>
       <div className="p-4 border-t space-y-2">
         {userName && (
-          <p className="text-xs text-muted-foreground px-3 truncate">{userName}</p>
+          <div className="flex min-w-0 items-center gap-2 px-3">{avatar && <Image src={`/joojo/stella-${avatar}.webp`} alt="عکس پروفایل" width={32} height={32} className="h-8 w-8 shrink-0 object-contain" />}<p className="truncate text-xs text-muted-foreground">{userName}</p></div>
         )}
         {isAdmin && (
           <Link

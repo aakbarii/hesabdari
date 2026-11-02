@@ -76,3 +76,13 @@ TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… npx tsx scripts/migrate-loc
 6. مدیر موجود با ایمیل `ADMIN_EMAIL` و رمز فعلی وارد می‌شود. فقط برای راه‌اندازی نخستین حساب مدیر، یک `ADMIN_SETUP_TOKEN` تصادفی و خصوصی روی سرور تنظیم کنید و کد را در فرم راه‌اندازی وارد کنید. بدون این کد، راه‌اندازی مدیر بسته است؛ پس از فعال‌شدن حساب‌ها هم دوباره قابل استفاده نیست. کد را در متغیرهای عمومی `NEXT_PUBLIC_*` قرار ندهید. پنل مدیر در `/sanjabadmin` است.
 
 توجه: مدیر می‌تواند اطلاعات همهٔ کاربران را ببیند. رمز عبور و کلیدهای 2FA در پنل نمایش داده نمی‌شوند.
+
+### Passwordless device sign-in
+
+New accounts use first name, last name, an Iranian contact phone and a built-in avatar, followed by a discoverable WebAuthn passkey. Device user verification is required on registration and login. Face ID, fingerprint or device unlock is selected by the operating system; biometric data never reaches this server. No SMS/email sending service is needed. Phone numbers are unverified contact data, are deliberately not unique and cannot claim or recover another account.
+
+Use the same HTTPS domain for registration and subsequent logins. RP ID and allowed origin are derived from the served URL; optionally set server-only `PASSKEY_ORIGIN` to the exact canonical HTTPS origin. Local development accepts localhost/127.0.0.1. Vercel preview domains have separate passkeys.
+
+Existing email accounts retain `/login?method=legacy`. After signing in, Settings → device sign-in can attach a passkey to the same account, keeping all data and the server-derived role. Sessions use a signed HttpOnly, SameSite=Lax cookie (Secure in production), up to 400 days and renewed by the existing proxy. No session token is placed in localStorage.
+
+Schema repair adds the nullable profile fields, public credentials, expiring one-use challenges and durable rate limits without resetting users. Keys/profile/default seeding are committed in a single database transaction. Challenges are origin-bound, expire after five minutes and are consumed atomically. `npm run test:passkeys` uses a disposable database and software ES256 authenticator to check signatures, required user verification, replay/expiry/counter handling, profile persistence, throttling and legacy-account linking; it does not perform a physical Face ID or fingerprint test.

@@ -5,6 +5,10 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phone: text("phone"),
+  avatarId: text("avatar_id"),
   name: text("name").notNull(),
   totpSecret: text("totp_secret"),
   totpPendingSecret: text("totp_pending_secret"),
@@ -954,3 +958,14 @@ export const selfCareLogs = sqliteTable("self_care_logs", {
   value: real("value").notNull().default(0), targetValue: real("target_value").notNull(), titleSnapshot: text("title_snapshot").notNull(), unitSnapshot: text("unit_snapshot").notNull(),
   notes: text("notes"), updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 }, table => [uniqueIndex("self_care_logs_item_date").on(table.itemId, table.date)]);
+
+export const passkeyCredentials = sqliteTable("passkey_credentials", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  publicKey: blob("public_key", { mode: "buffer" }).notNull(),
+  counter: integer("counter").notNull().default(0),
+  transports: text("transports").notNull().default("[]"),
+  deviceType: text("device_type").notNull(),
+  backedUp: integer("backed_up", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at").notNull(),
+});

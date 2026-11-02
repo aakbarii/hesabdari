@@ -113,6 +113,26 @@ async function repairSchema(client: Client) {
     }
   };
 
+  for (const column of ["first_name", "last_name", "phone", "avatar_id"]) {
+    await addColumnIfMissing("users", column, "text");
+  }
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS passkey_credentials (
+      id text PRIMARY KEY NOT NULL, user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      public_key blob NOT NULL, counter integer NOT NULL DEFAULT 0, transports text NOT NULL DEFAULT '[]',
+      device_type text NOT NULL, backed_up integer NOT NULL DEFAULT 0, created_at integer NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS passkey_credentials_user ON passkey_credentials(user_id);
+    CREATE TABLE IF NOT EXISTS passkey_challenges (
+      id text PRIMARY KEY NOT NULL, challenge text NOT NULL, kind text NOT NULL,
+      user_id text, profile text, origin text NOT NULL, rp_id text NOT NULL, expires_at integer NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS passkey_challenges_expiry ON passkey_challenges(expires_at);
+    CREATE TABLE IF NOT EXISTS passkey_rate_limits (
+      id text PRIMARY KEY NOT NULL, window_start integer NOT NULL, count integer NOT NULL
+    );
+  `);
+
   if (tableExists("transactions") && !columnExists("transactions", "receipt_path")) {
     await addColumnIfMissing("transactions", "receipt_path", "text");
   }
