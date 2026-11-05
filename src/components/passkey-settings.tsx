@@ -15,7 +15,7 @@ export function PasskeySettings() {
   const [busy, setBusy] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const { gender, setGender } = useAppearance();
-  useEffect(() => { const controller = new AbortController(); fetch("/api/profile", { signal: controller.signal }).then(r => { if (!r.ok) throw Error(); return r.json(); }).then(data => { const parts = (data.name || "").split(" "); setProfile({ firstName: data.firstName || parts[0] || "", lastName: data.lastName || parts.slice(1).join(" ") }); setCount(data.passkeyCount || 0); setReady(true); }).catch(() => {}); return () => controller.abort(); }, []);
+  useEffect(() => { const controller = new AbortController(); fetch("/api/profile", { signal: controller.signal }).then(r => { if (!r.ok) throw Error(); return r.json(); }).then(data => { const parts = (data.name || "").split(" "); setProfile({ firstName: data.firstName || parts[0] || "", lastName: data.lastName || parts.slice(1).join(" "), phone: data.phone ?? undefined }); setCount(data.passkeyCount || 0); setReady(true); }).catch(() => {}); return () => controller.abort(); }, []);
   function valid() { return form.current?.reportValidity() && passkeyProfileSchema.safeParse(profile).success; }
   async function save(event: React.FormEvent) {
     event.preventDefault(); if (!valid()) return toast.error("نام و نام خانوادگی را بررسی کن"); setBusy(true);

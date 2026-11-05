@@ -89,7 +89,7 @@ async function seedDefaultUser() {
 
 export async function seedUserDefaults(
   userId: string,
-  opts?: { gender?: "male" | "female" },
+  opts?: { gender?: "male" | "female"; locale?: "fa" | "en" },
   store: Pick<typeof db, "insert" | "select"> = db
 ) {
   for (const [i, name] of DEFAULT_EXPENSE_CATEGORIES.entries()) {
@@ -127,6 +127,7 @@ export async function seedUserDefaults(
       anomalyThreshold: 30,
       currencyUnit: DEFAULT_CURRENCY_UNIT,
       gender: gender ?? null,
+      locale: opts?.locale ?? "fa",
       appearanceMood: mood,
       accentColor: DEFAULT_ACCENT_COLOR,
       visibleNav: JSON.stringify(nav),

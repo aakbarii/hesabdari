@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { requireUserId } from "@/lib/api-auth";
 import { ensureDb } from "@/lib/db/queries";
+import { csvCell } from "@/lib/workbench";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 
@@ -31,16 +32,7 @@ const TABLES: Array<[string, any]> = [
 async function collectUserData(userId: string) {
   const out: Record<string, unknown[]> = {};
   for (const [name, table] of TABLES) {
-    try {
-      const rows = await db
-        .select()
-        .from(table)
-        .where(eq(table.userId, userId))
-        .all();
-      out[name] = rows;
-    } catch {
-      out[name] = [];
-    }
+    out[name] = await db.select().from(table).where(eq(table.userId, userId)).all();
   }
   return out;
 }
@@ -60,17 +52,17 @@ function toCsv(data: Record<string, unknown[]>) {
       const r = row as Record<string, unknown>;
       lines.push(
         keys
-          .map((k) => {
-            const v = r[k];
-            const s = v == null ? "" : String(v);
-            return `"${s.replace(/"/g, '""')}"`;
-          })
+          .map((k) => csvCell(r[k]))
           .join(",")
       );
     }
     lines.push("");
   }
   return lines.join("\n");
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 function toHtml(data: Record<string, unknown[]>) {
@@ -80,10 +72,9 @@ function toHtml(data: Record<string, unknown[]>) {
       const keys = Object.keys(rows[0] as object);
       const head = keys.map((k) => `<th>${k}</th>`).join("");
       const body = rows
-        .slice(0, 200)
         .map((row) => {
           const r = row as Record<string, unknown>;
-          return `<tr>${keys.map((k) => `<td>${String(r[k] ?? "")}</td>`).join("")}</tr>`;
+          return `<tr>${keys.map((k) => `<td>${escapeHtml(r[k])}</td>`).join("")}</tr>`;
         })
         .join("");
       return `<h2>${name}</h2><table border="1" cellpadding="4" cellspacing="0"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
@@ -98,7 +89,12 @@ export async function GET(request: Request) {
   if (auth instanceof NextResponse) return auth;
 
   const format = new URL(request.url).searchParams.get("format") ?? "json";
-  const data = await collectUserData(auth);
+  let data: Awaited<ReturnType<typeof collectUserData>>;
+  try {
+    data = await collectUserData(auth);
+  } catch {
+    return NextResponse.json({ error: "ساخت خروجی انجام نشد؛ دوباره تلاش کن" }, { status: 500 });
+  }
   const payload = {
     exportedAt: new Date().toISOString(),
     userId: auth,
@@ -108,6 +104,7 @@ export async function GET(request: Request) {
   if (format === "csv") {
     return new NextResponse(toCsv(data), {
       headers: {
+        "Cache-Control": "no-store",
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": 'attachment; filename="ravaal-backup.csv"',
       },
@@ -117,6 +114,7 @@ export async function GET(request: Request) {
   if (format === "html" || format === "pdf") {
     return new NextResponse(toHtml(data), {
       headers: {
+        "Cache-Control": "no-store",
         "Content-Type": "text/html; charset=utf-8",
         "Content-Disposition": 'inline; filename="ravaal-backup.html"',
       },
@@ -125,6 +123,7 @@ export async function GET(request: Request) {
 
   return new NextResponse(JSON.stringify(payload, null, 2), {
     headers: {
+      "Cache-Control": "no-store",
       "Content-Type": "application/json; charset=utf-8",
       "Content-Disposition": 'attachment; filename="ravaal-backup.json"',
     },

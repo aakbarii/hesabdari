@@ -9,6 +9,8 @@ import { OnboardingDialog } from "@/components/onboarding/onboarding-dialog";
 import { PageTransition } from "@/components/motion/page-transition";
 import { QuickAddFab } from "@/components/layout/quick-add-fab";
 import { ConfirmProvider } from "@/components/confirm-dialog";
+import { Button } from "@/components/ui/button";
+import { useLocale } from "@/components/locale-provider";
 import { JoojoPet } from "@/components/joojo-pet";
 
 const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
@@ -17,14 +19,20 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuth = AUTH_PATHS.includes(pathname) || pathname === "/install/joojo";
   const router = useRouter();
-  const [session, setSession] = useState<"checking" | "in" | "out">("checking");
+  const en = useLocale().locale === "en";
+  const [retry, setRetry] = useState(0);
+  const [session, setSession] = useState<"checking" | "in" | "out" | "error">("checking");
 
   // Every workspace page requires a signed-in account; otherwise send the visitor to login.
   useEffect(() => {
     if (isAuth) return;
     let cancelled = false;
     fetch("/api/auth/me")
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) return { user: null };
+        if (!r.ok) throw new Error("Session check failed");
+        return r.json();
+      })
       .then((d) => {
         if (cancelled) return;
         if (d.user) {
@@ -35,12 +43,12 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
-        if (!cancelled) setSession("out");
+        if (!cancelled) setSession("error");
       });
     return () => {
       cancelled = true;
     };
-  }, [isAuth, router]);
+  }, [isAuth, router, retry]);
 
   if (isAuth) {
     return (
@@ -50,6 +58,14 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (session === "error") return <main className="grid min-h-dvh place-items-center p-4">
+    <div className="space-y-4 text-center">
+      <p role="alert">{en ? "We couldn’t check your session." : "بررسی ورود انجام نشد."}</p>
+      <Button onClick={() => { setSession("checking"); setRetry(value => value + 1); }}>
+        {en ? "Try again" : "تلاش دوباره"}
+      </Button>
+    </div>
+  </main>;
   if (session !== "in") return null;
 
   return (
@@ -57,7 +73,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen bg-background">
         <a href="#main-content" className="skip-link">رفتن به محتوای اصلی</a>
         <Sidebar />
-        <div className="app-shell lg:mr-64 min-h-screen">
+        <div className="app-shell lg:ms-64 min-h-screen">
           <RemindersBanner />
           <OnboardingDialog />
           <main id="main-content" tabIndex={-1} className="pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">

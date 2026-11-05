@@ -24,6 +24,7 @@ type LocaleContextValue = {
   locale: Locale;
   dir: "rtl" | "ltr";
   loaded: boolean;
+  hasPreference: boolean;
   t: (key: MessageKey, fallback?: string) => string;
   setLocale: (locale: Locale) => Promise<void>;
 };
@@ -60,10 +61,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [loaded, setLoaded] = useState(false);
+  const [hasPreference, setHasPreference] = useState(false);
 
   useEffect(() => {
     const fromCookie = readCookieLocale();
     if (fromCookie) {
+      setHasPreference(true);
       setLocaleState(fromCookie);
       applyDomLocale(fromCookie);
     }
@@ -99,29 +102,30 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, [isAuthPage]);
 
   const setLocale = useCallback(async (next: Locale) => {
-    setLocaleState(next);
-    writeCookieLocale(next);
-    applyDomLocale(next);
-    try {
-      await fetch("/api/settings", {
+    if (!isAuthPage) {
+      const response = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale: next }),
       });
-    } catch {
-      /* local still applied */
+      if (!response.ok) throw new Error("Could not save language");
     }
-  }, []);
+    setLocaleState(next);
+    setHasPreference(true);
+    writeCookieLocale(next);
+    applyDomLocale(next);
+  }, [isAuthPage]);
 
   const value = useMemo<LocaleContextValue>(
     () => ({
       locale,
       dir: localeDir(locale),
       loaded,
+      hasPreference,
       t: (key, fallback) => translate(locale, key, fallback),
       setLocale,
     }),
-    [locale, loaded, setLocale]
+    [locale, loaded, hasPreference, setLocale]
   );
 
   return (
@@ -136,6 +140,7 @@ export function useLocale() {
       locale: DEFAULT_LOCALE,
       dir: localeDir(DEFAULT_LOCALE),
       loaded: true,
+      hasPreference: true,
       t: (key: MessageKey, fallback?: string) =>
         translate(DEFAULT_LOCALE, key, fallback),
       setLocale: async () => {},

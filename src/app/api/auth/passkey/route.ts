@@ -12,7 +12,7 @@ import { getUserRole, isAdminEmail } from "@/lib/admin";
 import { getSessionSecret } from "@/lib/session-secret";
 import { SESSION_COOKIE, SESSION_COOKIE_OPTIONS, signSession } from "@/lib/auth";
 import { readJsonObject } from "@/lib/validation";
-import { passkeyProfileSchema } from "@/lib/passkey-profile";
+import { passkeyProfileSchema, passkeySignupSchema } from "@/lib/passkey-profile";
 
 export const runtime = "nodejs";
 const CHALLENGE_COOKIE = "joojo_passkey_challenge";
@@ -20,6 +20,7 @@ const FIVE_MINUTES = 5 * 60 * 1000;
 const bodySchema = z.object({
   action: z.enum(["register_options", "login_options", "link_options", "register_verify", "login_verify", "link_verify"]),
   profile: passkeyProfileSchema.optional(),
+  locale: z.enum(["fa", "en"]).optional(),
   credential: z.record(z.string(), z.unknown()).optional(),
 }).strict();
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -34,9 +35,9 @@ export async function POST(request: Request) {
     return reply({ error: "درخواست ورود از آدرس معتبر سایت ارسال نشده است" }, 403);
   }
   const parsed = bodySchema.safeParse(await readJsonObject(request));
-  if (!parsed.success) return reply({ error: "نام و نام خانوادگی را بررسی کن" }, 400);
+  if (!parsed.success) return reply({ error: "نام، نام خانوادگی و شماره موبایل را بررسی کن" }, 400);
   await ensureDb();
-  const { action, profile, credential: response } = parsed.data;
+  const { action, profile, locale, credential: response } = parsed.data;
   const jar = await cookies();
   const client = getClient();
   if (action.endsWith("_options")) {
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
     if (link && !currentUser) return reply({ error: "ابتدا وارد حساب فعلی شو" }, 401);
     if (action === "register_options" && currentUser) return reply({ error: "برای حساب فعلی از تنظیمات، کلید ورود اضافه کن" }, 409);
     if (action !== "login_options" && !profile) return reply({ error: "اطلاعات پروفایل کامل نیست" }, 400);
+    if (action === "register_options" && !passkeySignupSchema.safeParse(profile).success) return reply({ error: "شماره موبایل را وارد کن" }, 400);
     const userId = link ? currentUser! : action === "register_options" ? randomUUID() : null;
     const existing = link ? await db.select().from(passkeyCredentials).where(eq(passkeyCredentials.userId, userId!)).all() : [];
     if (existing.length >= 5) return reply({ error: "این حساب پنج کلید ورود دارد" }, 409);
@@ -64,7 +66,7 @@ export async function POST(request: Request) {
     const opaque = randomBytes(32).toString("base64url");
     const previous = jar.get(CHALLENGE_COOKIE)?.value;
     if (previous) await client.execute({ sql: "DELETE FROM passkey_challenges WHERE id=?", args: [hash(previous)] });
-    await client.execute({ sql: "INSERT INTO passkey_challenges(id,challenge,kind,user_id,profile,origin,rp_id,expires_at) VALUES(?,?,?,?,?,?,?,?)", args: [hash(opaque), options.challenge, action.replace("_options", ""), userId, profile ? JSON.stringify(profile) : null, origin, context.hostname, now+FIVE_MINUTES] });
+    await client.execute({ sql: "INSERT INTO passkey_challenges(id,challenge,kind,user_id,profile,origin,rp_id,expires_at) VALUES(?,?,?,?,?,?,?,?)", args: [hash(opaque), options.challenge, action.replace("_options", ""), userId, profile ? JSON.stringify({ ...profile, locale }) : null, origin, context.hostname, now+FIVE_MINUTES] });
     jar.set(CHALLENGE_COOKIE, opaque, { httpOnly: true, secure: context.protocol === "https:", sameSite: "strict", path: "/api/auth/passkey", maxAge: 300 });
     return reply({ options });
   }
@@ -94,14 +96,15 @@ export async function POST(request: Request) {
       if (link && await getRequestUserId() !== userId) return reply({ error: "نشست حساب تغییر کرده؛ دوباره وارد شو" }, 401);
       const verified = await verifyRegistrationResponse({ response: response as unknown as RegistrationResponseJSON, expectedChallenge: String(challenge.challenge), expectedOrigin: origin, expectedRPID: context.hostname, requireUserVerification: true, supportedAlgorithmIDs: [-7, -257] });
       if (!verified.verified) return reply({ error: "تأیید دستگاه معتبر نیست" }, 401);
-      const data = passkeyProfileSchema.parse(JSON.parse(String(challenge.profile)));
+      const { locale: signupLocale, ...names } = JSON.parse(String(challenge.profile));
+      const data = passkeyProfileSchema.parse(names);
       const info = verified.registrationInfo;
       const email = `${userId}@passkey.local.invalid`;
       if (!link && isAdminEmail(email)) return reply({ error: "ایجاد حساب انجام نشد؛ دوباره تلاش کن" }, 409);
       await db.transaction(async tx => {
-        const fields = { firstName: data.firstName, lastName: data.lastName, name: `${data.firstName} ${data.lastName}` };
+        const fields = { firstName: data.firstName, lastName: data.lastName, name: `${data.firstName} ${data.lastName}`, phone: data.phone };
         if (link) await tx.update(users).set(fields).where(eq(users.id, userId)).run();
-        else { await tx.insert(users).values({ id: userId, email, ...fields }).run(); await seedUserDefaults(userId, undefined, tx); }
+        else { await tx.insert(users).values({ id: userId, email, ...fields }).run(); await seedUserDefaults(userId, { locale: signupLocale === "en" ? "en" : "fa" }, tx); }
         await tx.insert(passkeyCredentials).values({ id: info.credential.id, userId, publicKey: Buffer.from(info.credential.publicKey), counter: info.credential.counter, transports: JSON.stringify(info.credential.transports ?? []), deviceType: info.credentialDeviceType, backedUp: info.credentialBackedUp, createdAt: Date.now() }).run();
       });
     }

@@ -29,32 +29,38 @@ function registration(a,options,{uv=true,origin=base}={}){
  return {id:a.id,rawId:a.id,type:'public-key',authenticatorAttachment:'platform',clientExtensionResults:{},response:{clientDataJSON:b64(c),attestationObject:b64(encodeCBOR(new Map([['fmt','none'],['attStmt',new Map()],['authData',new Uint8Array(authData)]]))),transports:['internal']}};
 }
 function assertion(a,options,{uv=true,origin=base,counter=1,privateKey=a.privateKey}={}){const c=client('webauthn.get',options.challenge,origin),n=Buffer.alloc(4);n.writeUInt32BE(counter);const d=Buffer.concat([sha(options.rpId),Buffer.from([uv?0x05:0x01]),n]);return {id:a.id,rawId:a.id,type:'public-key',clientExtensionResults:{},response:{clientDataJSON:b64(c),authenticatorData:b64(d),signature:b64(sign('sha256',Buffer.concat([d,sha(c)]),privateKey)),userHandle:a.userHandle}};}
-const profile={firstName:'آزمایش',lastName:'ورود'};
+const profile={firstName:'آزمایش',lastName:'ورود',phone:'۰۹۱۲۳۴۵۶۷۸۹'};
 try{
  for(let i=0;i<100;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,200));}}
  const a=new Browser(),key=authenticator();
  await a.pk({action:'register_options',profile},403,{Origin:'https://attacker.invalid'});
  await a.pk({action:'register_options',profile:{...profile,role:'admin'}},400);
- await a.pk({action:'register_options',profile:{...profile,phone:'09123456789'}},400);
+ await a.pk({action:'register_options',profile:{...profile,phone:'123'}},400);
  await a.pk({action:'link_options',profile},401);
- let options=(await a.pk({action:'register_options',profile})).data.options;
+ await a.pk({action:'register_options',profile:{...profile,phone:undefined}},400);
+ let options=(await a.pk({action:'register_options',profile,locale:'en'})).data.options;
  assert.equal(options.authenticatorSelection.userVerification,'required');assert.equal(options.authenticatorSelection.residentKey,'required');
  await a.pk({action:'register_verify',credential:registration(key,options,{uv:false})},400);
- options=(await a.pk({action:'register_options',profile})).data.options;
+ options=(await a.pk({action:'register_options',profile,locale:'en'})).data.options;
  const replayCookie=a.cookies.get('joojo_passkey_challenge');const reg=registration(key,options);
  const created=await a.pk({action:'register_verify',credential:reg});assert.equal(created.data.role,'user');assert.equal(created.data.isAdmin,false);assert.match(created.headers.get('set-cookie'),/Max-Age=34560000/);assert.match(created.headers.get('set-cookie'),/HttpOnly/i);
  a.cookies.set('joojo_passkey_challenge',replayCookie);await a.pk({action:'register_verify',credential:reg},400);
- let me=(await a.req('/api/auth/me')).data.user;const originalID=me.id;assert.equal(me.firstName,profile.firstName);assert.equal(me.role,'user');
+ let me=(await a.req('/api/auth/me')).data.user;const originalID=me.id;assert.equal((await a.req('/api/profile')).data.phone,'+989123456789');assert.equal(me.firstName,profile.firstName);assert.equal(me.role,'user');
  assert.equal((await a.req('/api/profile')).data.passkeyCount,1);
  await a.req('/api/profile',{passkeyProfile:{firstName:'نام',lastName:'تازه'}},200,{},'PATCH');assert.equal((await a.req('/api/profile')).data.firstName,'نام');
  await a.req('/api/profile',{passkeyProfile:profile,role:'admin'},400,{},'PATCH');
  await a.req('/api/admin/users',undefined,403);
+ const account=(await a.req('/api/accounts',{name:'Sync test',type:'bank'})).data;
+ const tx=(await a.req('/api/transactions',{accountId:account.id,type:'expense',amount:2500,date:'2026-10-19'})).data;
  const login=new Browser();options=(await login.pk({action:'login_options'})).data.options;assert.equal(options.userVerification,'required');
  await login.pk({action:'login_verify',credential:assertion(key,options,{origin:'https://attacker.invalid'})},400);
  options=(await login.pk({action:'login_options'})).data.options;await login.pk({action:'login_verify',credential:assertion(key,options,{uv:false})},400);
  options=(await login.pk({action:'login_options'})).data.options;await login.pk({action:'login_verify',credential:assertion(key,options,{privateKey:authenticator().privateKey})},401);
  options=(await login.pk({action:'login_options'})).data.options;await login.pk({action:'login_verify',credential:assertion(key,options)});
  assert.equal((await login.req('/api/auth/me')).data.user.id,originalID);
+ assert.equal((await login.req('/api/profile')).data.phone,'+989123456789');
+ assert.equal((await login.req('/api/settings')).data.locale,'en');
+ assert.ok((await login.req('/api/transactions')).data.some(row=>row.id===tx.id));
  options=(await login.pk({action:'login_options'})).data.options;await login.pk({action:'login_verify',credential:assertion(key,options,{counter:1})},400);
  const b=new Browser(),key2=authenticator();options=(await b.pk({action:'register_options',profile})).data.options;await b.pk({action:'register_verify',credential:registration(key2,options)});assert.notEqual((await b.req('/api/auth/me')).data.user.id,originalID,'Matching names must never identify/claim another account');
  const linked=authenticator();options=(await a.pk({action:'link_options',profile:profile})).data.options;await a.pk({action:'link_verify',credential:registration(linked,options)});assert.equal((await a.req('/api/profile')).data.passkeyCount,2);assert.equal((await a.req('/api/auth/me')).data.user.id,originalID);

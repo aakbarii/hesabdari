@@ -94,7 +94,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:right-0 border-l border-border/70 bg-sidebar">
+    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:start-0 border-e border-border/70 bg-sidebar">
       <div className="flex h-16 items-center px-5 border-b border-border/70">
         <AppLogo size="md" />
       </div>
