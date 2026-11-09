@@ -11,11 +11,11 @@ import { formatToman } from "@/lib/format";
 
 type Slice = { name: string; value: number; color: string };
 
-export function ExpenseCategoryChart({ data }: { data: Slice[] }) {
+export function ExpenseCategoryChart({ data, emptyLabel = "هنوز هزینه‌ای ثبت نشده" }: { data: Slice[]; emptyLabel?: string }) {
   if (data.length === 0) {
     return (
       <p className="text-center text-muted-foreground py-12">
-        هنوز هزینه‌ای ثبت نشده
+        {emptyLabel}
       </p>
     );
   }

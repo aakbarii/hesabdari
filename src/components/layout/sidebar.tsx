@@ -74,7 +74,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { navGroups } = useAppearance();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const en = locale === "en";
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -98,7 +99,7 @@ export function Sidebar() {
       <div className="flex h-16 items-center px-5 border-b border-border/70">
         <AppLogo size="md" />
       </div>
-      <nav aria-label="منوی اصلی" className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+      <nav aria-label={en ? "Main menu" : "منوی اصلی"} className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
         <JoojoSidebarNote />
 
         {navGroups.map((group) => (
@@ -146,7 +147,7 @@ export function Sidebar() {
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <ShieldCheck className="h-5 w-5" />
-            پنل مدیریت
+            {en ? "Admin" : "پنل مدیریت"}
           </Link>
         )}
         {/* Login/logout temporarily disabled; restore with AUTH_ENABLED. */}
@@ -157,7 +158,7 @@ export function Sidebar() {
             onClick={logout}
           >
             <LogOut className="h-5 w-5" />
-            خروج
+            {en ? "Log out" : "خروج"}
           </Button>
         )}
       </div>

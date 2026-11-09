@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Heart, Wheat, Moon, Pause, Play, Volume2, VolumeX, Sparkles, Music2, X } from "lucide-react";
 import { useAppearance } from "@/components/appearance-provider";
+import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
 import "./joojo-pet.css";
 
@@ -15,7 +16,16 @@ type Action = "idle" | "walk" | "eat" | "sneeze" | "sleep" | "love" | "jump" | "
 type Preferences = { paused: boolean; sound: boolean };
 const PREF_KEY = "ravaal:joojo-pet:v1";
 const DURATIONS: Record<Action, number> = { idle: 12000, walk: 5200, eat: 4200, sneeze: 2000, sleep: 10000, love: 2800, jump: 2400, dance: 3600 };
-const PHRASES: Record<Action, string> = { idle: "من اینجام! 🎀", walk: "یه دور کوچولو بزنم…", eat: "جیک جیک! مرسی برای دونا 🌾", sneeze: "هاپچی! ✨", sleep: "یه چرت زیر پتو… zZz", love: "دوستت دارم! ♡", jump: "یه پرش کوچولو! ✨", dance: "جیک‌جیک، وقت رقصه! ♫" };
+const PHRASES: Record<Action, { fa: string; en: string }> = {
+  idle: { fa: "من اینجام! 🎀", en: "I'm here! 🎀" },
+  walk: { fa: "یه دور کوچولو بزنم…", en: "A little lap…" },
+  eat: { fa: "جیک جیک! مرسی برای دونا 🌾", en: "Chirp! Thanks for the snack 🌾" },
+  sneeze: { fa: "هاپچی! ✨", en: "Achoo! ✨" },
+  sleep: { fa: "یه چرت زیر پتو… zZz", en: "A nap under the blanket… zZz" },
+  love: { fa: "دوستت دارم! ♡", en: "Love you! ♡" },
+  jump: { fa: "یه پرش کوچولو! ✨", en: "A little jump! ✨" },
+  dance: { fa: "جیک‌جیک، وقت رقصه! ♫", en: "Chirp chirp, dance time! ♫" },
+};
 
 function subscribeMotion(callback: () => void) {
   const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -41,6 +51,9 @@ function readPreferences(): Preferences {
 
 function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVariant }) {
   const size = inline ? 104 : 112;
+  const { locale } = useLocale();
+  const en = locale === "en";
+  const tx = (fa: string, english: string) => (en ? english : fa);
   const reactive = useJoojoReactiveMood();
   const [pinnedPose, setPinnedPose] = useState<string | null>(null);
   const [preferences, setPreferences] = useState(readPreferences);
@@ -164,7 +177,7 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
     sneeze: "/joojo/winking.png",
   };
 
-  const currentSpeech = action === "idle" ? reactive.phrase : PHRASES[action];
+  const currentSpeech = action === "idle" ? reactive.phrase : PHRASES[action][en ? "en" : "fa"];
   const currentImg =
     action !== "idle" && actionImageMap[action]
       ? actionImageMap[action]!
@@ -175,9 +188,9 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
       <div ref={traveler} className="joojo-pet-traveler" data-action={action} style={{ transform: `translate3d(${x}px, 0, 0)` }}>
         <span className="joojo-pet-speech" aria-hidden="true">{currentSpeech}</span>
         <span className="joojo-pet-shadow" aria-hidden="true" />
-        <button type="button" className="joojo-pet-character" aria-label={`جوجو: ${currentSpeech}؛ بازکردن کنترل‌ها`} aria-expanded={menu} aria-controls={menu ? menuId : undefined} onClick={() => { settle(); setMenu(!menu); }}>
+        <button type="button" className="joojo-pet-character" aria-label={tx(`جوجو: ${currentSpeech}؛ بازکردن کنترل‌ها`, `Joojo: ${currentSpeech}. Open controls`)} aria-expanded={menu} aria-controls={menu ? menuId : undefined} onClick={() => { settle(); setMenu(!menu); }}>
           <span className="joojo-pet-direction" style={{ transform: `scaleX(${facing})` }}>
-            <Image src={currentImg} alt="جوجو" width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
+            <Image src={currentImg} alt={tx("جوجو", "Joojo")} width={112} height={112} sizes="112px" draggable={false} className="joojo-pet-body" />
           </span>
           {(action === "jump" || action === "dance") && <span className="joojo-pet-sparkles" aria-hidden="true"><i>✦</i><i>✧</i><i>✦</i></span>}
           {action === "eat" && <span className="joojo-pet-grains" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <i key={i} style={{ left: i * 7, bottom: (i % 3) * 4, animationDelay: `${i * .06}s` }} />)}</span>}
@@ -187,8 +200,8 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
         </button>
       </div>
     </div>
-    {menu && createPortal(<section id={menuId} className="joojo-pet-menu" aria-label="کنترل جوجو">
-      <div className="joojo-pet-menu-title"><strong>جوجوی صورتی 🎀</strong><button type="button" aria-label="بستن کنترل جوجو" onClick={() => setMenu(false)}><X size={16} /></button></div>
+    {menu && createPortal(<section id={menuId} className="joojo-pet-menu" aria-label={tx("کنترل جوجو", "Joojo controls")} dir={en ? "ltr" : "rtl"}>
+      <div className="joojo-pet-menu-title"><strong>{tx("جوجوی صورتی 🎀", "Pink Joojo 🎀")}</strong><button type="button" aria-label={tx("بستن کنترل جوجو", "Close Joojo controls")} onClick={() => setMenu(false)}><X size={16} /></button></div>
       
       {/* Data-Reactive Mood Station Card */}
       <div className="joojo-pet-reactive-status">
@@ -207,23 +220,23 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
       {/* Visual Pose Switcher */}
       <div className="joojo-pet-gallery">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold text-foreground">حالت نمایشی جوجو:</span>
+          <span className="text-[10px] font-bold text-foreground">{tx("حالت نمایشی جوجو:", "Joojo's look:")}</span>
           {pinnedPose && (
             <button
               type="button"
               className="text-[9.5px] text-primary hover:underline cursor-pointer"
               onClick={() => setPinnedPose(null)}
             >
-              حالت هوشمند ↺
+              {tx("حالت هوشمند ↺", "Smart pose ↺")}
             </button>
           )}
         </div>
         <div className="grid grid-cols-4 gap-1.5">
           {[
-            { id: "/joojo/smiling.png", label: "خندان" },
-            { id: "/joojo/winking.png", label: "بازیگوش" },
-            { id: "/joojo/floating.png", label: "پرواز" },
-            { id: "/joojo/hatchling.png", label: "پشمالو" },
+            { id: "/joojo/smiling.png", label: tx("خندان", "Smiling") },
+            { id: "/joojo/winking.png", label: tx("بازیگوش", "Playful") },
+            { id: "/joojo/floating.png", label: tx("پرواز", "Floating") },
+            { id: "/joojo/hatchling.png", label: tx("پشمالو", "Fluffy") },
           ].map((item) => (
             <button
               key={item.id}
@@ -247,16 +260,16 @@ function LivingJoojo({ inline, variant }: { inline: boolean; variant: StellaVari
       </div>
 
       <div className="joojo-pet-actions">
-        <button type="button" onClick={() => interact("eat")}><Wheat size={17} />دون بده</button>
-        <button type="button" onClick={() => interact("love")}><Heart size={17} />نازش کن</button>
-        <button type="button" onClick={() => interact("sleep")}><Moon size={17} />وقت چرت</button>
-        <button type="button" onClick={() => interact("sneeze")}><span aria-hidden="true">✧</span>یه عطسه!</button>
-        <button type="button" onClick={() => interact("jump")}><Sparkles size={17} />بپر بالا</button>
-        <button type="button" onClick={() => interact("dance")}><Music2 size={17} />برقص جوجو</button>
-        <button type="button" aria-pressed={preferences.paused} onClick={() => { settle(); updatePreferences({ paused: !preferences.paused }); }}>{preferences.paused ? <Play size={17} /> : <Pause size={17} />}{preferences.paused ? "حرکت خودکار" : "توقف حرکت"}</button>
-        <button type="button" aria-pressed={preferences.sound} onClick={() => void toggleSound()}>{preferences.sound ? <Volume2 size={17} /> : <VolumeX size={17} />}{preferences.sound ? "صدا روشنه" : "صدا خاموشه"}</button>
+        <button type="button" onClick={() => interact("eat")}><Wheat size={17} />{tx("دون بده", "Feed")}</button>
+        <button type="button" onClick={() => interact("love")}><Heart size={17} />{tx("نازش کن", "Pet")}</button>
+        <button type="button" onClick={() => interact("sleep")}><Moon size={17} />{tx("وقت چرت", "Nap")}</button>
+        <button type="button" onClick={() => interact("sneeze")}><span aria-hidden="true">✧</span>{tx("یه عطسه!", "Sneeze")}</button>
+        <button type="button" onClick={() => interact("jump")}><Sparkles size={17} />{tx("بپر بالا", "Jump")}</button>
+        <button type="button" onClick={() => interact("dance")}><Music2 size={17} />{tx("برقص جوجو", "Dance")}</button>
+        <button type="button" aria-pressed={preferences.paused} onClick={() => { settle(); updatePreferences({ paused: !preferences.paused }); }}>{preferences.paused ? <Play size={17} /> : <Pause size={17} />}{preferences.paused ? tx("حرکت خودکار", "Auto move") : tx("توقف حرکت", "Pause")}</button>
+        <button type="button" aria-pressed={preferences.sound} onClick={() => void toggleSound()}>{preferences.sound ? <Volume2 size={17} /> : <VolumeX size={17} />}{preferences.sound ? tx("صدا روشنه", "Sound on") : tx("صدا خاموشه", "Sound off")}</button>
       </div>
-      {reducedMotion && <p className="mt-2 text-[10px] text-muted-foreground">با تنظیم کاهش حرکت دستگاه، حرکت خودکار خاموش است.</p>}
+      {reducedMotion && <p className="mt-2 text-[10px] text-muted-foreground">{tx("با تنظیم کاهش حرکت دستگاه، حرکت خودکار خاموش است.", "Auto movement is off because reduced motion is on.")}</p>}
     </section>, document.body)}
   </>;
 }

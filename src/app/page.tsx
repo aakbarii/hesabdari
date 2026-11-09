@@ -132,6 +132,7 @@ const CHART_COLORS = [
 export default function DashboardPage() {
   const { mood } = useAppearance();
   const { t, locale } = useLocale();
+  const say = (fa: string, en: string) => (locale === "en" ? en : fa);
   const hero = useHeroSrc("dashboard");
   const { show: showHeroBanner } = useHeroes();
   const [data, setData] = useState<DashboardData | null>(null);
@@ -162,7 +163,7 @@ export default function DashboardPage() {
           if (err?.name !== "AbortError") {
             if (currentVersion !== version) return;
             setError(true);
-            toast.error("خطا در بارگذاری داشبورد");
+            toast.error(locale === "en" ? "Couldn't load the dashboard" : "خطا در بارگذاری داشبورد");
           }
         })
         .finally(() => { if (!controller.signal.aborted && currentVersion === version) setLoading(false); });
@@ -174,7 +175,7 @@ export default function DashboardPage() {
       controller.abort();
       window.removeEventListener("hesabdari:tx-created", onTx);
     };
-  }, [reload]);
+  }, [reload, locale]);
 
   const show = (id: DashboardWidgetId) => widgets.includes(id);
 
@@ -217,20 +218,20 @@ export default function DashboardPage() {
 
   const chartData =
     data?.expenses.map((e, i) => ({
-      name: e.categoryName ?? "سایر",
+      name: e.categoryName ?? say("سایر", "Other"),
       value: e.total,
       color: e.color ?? CHART_COLORS[i % CHART_COLORS.length],
     })) ?? [];
 
   return (
     <>
-      <Header title="داشبورد" />
+      <Header title={say("داشبورد", "Dashboard")} />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
         {mood === "joojo" ? (
           <JoojoHero
             heroKey="dashboard"
-            title="امروزت رو با جوجو قشنگ بساز! 🌸"
-            subtitle="یه قدم برای هدف‌هات، یه لبخند برای خودت؛ جوجو اینجاست که همراهت باشه ♡"
+            title={say("امروزت رو با جوجو قشنگ بساز! 🌸", "Make today a little kinder with Joojo 🌸")}
+            subtitle={say("یه قدم برای هدف‌هات، یه لبخند برای خودت؛ جوجو اینجاست که همراهت باشه ♡", "One step for your goals, one smile for you. Joojo is here ♡")}
             action={
               <>
                 <Link
@@ -240,7 +241,7 @@ export default function DashboardPage() {
                     "rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-sm shadow-rose-300/40 font-bold px-4"
                   )}
                 >
-                  دفترچه امروز <ArrowLeft size={16} />
+                  {say("دفترچه امروز", "Today's notebook")} <ArrowLeft size={16} />
                 </Link>
                 <Link
                   href="/transactions?new=expense"
@@ -249,7 +250,7 @@ export default function DashboardPage() {
                     "rounded-full bg-white/80 border-rose-200/90 text-foreground hover:bg-pink-50/80 font-medium px-4"
                   )}
                 >
-                  <Plus size={16} />ثبت سریع
+                  <Plus size={16} />{say("ثبت سریع", "Quick add")}
                 </Link>
               </>
             }
@@ -257,8 +258,8 @@ export default function DashboardPage() {
         ) : hero.hidden ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-4">
             <div>
-              <p className="font-semibold">امروز را با خیال آسوده شروع کن.</p>
-              <p className="text-sm text-muted-foreground">دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.</p>
+              <p className="font-semibold">{say("امروز را با خیال آسوده شروع کن.", "Start today with a clear picture.")}</p>
+              <p className="text-sm text-muted-foreground">{say("دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.", "Money, plans and goals, in one view.")}</p>
             </div>
             <Button
               type="button"
@@ -301,18 +302,18 @@ export default function DashboardPage() {
           />
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
             <div className="max-w-xl space-y-3">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-emerald-50"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> فضای شخصی جوجو</span>
-              <h2 className="text-2xl font-semibold leading-relaxed sm:text-3xl">امروز را با خیال آسوده شروع کن.</h2>
-              <p className="text-sm leading-7 text-emerald-50/80">دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.</p>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-emerald-50"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> {say("فضای شخصی جوجو", "Your Joojo space")}</span>
+              <h2 className="text-2xl font-semibold leading-relaxed sm:text-3xl">{say("امروز را با خیال آسوده شروع کن.", "Start today with a clear picture.")}</h2>
+              <p className="text-sm leading-7 text-emerald-50/80">{say("دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.", "Money, plans and goals, in one view.")}</p>
               <div className="flex flex-wrap gap-2 pt-1">
-                <Link href="/transactions?new=expense" className="hidden sm:inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50"><Plus className="h-4 w-4" /> ثبت تراکنش</Link>
-                <Link href="/life" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm transition hover:bg-white/10">برنامه امروز <ArrowLeft className="h-4 w-4" /></Link>
+                <Link href="/transactions?new=expense" className="hidden sm:inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50"><Plus className="h-4 w-4" /> {say("ثبت تراکنش", "Add transaction")}</Link>
+                <Link href="/life" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm transition hover:bg-white/10">{say("برنامه امروز", "Today's plan")} <ArrowLeft className="h-4 w-4" /></Link>
               </div>
             </div>
             {data && <div className="dashboard-balance min-w-0 w-full rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm sm:w-auto sm:min-w-56">
-              <p className="text-xs text-emerald-50/75">مانده این ماه · {getJalaliMonthName(data.month)}</p>
+              <p className="text-xs text-emerald-50/75">{say("مانده این ماه", "This month")} · {getJalaliMonthName(data.month, locale)}</p>
               <p className="mt-3 text-xl font-semibold tabular-nums sm:text-2xl">{formatToman(data.monthly.balance)}</p>
-              <Link href="/reports" className="mt-4 inline-flex items-center gap-2 text-xs text-emerald-50/80 hover:text-white">مشاهده گزارش مالی <ArrowLeft className="h-3.5 w-3.5" /></Link>
+              <Link href="/reports" className="mt-4 inline-flex items-center gap-2 text-xs text-emerald-50/80 hover:text-white">{say("مشاهده گزارش مالی", "View the money report")} <ArrowLeft className="h-3.5 w-3.5" /></Link>
             </div>}
           </div>
         </section>
@@ -327,7 +328,7 @@ export default function DashboardPage() {
               )}
             >
               <ArrowDownRight className="h-4 w-4 ml-1" />
-              ثبت هزینه
+              {say("ثبت هزینه", "Add expense")}
             </Link>
             <Link
               href="/transactions?new=income"
@@ -337,17 +338,17 @@ export default function DashboardPage() {
               )}
             >
               <ArrowUpRight className="h-4 w-4 ml-1" />
-              ثبت درآمد
+              {say("ثبت درآمد", "Add income")}
             </Link>
           </div>
           <Sheet>
             <SheetTrigger
-              aria-label="تنظیم ویجت‌ها"
-              title="تنظیم ویجت‌ها"
+              aria-label={say("تنظیم ویجت‌ها", "Arrange widgets")}
+              title={say("تنظیم ویجت‌ها", "Arrange widgets")}
               className="inline-flex items-center gap-2 rounded-2xl border border-border/80 bg-card/80 px-3.5 py-2.5 text-xs sm:text-sm font-medium hover:bg-muted/80 backdrop-blur-xs transition shadow-xs"
             >
               <Settings2 className="h-4 w-4 text-muted-foreground" />
-              <span className="sr-only sm:not-sr-only">تنظیم ویجت‌ها</span>
+              <span className="sr-only sm:not-sr-only">{say("تنظیم ویجت‌ها", "Arrange widgets")}</span>
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader>
@@ -408,9 +409,9 @@ export default function DashboardPage() {
         {error ? (
           <Card><CardContent className="flex flex-col items-center gap-4 py-10 text-center" role="alert">
             <AlertTriangle className="h-9 w-9 text-amber-500" />
-            <h2 className="text-lg font-semibold">داشبورد بارگذاری نشد</h2>
-            <p className="text-sm text-muted-foreground">اتصال به سرور را بررسی کنید و دوباره تلاش کنید.</p>
-            <Button variant="outline" onClick={() => setReload((value) => value + 1)}><RefreshCw className="h-4 w-4" /> تلاش دوباره</Button>
+            <h2 className="text-lg font-semibold">{say("داشبورد بارگذاری نشد", "Dashboard didn't load")}</h2>
+            <p className="text-sm text-muted-foreground">{say("اتصال به سرور را بررسی کنید و دوباره تلاش کنید.", "Check the connection and try again.")}</p>
+            <Button variant="outline" onClick={() => setReload((value) => value + 1)}><RefreshCw className="h-4 w-4" /> {say("تلاش دوباره", "Try again")}</Button>
           </CardContent></Card>
         ) : loading ? (
           <div className="dashboard-summary grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
@@ -422,14 +423,14 @@ export default function DashboardPage() {
           </div>
         ) : data ? (
           <>
-            {widgets.length === 0 && <Card><CardContent className="py-10 text-center text-muted-foreground">ویجت‌های دلخواهتان را از «تنظیم ویجت‌ها» فعال کنید.</CardContent></Card>}
+            {widgets.length === 0 && <Card><CardContent className="py-10 text-center text-muted-foreground">{say("ویجت‌های دلخواهتان را از «تنظیم ویجت‌ها» فعال کنید.", "Turn widgets on from Arrange widgets.")}</CardContent></Card>}
             {show("balance") || show("monthly") ? (
               <div className="dashboard-summary grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
                 {show("balance") && (
                   <Card className="motion-lift col-span-2 md:col-span-1 rounded-[26px] border-border/70 shadow-xs hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-                        موجودی کل
+                        {say("موجودی کل", "Total balance")}
                       </CardTitle>
                       <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-pink-100/80 text-pink-600 dark:bg-pink-950/40">
                         <Wallet className="h-4 w-4" />
@@ -447,7 +448,7 @@ export default function DashboardPage() {
                     <Card className="motion-lift rounded-[26px] border-border/70 shadow-xs hover:shadow-md transition-shadow">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-                          درآمد {getJalaliMonthName(data.month)}
+                          {say("درآمد", "Income")} {getJalaliMonthName(data.month, locale)}
                         </CardTitle>
                         <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-emerald-100/80 text-emerald-600 dark:bg-emerald-950/40">
                           <TrendingUp className="h-4 w-4" />
@@ -462,7 +463,7 @@ export default function DashboardPage() {
                     <Card className="motion-lift rounded-[26px] border-border/70 shadow-xs hover:shadow-md transition-shadow">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-                          هزینه {getJalaliMonthName(data.month)}
+                          {say("هزینه", "Expenses")} {getJalaliMonthName(data.month, locale)}
                         </CardTitle>
                         <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-rose-100/80 text-rose-500 dark:bg-rose-950/40">
                           <TrendingDown className="h-4 w-4" />
@@ -483,35 +484,35 @@ export default function DashboardPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2 pb-2">
                   <LineChart className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base">پیش‌بینی ماهانه</CardTitle>
+                  <CardTitle className="text-base">{say("پیش‌بینی ماهانه", "Month forecast")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">پیش‌بینی درآمد</p>
+                      <p className="text-xs text-muted-foreground">{say("پیش‌بینی درآمد", "Projected income")}</p>
                       <p className="text-lg font-semibold text-emerald-600">
                         {formatToman(data.forecast.projectedIncome)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        میانگین ۳ ماه: {formatToman(data.forecast.avgIncome)}
+                        {say("میانگین ۳ ماه", "3-month average")}: {formatToman(data.forecast.avgIncome)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">پیش‌بینی هزینه</p>
+                      <p className="text-xs text-muted-foreground">{say("پیش‌بینی هزینه", "Projected expenses")}</p>
                       <p className="text-lg font-semibold text-red-600">
                         {formatToman(data.forecast.projectedExpense)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        میانگین ۳ ماه: {formatToman(data.forecast.avgExpense)}
+                        {say("میانگین ۳ ماه", "3-month average")}: {formatToman(data.forecast.avgExpense)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">پیش‌بینی مانده</p>
+                      <p className="text-xs text-muted-foreground">{say("پیش‌بینی مانده", "Projected balance")}</p>
                       <p className={`text-lg font-semibold ${data.forecast.projectedBalance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                         {formatToman(data.forecast.projectedBalance)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        روز {data.forecast.daysElapsed} از {data.forecast.daysInMonth}
+                        {say(`روز ${data.forecast.daysElapsed} از ${data.forecast.daysInMonth}`, `Day ${data.forecast.daysElapsed} of ${data.forecast.daysInMonth}`)}
                       </p>
                     </div>
                   </div>
@@ -523,7 +524,7 @@ export default function DashboardPage() {
               <Card className="border-amber-200 dark:border-amber-900">
                 <CardHeader className="flex flex-row items-center gap-2 pb-2">
                   <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <CardTitle className="text-base">هشدار ناهنجاری</CardTitle>
+                  <CardTitle className="text-base">{say("هشدار ناهنجاری", "Unusual spending")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {data.anomalies.map((a, i) => (
@@ -533,7 +534,7 @@ export default function DashboardPage() {
                         <span>{a.categoryName}</span>
                       </div>
                       <Badge variant="secondary" className="text-amber-700 bg-amber-100">
-                        {a.percentAbove}% بیشتر از میانگین
+                        {say(`${a.percentAbove}% بیشتر از میانگین`, `${a.percentAbove}% above average`)}
                       </Badge>
                     </div>
                   ))}
@@ -547,10 +548,10 @@ export default function DashboardPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Target className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-base">اهداف</CardTitle>
+                    <CardTitle className="text-base">{say("اهداف", "Goals")}</CardTitle>
                   </div>
                   <Link href="/goals">
-                    <Button variant="ghost" size="sm">مشاهده همه</Button>
+                    <Button variant="ghost" size="sm">{say("مشاهده همه", "See all")}</Button>
                   </Link>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -586,16 +587,16 @@ export default function DashboardPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sunrise className="h-4 w-4 text-violet-500" />
-                    <CardTitle className="text-base">زندگی امروز</CardTitle>
+                    <CardTitle className="text-base">{say("زندگی امروز", "Today")}</CardTitle>
                   </div>
                   <Link href="/life">
-                    <Button variant="ghost" size="sm">مشاهده</Button>
+                    <Button variant="ghost" size="sm">{say("مشاهده", "Open")}</Button>
                   </Link>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">پیشرفت عادت‌ها</span>
+                      <span className="text-muted-foreground">{say("پیشرفت عادت‌ها", "Habit progress")}</span>
                       <span className="font-semibold">{data.lifeSummary.todayProgress}%</span>
                     </div>
                     <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted">
@@ -608,17 +609,17 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-3 gap-3 text-center text-sm">
                     <div className="rounded-lg border p-3">
                       <p className="text-lg font-semibold">{data.lifeSummary.todos.total}</p>
-                      <p className="text-xs text-muted-foreground">کار باز</p>
+                      <p className="text-xs text-muted-foreground">{say("کار باز", "Open tasks")}</p>
                     </div>
                     <div className="rounded-lg border p-3">
                       <p className="text-lg font-semibold">
                         {data.lifeSummary.routines.completedToday}/{data.lifeSummary.routines.dueToday}
                       </p>
-                      <p className="text-xs text-muted-foreground">عادت امروز</p>
+                      <p className="text-xs text-muted-foreground">{say("عادت امروز", "Habits today")}</p>
                     </div>
                     <div className="rounded-lg border p-3">
                       <p className="text-lg font-semibold">{data.lifeSummary.routines.maxStreak}</p>
-                      <p className="text-xs text-muted-foreground">استریک</p>
+                      <p className="text-xs text-muted-foreground">{say("استریک", "Streak")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -630,10 +631,10 @@ export default function DashboardPage() {
                 {show("chart") && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>هزینه‌ها بر اساس دسته‌بندی</CardTitle>
+                      <CardTitle>{say("هزینه‌ها بر اساس دسته‌بندی", "Expenses by category")}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <ExpenseCategoryChart data={chartData} />
+                      <ExpenseCategoryChart data={chartData} emptyLabel={say("هنوز هزینه‌ای ثبت نشده", "No expenses yet")} />
                     </CardContent>
                   </Card>
                 )}
@@ -641,8 +642,8 @@ export default function DashboardPage() {
                 {show("recent") && (
                   <Card>
                     <CardHeader className="flex items-center justify-between gap-3">
-                      <CardTitle>آخرین تراکنش‌ها</CardTitle>
-                      <Link href="/transactions" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">مشاهده همه <ArrowLeft className="h-3 w-3" /></Link>
+                      <CardTitle>{say("آخرین تراکنش‌ها", "Recent transactions")}</CardTitle>
+                      <Link href="/transactions" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">{say("مشاهده همه", "See all")} <ArrowLeft className="h-3 w-3" /></Link>
                     </CardHeader>
                     <CardContent>
                       {data.recent.length > 0 ? (
@@ -654,7 +655,7 @@ export default function DashboardPage() {
                                   {tx.type === "income" ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
                                 </div>
                                 <div>
-                                  <p className="font-medium text-sm">{tx.description || tx.categoryName || "بدون عنوان"}</p>
+                                  <p className="font-medium text-sm">{tx.description || tx.categoryName || say("بدون عنوان", "Untitled")}</p>
                                   <p className="text-xs text-muted-foreground">{tx.accountName} · {formatJalaliDate(tx.date)}</p>
                                 </div>
                               </div>
@@ -665,7 +666,7 @@ export default function DashboardPage() {
                           ))}
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center gap-3 py-10 text-center"><span className="rounded-2xl bg-primary/8 p-4 text-primary"><Wallet className="h-7 w-7" /></span><p className="font-medium">اولین قدم برای مدیریت مالی</p><p className="text-xs text-muted-foreground">یک حساب بسازید و درآمدها و هزینه‌ها را ثبت کنید.</p><Link href="/accounts" className="text-sm font-semibold text-primary hover:underline">مدیریت حساب‌ها ←</Link></div>
+                        <div className="flex flex-col items-center gap-3 py-10 text-center"><span className="rounded-2xl bg-primary/8 p-4 text-primary"><Wallet className="h-7 w-7" /></span><p className="font-medium">{say("اولین قدم برای مدیریت مالی", "Start with one account")}</p><p className="text-xs text-muted-foreground">{say("یک حساب بسازید و درآمدها و هزینه‌ها را ثبت کنید.", "Add an account, then record income and expenses.")}</p><Link href="/accounts" className="text-sm font-semibold text-primary hover:underline">{say("مدیریت حساب‌ها ←", "Go to accounts")}</Link></div>
                       )}
                     </CardContent>
                   </Card>

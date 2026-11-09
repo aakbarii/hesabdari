@@ -26,21 +26,10 @@ export function formatJalaliDateTime(date: Date | string | number): string {
   return moment(date).locale("fa").format("jYYYY/jMM/jDD - HH:mm");
 }
 
-export function getJalaliMonthName(month: number): string {
-  const months = [
-    "فروردین",
-    "اردیبهشت",
-    "خرداد",
-    "تیر",
-    "مرداد",
-    "شهریور",
-    "مهر",
-    "آبان",
-    "آذر",
-    "دی",
-    "بهمن",
-    "اسفند",
-  ];
+export function getJalaliMonthName(month: number, locale: "fa" | "en" = "fa"): string {
+  const months = locale === "en"
+    ? ["Farvardin", "Ordibehesht", "Khordad", "Tir", "Mordad", "Shahrivar", "Mehr", "Aban", "Azar", "Dey", "Bahman", "Esfand"]
+    : ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
   return months[month - 1] ?? "";
 }
 

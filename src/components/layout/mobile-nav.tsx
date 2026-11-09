@@ -69,7 +69,7 @@ export function MobileNav() {
 
   return (
     <nav
-      aria-label="دسترسی سریع"
+      aria-label={locale === "en" ? "Shortcuts" : "دسترسی سریع"}
       className="app-mobile-nav lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border/70 bg-card/90 backdrop-blur-xl supports-[backdrop-filter]:bg-card/75 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_-28px_oklch(0.2_0.05_160/0.35)]"
     >
       <div className="grid items-stretch gap-1 px-2 py-2" style={{ gridTemplateColumns: `repeat(${mobilePrimary.length + 1}, minmax(0, 1fr))` }}>

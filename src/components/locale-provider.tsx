@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { setClientLocale } from "@/lib/currency";
 import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
@@ -68,6 +69,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     if (fromCookie) {
       setHasPreference(true);
       setLocaleState(fromCookie);
+      setClientLocale(fromCookie);
       applyDomLocale(fromCookie);
     }
   }, []);
@@ -89,6 +91,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       })
       .then((data) => {
         if (isLocale(data.locale)) {
+          setClientLocale(data.locale);
           setLocaleState(data.locale);
           writeCookieLocale(data.locale);
           applyDomLocale(data.locale);
@@ -110,6 +113,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       });
       if (!response.ok) throw new Error("Could not save language");
     }
+    setClientLocale(next);
     setLocaleState(next);
     setHasPreference(true);
     writeCookieLocale(next);

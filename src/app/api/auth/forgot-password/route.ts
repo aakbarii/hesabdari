@@ -41,15 +41,20 @@ export async function POST(request: Request) {
     );
   }
 
-  if (process.env.NODE_ENV === "development" && !sentViaEmail) {
+  // Self-hosted / no SMTP: surface the reset link so the owner is not locked out.
+  // When SMTP is configured and send succeeds, only the email is used.
+  if (!sentViaEmail) {
     return NextResponse.json({
-      message: genericMessage,
-      devResetUrl: resetUrl,
+      message: isSmtpConfigured()
+        ? `${genericMessage} ارسال ایمیل ناموفق بود؛ از لینک زیر استفاده کن.`
+        : `${genericMessage} ایمیل پیکربندی نشده؛ از لینک زیر استفاده کن.`,
+      resetUrl,
+      sentViaEmail: false,
     });
   }
 
   return NextResponse.json({
     message: genericMessage,
-    sentViaEmail,
+    sentViaEmail: true,
   });
 }

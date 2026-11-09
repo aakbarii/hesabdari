@@ -27,13 +27,13 @@ export function formatAmount(
   amountInToman: number,
   unit: CurrencyUnit = DEFAULT_CURRENCY_UNIT
 ): string {
-  const { label, factor } = CURRENCY_UNITS[unit];
+  const { factor } = CURRENCY_UNITS[unit];
   const display = Math.round(amountInToman * factor);
-  return new Intl.NumberFormat("fa-IR").format(display) + " " + label;
+  return new Intl.NumberFormat(moneyLocale()).format(display) + " " + moneyLabel(unit);
 }
 
 export function getCurrencyLabel(unit: CurrencyUnit = DEFAULT_CURRENCY_UNIT): string {
-  return CURRENCY_UNITS[unit].label;
+  return moneyLabel(unit);
 }
 
 export function parseRawNumber(value: string): number {
@@ -56,6 +56,20 @@ export function parseAmountInput(
 }
 
 let clientCurrency: CurrencyUnit = DEFAULT_CURRENCY_UNIT;
+let clientLocale: "fa" | "en" = "fa";
+
+export function setClientLocale(locale: "fa" | "en") {
+  clientLocale = locale;
+}
+
+function moneyLocale() {
+  return clientLocale === "en" ? "en-US" : "fa-IR";
+}
+
+function moneyLabel(unit: CurrencyUnit) {
+  if (clientLocale !== "en") return CURRENCY_UNITS[unit].label;
+  return unit === "rial" ? "Rial" : "Toman";
+}
 
 export function setClientCurrency(unit: CurrencyUnit) {
   clientCurrency = unit;
@@ -72,7 +86,7 @@ export function formatToman(amount: number): string {
 /** Short axis labels for charts, e.g. «۴۵ میلیون». */
 export function formatCompactAmount(amount: number): string {
   const { factor } = CURRENCY_UNITS[clientCurrency];
-  return new Intl.NumberFormat("fa-IR", { notation: "compact", maximumFractionDigits: 1 }).format(
+  return new Intl.NumberFormat(moneyLocale(), { notation: "compact", maximumFractionDigits: 1 }).format(
     Math.round(amount * factor)
   );
 }

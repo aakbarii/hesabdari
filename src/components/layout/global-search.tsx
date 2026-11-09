@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useLocale } from "@/components/locale-provider";
 
 interface SearchResult {
   type: string;
@@ -19,16 +20,16 @@ interface SearchResult {
   href: string;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  transaction: "تراکنش",
-  account: "حساب",
-  goal: "هدف",
-  debt: "بدهی/طلب",
-  category: "دسته",
-};
+const TYPE_LABELS = {
+  fa: { transaction: "تراکنش", account: "حساب", goal: "هدف", debt: "بدهی/طلب", category: "دسته" },
+  en: { transaction: "Transaction", account: "Account", goal: "Goal", debt: "Debt", category: "Category" },
+} as const;
 
 export function GlobalSearch() {
   const router = useRouter();
+  const { locale } = useLocale();
+  const en = locale === "en";
+  const tx = (fa: string, english: string) => (en ? english : fa);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -78,7 +79,7 @@ export function GlobalSearch() {
         className="hidden lg:flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors min-w-[220px]"
       >
         <Search className="h-4 w-4" />
-        <span className="flex-1 text-right">جستجو...</span>
+        <span className="flex-1 text-start">{tx("جستجو...", "Search...")}</span>
         <kbd className="text-[10px] rounded border px-1.5 py-0.5 bg-background">
           Ctrl+K
         </kbd>
@@ -87,7 +88,7 @@ export function GlobalSearch() {
         type="button"
         onClick={() => setOpen(true)}
         className="lg:hidden flex h-9 w-9 items-center justify-center rounded-lg border"
-        aria-label="جستجو"
+        aria-label={tx("جستجو", "Search")}
       >
         <Search className="h-4 w-4" />
       </button>
@@ -95,12 +96,12 @@ export function GlobalSearch() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg p-0 gap-0">
           <DialogHeader className="p-4 pb-0">
-            <DialogTitle className="sr-only">جستجو</DialogTitle>
+            <DialogTitle className="sr-only">{tx("جستجو", "Search")}</DialogTitle>
             <Input
               autoFocus
-              placeholder="تراکنش، حساب، هدف، بدهی..."
+              placeholder={tx("تراکنش، حساب، هدف، بدهی...", "Transaction, account, goal, debt...")}
               value={query}
-              aria-label="جستجو در جوجو"
+              aria-label={tx("جستجو در جوجو", "Search Joojo")}
               onChange={(e) => {
                 setQuery(e.target.value);
                 setResults([]);
@@ -111,13 +112,13 @@ export function GlobalSearch() {
             />
           </DialogHeader>
           <div className="max-h-80 overflow-y-auto p-2" aria-live="polite" aria-busy={loading}>
-            {query.trim().length < 2 && <p className="p-6 text-center text-sm text-muted-foreground">برای شروع، دست‌کم دو حرف بنویسید</p>}
-            {error && <p role="alert" className="p-3 text-sm text-destructive">جستجو انجام نشد. اتصال را بررسی و دوباره تلاش کنید.</p>}
+            {query.trim().length < 2 && <p className="p-6 text-center text-sm text-muted-foreground">{tx("برای شروع، دست‌کم دو حرف بنویسید", "Type at least two letters")}</p>}
+            {error && <p role="alert" className="p-3 text-sm text-destructive">{tx("جستجو انجام نشد. اتصال را بررسی و دوباره تلاش کنید.", "Search failed. Check the connection and try again.")}</p>}
             {loading && (
-              <p className="text-sm text-muted-foreground p-3">در حال جستجو...</p>
+              <p className="text-sm text-muted-foreground p-3">{tx("در حال جستجو...", "Searching...")}</p>
             )}
             {!loading && !error && query.trim().length >= 2 && results.length === 0 && (
-              <p className="text-sm text-muted-foreground p-3">نتیجه‌ای یافت نشد</p>
+              <p className="text-sm text-muted-foreground p-3">{tx("نتیجه‌ای یافت نشد", "No results")}</p>
             )}
             {results.map((r) => (
               <button
@@ -133,7 +134,7 @@ export function GlobalSearch() {
                   )}
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0 mr-2">
-                  {TYPE_LABELS[r.type] ?? r.type}
+                  {TYPE_LABELS[en ? "en" : "fa"][r.type as keyof typeof TYPE_LABELS.fa] ?? r.type}
                 </span>
               </button>
             ))}

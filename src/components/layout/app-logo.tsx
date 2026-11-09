@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/locale-provider";
 
 
 interface AppLogoProps {
@@ -22,6 +23,8 @@ export function AppLogo({
   href = "/",
   clickable = true,
 }: AppLogoProps) {
+  const { locale } = useLocale();
+  const brand = locale === "en" ? "Joojo" : "جوجو";
   const sizeMap = {
     sm: { icon: 28, box: "h-7 w-7", text: "text-sm", sub: "text-[10px]" },
     md: { icon: 36, box: "h-9 w-9", text: "text-base", sub: "text-xs" },
@@ -41,7 +44,7 @@ export function AppLogo({
       >
         <Image
           src="/joojo/stella-icon-192.png"
-          alt="جوجو"
+          alt={brand}
           width={currentSize.icon}
           height={currentSize.icon}
           className="h-full w-full object-contain drop-shadow"
@@ -53,7 +56,7 @@ export function AppLogo({
         <div className="flex flex-col text-right leading-none">
           <div className="flex items-center gap-1.5">
             <span className={cn("font-semibold tracking-tight text-foreground", currentSize.text)}>
-              جوجو
+              {brand}
             </span>
           </div>
           {subtitle && <span className={cn("mt-1 text-muted-foreground font-medium truncate", currentSize.sub)}>{subtitle}</span>}

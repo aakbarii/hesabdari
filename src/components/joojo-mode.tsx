@@ -74,8 +74,8 @@ export function JoojoModeCard() {
     setPending(true);
     try {
       await setMood(active ? "neutral" : "joojo");
-      toast.success(active ? "به تم کلاسیک برگشتی" : "به دنیای جوجو خوش اومدی! 🎀");
-    } catch { toast.error("تم ذخیره نشد؛ دوباره تلاش کن"); }
+      toast.success(locale === "en" ? (active ? "Back to the classic theme" : "Welcome to Joojo mode 🎀") : (active ? "به تم کلاسیک برگشتی" : "به دنیای جوجو خوش اومدی! 🎀"));
+    } catch { toast.error(locale === "en" ? "Couldn't save the theme. Try again." : "تم ذخیره نشد؛ دوباره تلاش کن"); }
     finally { setPending(false); }
   }
   return <div className="joojo-mode-card" data-active={active}>
@@ -87,6 +87,7 @@ export function JoojoModeCard() {
 
 export function JoojoHeaderBadge() {
   const { mood } = useAppearance();
+  const { locale } = useLocale();
   if (mood !== "joojo") return null;
-  return <Link href="/settings#appearance" className="joojo-header-badge" title="تنظیمات و تغییر جوجو مود"><span aria-hidden="true">🎀</span><span className="hidden sm:inline">جوجو مود</span></Link>;
+  return <Link href="/settings#appearance" className="joojo-header-badge" title={locale === "en" ? "Joojo mode settings" : "تنظیمات و تغییر جوجو مود"}><span aria-hidden="true">🎀</span><span className="hidden sm:inline">{locale === "en" ? "Joojo mode" : "جوجو مود"}</span></Link>;
 }

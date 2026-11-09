@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
+import { useLocale } from "@/components/locale-provider";
+import type { Locale } from "@/lib/i18n";
 
 export type JoojoReactiveState =
   | "sleepy"
@@ -55,21 +57,24 @@ const CACHE_TTL = 1000 * 60 * 2; // 2 minutes
 export function computeJoojoReactiveState(
   pathname: string,
   metrics: DashboardMetrics | null,
-  hour = new Date().getHours()
+  hour = new Date().getHours(),
+  locale: Locale = "fa"
 ): JoojoReactiveInfo {
+  const en = locale === "en";
+  const tx = (fa: string, english: string) => (en ? english : fa);
   const page = pathname.split("/")[1] || "";
 
   // 1. Sleep & Late-Night Check (Highest priority for wellness)
   if (hour >= 23 || hour < 6 || ["sleep", "selfcare"].includes(page)) {
     return {
       state: "sleepy",
-      title: "وقت استراحت و چرت 🌙",
-      badge: "دیرخوابی / استراحت",
+      title: tx("وقت استراحت و چرت 🌙", "Time to rest 🌙"),
+      badge: tx("دیرخوابی / استراحت", "Late night / rest"),
       image: "/joojo/hatchling.png",
-      phrase: "دیروقته، چشمات خسته نشه؟ جوجو خواب‌آلود شده، بیا بخوابیم… zZz",
-      subtitle: "جوجوی پشمالوی ناز با چشم‌های درشت",
-      advice: "خواب به موقع فردا رو پرانرژی و متمرکز می‌کنه.",
-      statBadge: hour >= 23 || hour < 6 ? `ساعت ${hour}:00 شب` : undefined,
+      phrase: tx("دیروقته، چشمات خسته نشه؟ جوجو خواب‌آلود شده، بیا بخوابیم… zZz", "It's late. Joojo is sleepy — let's rest… zZz"),
+      subtitle: tx("جوجوی پشمالوی ناز با چشم‌های درشت", "A fluffy Joojo with wide eyes"),
+      advice: tx("خواب به موقع فردا رو پرانرژی و متمرکز می‌کنه.", "Sleeping on time makes tomorrow calmer and clearer."),
+      statBadge: hour >= 23 || hour < 6 ? tx(`ساعت ${hour}:00 شب`, `${hour}:00`) : undefined,
     };
   }
 
@@ -77,13 +82,13 @@ export function computeJoojoReactiveState(
   if (["focus", "learning", "goals"].includes(page)) {
     return {
       state: "study_focus",
-      title: "مود تمرکز و مطالعه 👓",
-      badge: "تمرکز عمیق",
+      title: tx("مود تمرکز و مطالعه 👓", "Focus mode 👓"),
+      badge: tx("تمرکز عمیق", "Deep focus"),
       image: "/joojo/winking.png",
-      phrase: "آماده و متمرکز برای هدف‌های بزرگ! بریم برای ترکوندن ♡",
-      subtitle: "جوجو با چشمک و انگیزه بالا",
-      advice: "تقسیم کارها به پارت‌های ۲۵ دقیقه‌ای معجزه می‌کنه.",
-      statBadge: "تمرکز فعال",
+      phrase: tx("آماده و متمرکز برای هدف‌های بزرگ! بریم برای ترکوندن ♡", "Ready for the big goals. One focused block at a time ♡"),
+      subtitle: tx("جوجو با چشمک و انگیزه بالا", "Joojo, winking and ready"),
+      advice: tx("تقسیم کارها به پارت‌های ۲۵ دقیقه‌ای معجزه می‌کنه.", "Splitting work into 25-minute blocks helps."),
+      statBadge: tx("تمرکز فعال", "Focus on"),
     };
   }
 
@@ -94,13 +99,13 @@ export function computeJoojoReactiveState(
     if (life.todayProgress === 100 || (life.todos && life.todos.today === 0 && (life.todos.done ?? 0) > 0)) {
       return {
         state: "todos_done",
-        title: "شاهکار تیک زدن! ⭐",
-        badge: "تسک‌های کامل",
+        title: tx("شاهکار تیک زدن! ⭐", "All checked off ⭐"),
+        badge: tx("تسک‌های کامل", "Tasks done"),
         image: "/joojo/winking.png",
-        phrase: "همه کارهای امروز رو تیک زدی! تو واقعاً معرکه‌ای، بهت افتخار می‌کنم! 🌸",
-        subtitle: "جوجو با چشمک پیروزی و لبخند",
-        advice: "حالا وقت یه استراحت دلچسب و نوشیدنی گرمه.",
-        statBadge: "۱۰۰٪ تسک‌های امروز",
+        phrase: tx("همه کارهای امروز رو تیک زدی! تو واقعاً معرکه‌ای، بهت افتخار می‌کنم! 🌸", "Today's tasks are done. That's a real win 🌸"),
+        subtitle: tx("جوجو با چشمک پیروزی و لبخند", "Joojo, winking"),
+        advice: tx("حالا وقت یه استراحت دلچسب و نوشیدنی گرمه.", "Take a short break. You earned it."),
+        statBadge: tx("۱۰۰٪ تسک‌های امروز", "100% of today's tasks"),
       };
     }
 
@@ -108,13 +113,13 @@ export function computeJoojoReactiveState(
     if (life.routines && life.routines.maxStreak >= 3) {
       return {
         state: "streak_proud",
-        title: "قهرمان استمرار 🌿",
-        badge: `استریک ${life.routines.maxStreak} روزه`,
+        title: tx("قهرمان استمرار 🌿", "Streak hero 🌿"),
+        badge: tx(`استریک ${life.routines.maxStreak} روزه`, `${life.routines.maxStreak}-day streak`),
         image: "/joojo/winking.png",
-        phrase: `استریک عادت‌هات ${life.routines.maxStreak} روزه شد! دمت گرم قهرمان 🌸`,
-        subtitle: "جوجو با چشمک و حس غرور",
-        advice: "استمرار از شدت مهم‌تره؛ همین دست‌فرمون رو برو جلو!",
-        statBadge: `🔥 ${life.routines.maxStreak} روز متوالی`,
+        phrase: tx(`استریک عادت‌هات ${life.routines.maxStreak} روزه شد! دمت گرم قهرمان 🌸`, `Your habit streak is ${life.routines.maxStreak} days 🌸`),
+        subtitle: tx("جوجو با چشمک و حس غرور", "Joojo looks proud"),
+        advice: tx("استمرار از شدت مهم‌تره؛ همین دست‌فرمون رو برو جلو!", "Showing up matters more than intensity."),
+        statBadge: tx(`🔥 ${life.routines.maxStreak} روز متوالی`, `🔥 ${life.routines.maxStreak} days in a row`),
       };
     }
 
@@ -122,13 +127,13 @@ export function computeJoojoReactiveState(
     if (life.todos && life.todos.overdue > 0) {
       return {
         state: "todos_pending",
-        title: "برنامه‌ریزی تسک‌ها 📖",
-        badge: `${life.todos.overdue} کار عقب‌افتاده`,
+        title: tx("برنامه‌ریزی تسک‌ها 📖", "Tasks waiting 📖"),
+        badge: tx(`${life.todos.overdue} کار عقب‌افتاده`, `${life.todos.overdue} overdue`),
         image: "/joojo/smiling.png",
-        phrase: "چند تا کار رو میز مونده، بیا همین الان یکیش رو خط بزنیم!",
-        subtitle: "جوجو با نگاه پرانرژی و مشوق",
-        advice: "ساده‌ترین تسک رو انتخاب کن و در ۲ دقیقه شروع کن.",
-        statBadge: `⚠️ ${life.todos.overdue} کار مانده`,
+        phrase: tx("چند تا کار رو میز مونده، بیا همین الان یکیش رو خط بزنیم!", "A few tasks are still open. Let's finish one now."),
+        subtitle: tx("جوجو با نگاه پرانرژی و مشوق", "Joojo, cheering you on"),
+        advice: tx("ساده‌ترین تسک رو انتخاب کن و در ۲ دقیقه شروع کن.", "Pick the easiest task and start with two minutes."),
+        statBadge: tx(`⚠️ ${life.todos.overdue} کار مانده`, `⚠️ ${life.todos.overdue} left`),
       };
     }
   }
@@ -139,13 +144,13 @@ export function computeJoojoReactiveState(
     if (monthly.income > 0 && monthly.expense > monthly.income) {
       return {
         state: "budget_warning",
-        title: "حواست به بودجه باشه 🪙",
-        badge: "هشدار مصرف",
+        title: tx("حواست به بودجه باشه 🪙", "Watch the budget 🪙"),
+        badge: tx("هشدار مصرف", "Spending alert"),
         image: "/joojo/smiling.png",
-        phrase: "این ماه خرج‌ها یکم از دخلت جلو زده؛ بیا حواسمون رو به خرج‌های غیرضروری بدیم!",
-        subtitle: "جوجو با نگاه مراقب و دلسوز",
-        advice: "خریدهای غیرضروری این هفته رو به تعویق بنداز.",
-        statBadge: "تراز منفی ماه",
+        phrase: tx("این ماه خرج‌ها یکم از دخلت جلو زده؛ بیا حواسمون رو به خرج‌های غیرضروری بدیم!", "Spending is ahead of income this month. Let's skip the extras."),
+        subtitle: tx("جوجو با نگاه مراقب و دلسوز", "Joojo is keeping an eye out"),
+        advice: tx("خریدهای غیرضروری این هفته رو به تعویق بنداز.", "Delay nonessential purchases this week."),
+        statBadge: tx("تراز منفی ماه", "Month is in the red"),
       };
     }
 
@@ -154,13 +159,13 @@ export function computeJoojoReactiveState(
       if (savingsRate >= 15) {
         return {
           state: "budget_champion",
-          title: "مدیریت مالی طلایی 🪙",
-          badge: `پس‌انداز ${savingsRate}٪`,
+          title: tx("مدیریت مالی طلایی 🪙", "Money looks healthy 🪙"),
+          badge: tx(`پس‌انداز ${savingsRate}٪`, `${savingsRate}% saved`),
           image: "/joojo/floating.png",
-          phrase: "وضعیت دخل و خرجت عالیه! پر انرژی و سبک‌بال رو به اوج ✨",
-          subtitle: "جوجو در حال پرواز با پرهای قشنگش",
-          advice: "این روند رو ادامه بده تا هدف‌های مالیت سریع‌تر محقق بشن.",
-          statBadge: `+${savingsRate}٪ مازاد ماهانه`,
+          phrase: tx("وضعیت دخل و خرجت عالیه! پر انرژی و سبک‌بال رو به اوج ✨", "Income and spending look great this month ✨"),
+          subtitle: tx("جوجو در حال پرواز با پرهای قشنگش", "Joojo is floating along"),
+          advice: tx("این روند رو ادامه بده تا هدف‌های مالیت سریع‌تر محقق بشن.", "Keep this pace and the goals get closer."),
+          statBadge: tx(`+${savingsRate}٪ مازاد ماهانه`, `+${savingsRate}% left this month`),
         };
       }
     }
@@ -170,26 +175,26 @@ export function computeJoojoReactiveState(
   if (hour >= 6 && hour < 11) {
     return {
       state: "morning",
-      title: "صبح دل‌انگیز بخیر ☕",
-      badge: "انرژی صبحگاهی",
+      title: tx("صبح دل‌انگیز بخیر ☕", "Good morning ☕"),
+      badge: tx("انرژی صبحگاهی", "Morning energy"),
       image: "/joojo/floating.png",
-      phrase: "صبح بخیر قهرمان! آماده‌ایم برای یه روز پرانرژی و پربرکت ♡",
-      subtitle: "جوجوی پرانرژی در حال پرواز",
-      advice: "امروز سه اولویت اصلیت رو مشخص کن و شروع کن.",
-      statBadge: "انرژی تازه",
+      phrase: tx("صبح بخیر قهرمان! آماده‌ایم برای یه روز پرانرژی و پربرکت ♡", "Good morning. Ready for a clear day ♡"),
+      subtitle: tx("جوجوی پرانرژی در حال پرواز", "Joojo is wide awake"),
+      advice: tx("امروز سه اولویت اصلیت رو مشخص کن و شروع کن.", "Name three priorities, then start the first one."),
+      statBadge: tx("انرژی تازه", "Fresh start"),
     };
   }
 
   // 6. Default Cheerful Companion
   return {
     state: "idle_happy",
-    title: "جوجو همیشه کنارت هست 🎀",
-    badge: "همراه روزانه",
+    title: tx("جوجو همیشه کنارت هست 🎀", "Joojo is here 🎀"),
+    badge: tx("همراه روزانه", "Daily companion"),
     image: "/joojo/smiling.png",
-    phrase: "من اینجام، کنارت برای یک روز آروم و منظم! ♡",
-    subtitle: "جوجوی صورتی با لبخند شیرین",
-    advice: "قدم‌های کوچک پیوسته، نتایج بزرگ می‌سازن.",
-    statBadge: "نظم زندگی",
+    phrase: tx("من اینجام، کنارت برای یک روز آروم و منظم! ♡", "I'm here for a calmer, more organized day ♡"),
+    subtitle: tx("جوجوی صورتی با لبخند شیرین", "Joojo, smiling"),
+    advice: tx("قدم‌های کوچک پیوسته، نتایج بزرگ می‌سازن.", "Small steady steps add up."),
+    statBadge: tx("نظم زندگی", "Daily rhythm"),
   };
 }
 
@@ -234,7 +239,8 @@ export function useJoojoReactiveMood() {
     };
   }, []);
 
-  const info = computeJoojoReactiveState(pathname, metrics);
+  const { locale } = useLocale();
+  const info = computeJoojoReactiveState(pathname, metrics, new Date().getHours(), locale);
 
   return {
     ...info,

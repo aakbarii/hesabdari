@@ -8,9 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { NOTE_TEMPLATES } from "@/lib/module-playbooks";
 import { RESOURCES, csvCell, type Field } from "@/lib/workbench";
 import { toast } from "sonner";
+import { useLocale } from "@/components/locale-provider";
 
 type Row = Record<string, string | number | null> & { id: string };
 export default function ModuleWorkbench({ module }: { module: string }) {
+  const { locale } = useLocale();
+  const en = locale === "en";
   const resources = useMemo(() => Object.entries(RESOURCES).filter(([, r]) => r.module === module || (module === "reports" && ["transactions", "budget", "debts", "goals", "assets"].includes(r.module))), [module]);
   const [open, setOpen] = useState(false);
   const [key, setKey] = useState(resources[0]?.[0] ?? "");
@@ -68,7 +71,7 @@ export default function ModuleWorkbench({ module }: { module: string }) {
   };
   if (!resources.length) return null;
   return <>
-    <Button variant="outline" size="sm" className="min-h-10 gap-2" onClick={() => { setLoading(true); setError(""); setEditing(null); setOpen(true); }} title="جستجو، ویرایش و خروجی سوابق"><Archive className="h-4 w-4" /><span className="hidden sm:inline">مدیریت سوابق</span><span className="sr-only sm:hidden">مدیریت سوابق</span></Button>
+    <Button variant="outline" size="sm" className="min-h-10 gap-2" onClick={() => { setLoading(true); setError(""); setEditing(null); setOpen(true); }} title={en ? "Search, edit and export records" : "جستجو، ویرایش و خروجی سوابق"}><Archive className="h-4 w-4" /><span className="hidden sm:inline">{en ? "Records" : "مدیریت سوابق"}</span><span className="sr-only sm:hidden">{en ? "Records" : "مدیریت سوابق"}</span></Button>
     <Dialog open={open} onOpenChange={next => { if (!saving) { setOpen(next);  } }}><DialogContent className="w-[calc(100%-2rem)] sm:max-w-4xl max-h-[90dvh] overflow-y-auto" dir="rtl"><DialogHeader><DialogTitle>{editing ? "اصلاح اطلاعات" : "مدیریت حرفه‌ای سوابق"}</DialogTitle></DialogHeader>
       {editing ? <form onSubmit={save} className="space-y-5"><p className="text-xs leading-6 text-muted-foreground">{config.label} · تغییرها پس از ذخیره اعمال می‌شوند.</p>{NOTE_TEMPLATES[key] && config.fields.some(f => f.key === "notes") && <Button type="button" variant="outline" disabled={saving} onClick={() => setForm({ ...form, notes: [form.notes, NOTE_TEMPLATES[key]].filter(Boolean).join("\n\n") })}>افزودن قالب یادداشت ساختاریافته</Button>}<fieldset disabled={saving} className="grid min-w-0 gap-4 sm:grid-cols-2">{config.fields.map(field => <label key={field.key} className={field.kind === "note" ? "space-y-2 sm:col-span-2" : "space-y-2"}><span className="block text-sm">{field.label}</span>{field.kind === "select" ? <select value={form[field.key]} onChange={e => setForm({ ...form, [field.key]: e.target.value })} className="h-11 w-full rounded-lg border bg-background px-3 text-sm">{Object.entries(field.options!).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select> : field.kind === "note" ? <Textarea value={form[field.key]} maxLength={20000} onChange={e => setForm({ ...form, [field.key]: e.target.value })} rows={3} /> : <Input type={field.kind === "date" ? "date" : field.kind === "number" ? "number" : "text"} value={form[field.key]} required={!field.nullable} min={field.min} max={field.max} step={field.integer === false ? "any" : field.kind === "number" ? 1 : undefined} maxLength={200} onChange={e => setForm({ ...form, [field.key]: e.target.value })} />}</label>)}</fieldset><div className="flex gap-2"><Button disabled={saving} type="submit">{saving ? "در حال ذخیره…" : "ذخیره تغییرها"}</Button><Button type="button" variant="outline" disabled={saving} onClick={() => setEditing(null)}>انصراف</Button></div></form> : <div className="space-y-4">
         <p className="text-sm leading-7 text-muted-foreground">سوابق را پیدا و اصلاح کن یا از نتیجهٔ فیلترشده خروجی Excel/CSV بگیر. مقدارهای مالی با واحد تومان صادر می‌شوند.</p>

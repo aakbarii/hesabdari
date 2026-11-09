@@ -79,7 +79,8 @@ export function MobileMoreNav() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const { navGroups } = useAppearance();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const en = locale === "en";
   const search = (value: string) => value.replace(/ي/g, "ی").replace(/ك/g, "ک").toLowerCase();
   const matches = navGroups.map(group => ({ ...group, items: group.items.filter(item => search(t(item.labelKey as MessageKey)).includes(search(query.trim()))) })).filter(group => group.items.length);
   const close = () => { setOpen(false); setQuery(""); };
@@ -94,14 +95,14 @@ export function MobileMoreNav() {
       </SheetTrigger>
       <SheetContent side="bottom" showCloseButton={false} className="data-[side=bottom]:h-[85dvh] max-h-[calc(100dvh-env(safe-area-inset-top)-1rem)] gap-0 overflow-hidden rounded-t-3xl">
         <SheetHeader className="shrink-0 flex-row items-center justify-between gap-3 border-b bg-popover p-4 text-right">
-          <Button type="button" variant="outline" onClick={close} className="min-h-11 gap-2"><ArrowRight className="h-4 w-4" />{t("nav.more") === "More" ? "Back" : "برگشت"}</Button>
+          <Button type="button" variant="outline" onClick={close} className="min-h-11 gap-2"><ArrowRight className="h-4 w-4" />{en ? "Back" : "برگشت"}</Button>
           <SheetTitle className="text-base">{t("nav.more")}</SheetTitle>
           <ThemeToggle />
-          <Button type="button" variant="ghost" size="icon" className="h-11 w-11" aria-label="بستن منوی بیشتر" onClick={close}><X className="h-5 w-5" /></Button>
+          <Button type="button" variant="ghost" size="icon" className="h-11 w-11" aria-label={en ? "Close menu" : "بستن منوی بیشتر"} onClick={close}><X className="h-5 w-5" /></Button>
         </SheetHeader>
-        <div className="shrink-0 border-b px-4 py-3"><Input aria-label="جستجو در بخش‌های برنامه" placeholder={t("nav.more") === "More" ? "Find a section…" : "کدوم بخش رو می‌خوای؟ جستجو کن…"} value={query} onChange={event => setQuery(event.target.value)} /></div>
+        <div className="shrink-0 border-b px-4 py-3"><Input aria-label={en ? "Search sections" : "جستجو در بخش‌های برنامه"} placeholder={en ? "Find a section…" : "کدوم بخش رو می‌خوای؟ جستجو کن…"} value={query} onChange={event => setQuery(event.target.value)} /></div>
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-          {!matches.length && <div className="space-y-3 rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground"><p>بخشی با این نام پیدا نشد.</p><Button variant="outline" onClick={() => setQuery("")}>نمایش همهٔ بخش‌ها</Button></div>}
+          {!matches.length && <div className="space-y-3 rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground"><p>{en ? "No section with that name." : "بخشی با این نام پیدا نشد."}</p><Button variant="outline" onClick={() => setQuery("")}>{en ? "Show every section" : "نمایش همهٔ بخش‌ها"}</Button></div>}
           {matches.map((group) => (
             <div key={group.titleKey}>
               <p className="text-xs font-semibold text-muted-foreground mb-2">

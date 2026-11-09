@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { AmountInput } from "@/components/amount-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
 
 const LAST_ACCOUNT_KEY = "hesabdari:lastAccountId";
@@ -35,6 +36,8 @@ interface Category {
 export function QuickAddFab() {
   const router = useRouter();
   const pathname = usePathname();
+  const { locale } = useLocale();
+  const tx = (fa: string, en: string) => (locale === "en" ? en : fa);
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const show = () => setOpen(true);
@@ -68,8 +71,8 @@ export function QuickAddFab() {
         accs[0]?.id ||
         "";
       setAccountId(preferred);
-    }).catch(() => toast.error("حساب‌ها بارگذاری نشدند. دوباره تلاش کنید."));
-  }, [open]);
+    }).catch(() => toast.error(locale === "en" ? "Accounts didn't load. Try again." : "حساب‌ها بارگذاری نشدند. دوباره تلاش کنید."));
+  }, [open, locale]);
 
   const filtered = categories.filter((c) => c.type === type);
 
@@ -93,7 +96,7 @@ export function QuickAddFab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "خطا");
       localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
-      toast.success(type === "expense" ? "هزینه ثبت شد" : "درآمد ثبت شد");
+      toast.success(type === "expense" ? tx("هزینه ثبت شد", "Expense saved") : tx("درآمد ثبت شد", "Income saved"));
       setOpen(false);
       setAmount("");
       setDescription("");
@@ -103,7 +106,7 @@ export function QuickAddFab() {
         window.dispatchEvent(new Event("hesabdari:tx-created"));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "خطا در ثبت");
+      toast.error(err instanceof Error ? err.message : tx("خطا در ثبت", "Couldn't save"));
     } finally {
       setSaving(false);
     }
@@ -118,7 +121,7 @@ export function QuickAddFab() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-2xl">
           <SheetHeader>
-            <SheetTitle>ثبت سریع</SheetTitle>
+            <SheetTitle>{tx("ثبت سریع", "Quick add")}</SheetTitle>
           </SheetHeader>
           <form onSubmit={submit} className="mt-4 space-y-4 pb-6">
             <div className="grid grid-cols-2 gap-2">
@@ -132,7 +135,7 @@ export function QuickAddFab() {
                 }}
               >
                 <ArrowDownRight className="h-4 w-4 ml-1" />
-                هزینه
+                {tx("هزینه", "Expense")}
               </Button>
               <Button
                 type="button"
@@ -144,15 +147,15 @@ export function QuickAddFab() {
                 }}
               >
                 <ArrowUpRight className="h-4 w-4 ml-1" />
-                درآمد
+                {tx("درآمد", "Income")}
               </Button>
             </div>
 
             <div>
-              <Label htmlFor="quick-add-amount">مبلغ ({getCurrencyLabel(getClientCurrency())})</Label>
+              <Label htmlFor="quick-add-amount">{tx("مبلغ", "Amount")} ({getCurrencyLabel(getClientCurrency())})</Label>
               <AmountInput
                 id="quick-add-amount"
-                placeholder="مثلاً 50,000"
+                placeholder={tx("مثلاً 50,000", "e.g. 50,000")}
                 value={amount}
                 onValueChange={setAmount}
                 className="text-lg h-12"
@@ -162,10 +165,10 @@ export function QuickAddFab() {
             </div>
 
             <div>
-              <Label htmlFor="quick-add-description">توضیح</Label>
+              <Label htmlFor="quick-add-description">{tx("توضیح", "Note")}</Label>
               <Input
                 id="quick-add-description"
-                placeholder="سوپرمارکت، بنزین، حقوق…"
+                placeholder={tx("سوپرمارکت، بنزین، حقوق…", "Groceries, fuel, salary…")}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
@@ -173,7 +176,7 @@ export function QuickAddFab() {
 
             {filtered.length > 0 && (
               <div>
-                <Label className="mb-2 block">دسته (اختیاری)</Label>
+                <Label className="mb-2 block">{tx("دسته (اختیاری)", "Category (optional)")}</Label>
                 <div className="flex flex-wrap gap-2">
                   {filtered.slice(0, 8).map((c) => (
                     <button
@@ -198,7 +201,7 @@ export function QuickAddFab() {
 
             {accounts.length > 1 && (
               <div>
-                <Label className="mb-2 block">حساب</Label>
+                <Label className="mb-2 block">{tx("حساب", "Account")}</Label>
                 <div className="flex flex-wrap gap-2">
                   {accounts.map((a) => (
                     <button
@@ -220,7 +223,7 @@ export function QuickAddFab() {
             )}
 
             <Button type="submit" className="w-full h-11" disabled={saving || !accountId}>
-              {saving ? "…" : "ثبت"}
+              {saving ? "…" : tx("ثبت", "Save")}
             </Button>
           </form>
         </SheetContent>

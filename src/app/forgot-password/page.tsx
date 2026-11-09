@@ -27,7 +27,9 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "خطا");
       toast.success(data.message);
-      if (data.devResetUrl) setDevUrl(data.devResetUrl);
+      if (data.resetUrl || data.devResetUrl) {
+        setDevUrl(data.resetUrl ?? data.devResetUrl);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "خطا");
     } finally {
@@ -44,7 +46,7 @@ export default function ForgotPasswordPage() {
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">بازیابی رمز عبور جوجو</CardTitle>
           <p className="text-sm text-muted-foreground">
-            لینک بازیابی رمز عبور به ایمیل شما ارسال می‌شود.
+            اگر ایمیل پیکربندی شده باشد لینک فرستاده می‌شود؛ وگرنه همان‌جا نمایش داده می‌شود.
           </p>
         </CardHeader>
         <CardContent>
@@ -63,10 +65,16 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
           {devUrl && (
-            <div className="mt-4 rounded-lg border bg-muted/50 p-3 text-xs break-all">
-              <p className="text-muted-foreground mb-1">لینک توسعه (dev):</p>
-              <Link href={devUrl} className="text-primary hover:underline">
+            <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs break-all space-y-2">
+              <p className="font-medium text-foreground">لینک بازیابی رمز:</p>
+              <Link href={devUrl} className="text-primary hover:underline block">
                 {devUrl}
+              </Link>
+              <Link
+                href={devUrl}
+                className="inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                باز کردن صفحهٔ تنظیم رمز جدید
               </Link>
             </div>
           )}

@@ -71,7 +71,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   return (
     <ConfirmProvider>
       <div className="min-h-screen bg-background">
-        <a href="#main-content" className="skip-link">رفتن به محتوای اصلی</a>
+        <a href="#main-content" className="skip-link">{en ? "Skip to content" : "رفتن به محتوای اصلی"}</a>
         <Sidebar />
         <div className="app-shell lg:ms-64 min-h-screen">
           <RemindersBanner />
