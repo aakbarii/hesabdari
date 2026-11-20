@@ -7,12 +7,13 @@ import { ensureDb, getUserById } from "@/lib/db/queries";
 import { requireUserId } from "@/lib/api-auth";
 import { readJsonObject } from "@/lib/validation";
 import { passkeyProfileSchema } from "@/lib/passkey-profile";
+import { hasPasskeyPassword } from "@/lib/passkey-password";
 const schema = z.object({ passkeyProfile: passkeyProfileSchema }).strict();
 export async function GET() {
   await ensureDb(); const auth = await requireUserId(); if (auth instanceof NextResponse) return auth;
   const user = await getUserById(auth); if (!user) return NextResponse.json({ error: "حساب پیدا نشد" }, { status: 404 });
   const keys = await db.select({ id: passkeyCredentials.id }).from(passkeyCredentials).where(eq(passkeyCredentials.userId, auth)).all();
-  return NextResponse.json({ id: user.id, name: user.name, firstName: user.firstName, lastName: user.lastName, phone: user.phone, passkeyCount: keys.length });
+  return NextResponse.json({ id: user.id, name: user.name, firstName: user.firstName, lastName: user.lastName, phone: user.phone, passkeyCount: keys.length, passwordEnabled: hasPasskeyPassword(user.passwordHash) });
 }
 export async function PATCH(request: Request) {
   await ensureDb(); const auth = await requireUserId(); if (auth instanceof NextResponse) return auth;

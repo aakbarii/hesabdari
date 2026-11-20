@@ -58,7 +58,7 @@ export default function ModuleWorkbench({ module }: { module: string }) {
       if (!response.ok) throw new Error(result.error || "ذخیره انجام نشد");
       setEditing(null); setLoading(true); setError(""); setReload(value => value + 1); toast.success("اطلاعات اصلاح شد");
       window.dispatchEvent(new Event("ravaal:records-updated"));
-      window.dispatchEvent(new Event("hesabdari:tx-created"));
+      window.dispatchEvent(new Event("joojo:tx-created"));
     } catch (err) { toast.error(err instanceof Error ? err.message : "ذخیره انجام نشد"); }
     finally { setSaving(false); }
   };

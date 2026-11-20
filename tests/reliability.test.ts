@@ -10,13 +10,13 @@ import { signSession, verifySession } from "../src/lib/auth";
 import { getSessionSecret } from "../src/lib/session-secret";
 import { eq } from "drizzle-orm";
 
-const dir = mkdtempSync(path.join(tmpdir(), "hesabdari-test-"));
-process.env.HESABDARI_DATA_DIR = dir;
+const dir = mkdtempSync(path.join(tmpdir(), "joojo-test-"));
+process.env.JOOJO_DATA_DIR = dir;
 delete process.env.TURSO_DATABASE_URL;
 delete process.env.SESSION_SECRET;
 const queriesPromise = import("../src/lib/db/queries");
 after(() => {
-  globalThis.__hesabdari_client__?.close();
+  globalThis.__joojo_client__?.close();
   // Windows can keep the libsql file locked briefly after close; the OS temp cleanup handles leftovers.
   try {
     rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });

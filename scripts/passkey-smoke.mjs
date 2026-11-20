@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 import { encodeCBOR } from '@levischuck/tiny-cbor';
 const dir=mkdtempSync(path.join(tmpdir(),'joojo-passkey-test-'));
 const base='http://127.0.0.1:3120';
-const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port','3120'],{env:{...process.env,TURSO_DATABASE_URL:'',TURSO_AUTH_TOKEN:'',HESABDARI_DATA_DIR:dir,SESSION_SECRET:'isolated-passkey-tests-only',ADMIN_EMAIL:'admin@passkey-test.invalid',ADMIN_SETUP_TOKEN:'',PASSKEY_ORIGIN:base},windowsHide:true,stdio:['ignore','pipe','pipe']});
+const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port','3120'],{env:{...process.env,TURSO_DATABASE_URL:'',TURSO_AUTH_TOKEN:'',JOOJO_DATA_DIR:dir,SESSION_SECRET:'isolated-passkey-tests-only',ADMIN_EMAIL:'admin@passkey-test.invalid',ADMIN_SETUP_TOKEN:'',PASSKEY_ORIGIN:base},windowsHide:true,stdio:['ignore','pipe','pipe']});
 let logs='',checks=0;server.stdout.on('data',b=>logs+=b);server.stderr.on('data',b=>logs+=b);
 class Browser {
   cookies=new Map();
@@ -65,12 +65,37 @@ try{
  const b=new Browser(),key2=authenticator();options=(await b.pk({action:'register_options',profile})).data.options;await b.pk({action:'register_verify',credential:registration(key2,options)});assert.notEqual((await b.req('/api/auth/me')).data.user.id,originalID,'Matching names must never identify/claim another account');
  const linked=authenticator();options=(await a.pk({action:'link_options',profile:profile})).data.options;await a.pk({action:'link_verify',credential:registration(linked,options)});assert.equal((await a.req('/api/profile')).data.passkeyCount,2);assert.equal((await a.req('/api/auth/me')).data.user.id,originalID);
  const expired=new Browser();options=(await expired.pk({action:'login_options'})).data.options;
- const {createClient}=await import('@libsql/client');const fixtures=createClient({url:'file:'+path.join(dir,'hesabdari.db').replaceAll('\\','/')});await fixtures.execute({sql:'UPDATE passkey_challenges SET expires_at=0 WHERE id=?',args:[createHash('sha256').update(expired.cookies.get('joojo_passkey_challenge')).digest('hex')]});fixtures.close();await expired.pk({action:'login_verify',credential:assertion(key,options,{counter:2})},400);
+ const {createClient}=await import('@libsql/client');const fixtures=createClient({url:'file:'+path.join(dir,'joojo.db').replaceAll('\\','/')});await fixtures.execute({sql:'UPDATE passkey_challenges SET expires_at=0 WHERE id=?',args:[createHash('sha256').update(expired.cookies.get('joojo_passkey_challenge')).digest('hex')]});fixtures.close();await expired.pk({action:'login_verify',credential:assertion(key,options,{counter:2})},400);
  for(const endpoint of ['login','register','setup','forgot-password','reset-password'])await new Browser().req('/api/auth/'+endpoint,{email:'legacy@passkey-test.invalid',password:'Test-password-123'},410);
- const oldTokenBrowser=new Browser();const oldPayload=Buffer.from(JSON.stringify({userId:originalID,exp:Date.now()+3600000})).toString('base64url');oldTokenBrowser.cookies.set('joojo_passkey_session',oldPayload+'.'+createHmac('sha256','isolated-passkey-tests-only').update(oldPayload).digest('base64url'));assert.equal((await oldTokenBrowser.req('/api/auth/me')).data.user,null,'Old tokens must be invalid even if renamed to the new cookie');
+ const oldTokenBrowser=new Browser();const oldPayload=Buffer.from(JSON.stringify({userId:originalID,exp:Date.now()+3600000,method:"passkey-v1"})).toString('base64url');oldTokenBrowser.cookies.set('joojo_passkey_session',oldPayload+'.'+createHmac('sha256','isolated-passkey-tests-only').update(oldPayload).digest('base64url'));assert.equal((await oldTokenBrowser.req('/api/auth/me')).data.user,null,'Old tokens must be invalid even if renamed to the new cookie');
  const oldCookie=new Browser();oldCookie.cookies.set('hesabdari_session',a.cookies.get('joojo_passkey_session'));assert.equal((await oldCookie.req('/api/auth/me')).data.user,null);
  // Cross-account linking cannot swap the authenticated owner after options are issued.
  options=(await a.pk({action:'link_options',profile})).data.options;a.cookies.set('joojo_passkey_session',b.cookies.get('joojo_passkey_session'));await a.pk({action:'link_verify',credential:registration(authenticator(),options)},401);
+ await new Browser().req('/api/auth/phone',{action:'login',profile},410);
+ await new Browser().req('/api/auth/phone',{action:'register',profile},410);
+ await new Browser().pk({action:'password_options'},401);
+ const extraPassword = 'Fixture password 9463';
+ options=(await login.pk({action:'password_options'})).data.options;
+ await login.pk({action:'password_verify',credential:assertion(key,options,{counter:2}),newPassword:extraPassword});
+ assert.equal((await login.req('/api/profile')).data.passwordEnabled,true);
+ const protectedLogin=new Browser();
+ options=(await protectedLogin.pk({action:'login_options'})).data.options;
+ await protectedLogin.pk({action:'login_verify',credential:assertion(key,options,{counter:3})},401);
+ assert.equal((await protectedLogin.req('/api/auth/me')).data.user,null);
+ options=(await protectedLogin.pk({action:'login_options'})).data.options;
+ await protectedLogin.pk({action:'login_verify',credential:assertion(key,options,{counter:4}),password:'wrong password'},401);
+ options=(await protectedLogin.pk({action:'login_options'})).data.options;
+ await protectedLogin.pk({action:'login_verify',credential:assertion(key,options,{counter:5}),password:extraPassword});
+ assert.equal((await protectedLogin.req('/api/auth/me')).data.user.id,originalID);
+ options=(await protectedLogin.pk({action:'password_options'})).data.options;
+ await protectedLogin.pk({action:'password_verify',credential:assertion(key,options,{counter:6}),newPassword:null},401);
+ options=(await protectedLogin.pk({action:'password_options'})).data.options;
+ await protectedLogin.pk({action:'password_verify',credential:assertion(key,options,{counter:7}),password:extraPassword,newPassword:null});
+ assert.equal((await protectedLogin.req('/api/profile')).data.passwordEnabled,false);
+ const passkeyOnly = new Browser();
+ options=(await passkeyOnly.pk({action:'login_options'})).data.options;
+ await passkeyOnly.pk({action:'login_verify',credential:assertion(key,options,{counter:8})});
+ assert.equal((await passkeyOnly.req('/api/auth/me')).data.user.id,originalID);
  let throttled=false;for(let i=0;i<45;i++){const r=await fetch(base+'/api/auth/passkey',{method:'POST',headers:{Origin:base,'Content-Type':'application/json','x-vercel-forwarded-for':'passkey-rate-fixture'},body:JSON.stringify({action:'login_options'})});checks++;if(r.status===429){throttled=true;break;}assert.equal(r.status,200);}assert.equal(throttled,true,'Challenge options must be throttled across server instances');
  console.log(`PASS: ${checks} passkey HTTP checks, real signatures, biometric verification flag, replay/counter protection, profile persistence, account isolation and retired-password rejection.`);
 }catch(error){console.error(logs.slice(-2500));throw error;}

@@ -1,86 +1,13 @@
-# روال — مدیریت زندگی و دارایی
+# حسابداری
 
-برنامهٔ فارسی و راست‌به‌چپ برای حساب‌ها، تراکنش‌ها، انتقال، بودجه، بدهی و هدف‌های مالی؛ همراه با کارها، عادت‌ها، تغذیه، ورزش، تمرکز، مطالعه، ژورنال و نگهداری خودرو.
+نسخهٔ مینیمال مدیریت مالی شخصی. برای اجرای محلی با Node.js، در همین پوشه `npm ci` و بعد `npm run dev` را اجرا کن.
 
-## اجرای محلی
+## انتشار در Vercel
 
-Node.js 22 و npm لازم است. دیتابیس SQLite خودکار ساخته و مهاجرت داده می‌شود.
+این پوشه در مخزن مادر Git نادیده گرفته می‌شود. روش زیر فایل‌های همین پوشه را مستقیماً منتشر می‌کند. برای انتشار خودکار از GitHub، این پوشه را در یک مخزن جداگانه ثبت و به پروژهٔ حسابداری وصل کن.
 
-```sh
-npm ci
-npm run dev
-```
+- **حسابداری مینیمال** از همین پوشه منتشر می‌شود. با Vercel CLI در این پوشه `vercel link` را اجرا کن و پروژهٔ فعلی حسابداری را انتخاب کن. ابتدا با `vercel deploy` پیش‌نمایش بگیر و بعد از بررسی، `vercel deploy --prod` را اجرا کن.
+- **جوجو** از ریشهٔ مخزن اصلی منتشر می‌شود. هنگام Import مخزن در پروژهٔ جدید Vercel، Root Directory را روی ریشهٔ مخزن بگذار. اگر نسخهٔ محلی و نسخهٔ روی GitHub تفاوت دارند، برای انتشار دقیق نسخهٔ محلی از یک کپی جداگانه از ریشه با Vercel CLI استفاده کن.
+- برای نگه داشتن داده‌های حسابداری روی دامنهٔ فعلی، تنظیمات Turso و `SESSION_SECRET` پروژهٔ فعلی را حفظ کن. برای پروژهٔ جدید جوجو اگر داده‌های مستقل می‌خواهی، Turso و کلید نشست جدا تنظیم کن. Passkey به دامنهٔ خودش وابسته است و روی دامنهٔ تازه باید دوباره ثبت شود.
 
-برای ورود، ابتدا ثبت‌نام کنید. هر حساب داده‌های جدا خودش را دارد. دیتابیس محلی پیش‌فرض یک فایل SQLite در `data` است؛ با تنظیم `TURSO_DATABASE_URL` همان برنامه به دیتابیس ابری متصل می‌شود.
-
-```sh
-npm run build
-npm start
-```
-
-فونت وزیرمتن محلی است؛ ساخت و نمایش برنامه به Google Fonts وابسته نیست. مجوز فونت در `public/fonts/OFL.txt` قرار دارد. در استقرار مستقیم خروجی standalone، پوشه‌های `public`، `.next/static` و `drizzle` را نیز توزیع کنید. `desktop:prepare` این کار را برای بستهٔ دسکتاپ انجام می‌دهد.
-
-## تنظیمات و نگهداری داده‌ها
-
-متغیرهای اختیاری را در `.env.local` تنظیم کنید:
-
-```dotenv
-HESABDARI_DATA_DIR=D:/my-private-data/ravaal
-SESSION_SECRET=replace-with-a-long-random-private-value
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-پیش‌فرض داده‌ها پوشهٔ `data` پروژه است. بدون `SESSION_SECRET` یک کلید تصادفی پایدار در فایل `.session-secret` پوشهٔ داده‌ها ساخته می‌شود. چند نمونهٔ سرور باید کلید یکسان و خصوصی داشته باشند. تغییر کلید، نشست‌های قبلی را خارج می‌کند.
-
-برای بازیابی رمز از راه ایمیل، `SMTP_HOST`، `SMTP_FROM` و در صورت نیاز `SMTP_PORT`، `SMTP_SECURE`، `SMTP_USER` و `SMTP_PASS` را تنظیم کنید.
-
-برای پشتیبان‌گیری، برنامه را ببندید و کل پوشهٔ داده‌ها، شامل دیتابیس، فایل‌های WAL احتمالی، رسیدها و کلید نشست را کپی کنید. داده‌ها و فایل‌های محیطی در Git ثبت نمی‌شوند.
-
-## بررسی کیفیت
-
-```sh
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npm run test:smoke
-```
-
-تست‌های واحد، مبلغ و تاریخ، نشست ورود، مالکیت داده‌ها، تراکنش دوره‌ای و یک‌بارمصرف بودن چالش دومرحله‌ای را بررسی می‌کنند. تست HTTP یک سرور با دیتابیس موقت مستقل اجرا می‌کند، سناریوهای ورود غیرفعال، مالکیت داده‌ها و ماژول‌های اصلی را بررسی و داده‌های خودش را پاک می‌کند. پورت آن 3117 است و با `SMOKE_PORT` تغییر می‌کند. تست HTTP را پس از Build اجرا کنید.
-
-`npm audit --omit=dev` وابستگی‌های اجرایی را بررسی می‌کند. گزارش کامل توسعه هنوز شامل هشدارهای ابزارهای ساخت و Electron است. ارتقای عمدهٔ Electron و بررسی نصاب ویندوز جداگانه لازم است. از `npm audit fix --force` بدون بررسی تغییرات ناسازگار استفاده نکنید.
-
-## دسکتاپ
-
-```sh
-npm run desktop
-npm run desktop:build
-```
-
-ساخت نصاب Windows شامل آماده‌سازی سرور standalone و Node قابل‌حمل است. موفقیت Build وب به‌تنهایی تأیید عملکرد نصاب دسکتاپ یا ارسال واقعی ایمیل نیست.
-
-## استقرار ابری (هاست رایگان + دیتابیس مشترک)
-
-دیتابیس روی Turso (libSQL) است و برنامه روی Vercel اجرا می‌شود. هر دو سرویس نسخهٔ رایگان دارند.
-
-1. در [turso.tech](https://turso.tech) یک دیتابیس بسازید و آدرس `libsql://…` و یک توکن بگیرید.
-2. پروژه را روی GitHub داشته باشید، سپس در Vercel آن را Import کنید.
-3. در تنظیمات Vercel این متغیرها را وارد کنید: `TURSO_DATABASE_URL`، `TURSO_AUTH_TOKEN`، `SESSION_SECRET` (یک رشتهٔ تصادفی بلند) و `ADMIN_EMAIL` (ایمیل مدیر).
-4. اگر داده‌های محلی دارید، یک بار اجرا کنید (روی دیتابیس خالی):
-
-```sh
-TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… npx tsx scripts/migrate-local-to-turso.mts
-```
-
-5. حساب‌های عمومی از `/register` ثبت‌نام می‌کنند و نقش `user` دارند. ایمیل `ADMIN_EMAIL` برای ثبت‌نام عمومی رزرو است؛ کاربران عادی به پنل یا APIهای مدیر دسترسی ندارند و با تغییر پروفایل هم مدیر نمی‌شوند.
-6. مدیر موجود با ایمیل `ADMIN_EMAIL` و رمز فعلی وارد می‌شود. فقط برای راه‌اندازی نخستین حساب مدیر، یک `ADMIN_SETUP_TOKEN` تصادفی و خصوصی روی سرور تنظیم کنید و کد را در فرم راه‌اندازی وارد کنید. بدون این کد، راه‌اندازی مدیر بسته است؛ پس از فعال‌شدن حساب‌ها هم دوباره قابل استفاده نیست. کد را در متغیرهای عمومی `NEXT_PUBLIC_*` قرار ندهید. پنل مدیر در `/sanjabadmin` است.
-
-توجه: مدیر می‌تواند اطلاعات همهٔ کاربران را ببیند. رمز عبور و کلیدهای 2FA در پنل نمایش داده نمی‌شوند.
-
-### Passkey-only sign-in
-
-Registration collects only first and last names, then creates a discoverable device passkey with required user verification. No phone, profile image, password, SMS or email is needed. Password login/registration/setup/recovery return HTTP 410 and password pages redirect to login. The legacy login component is removed.
-
-Sessions use the versioned joojo_passkey_session HttpOnly cookie for up to 400 days, refreshed by the proxy. Old signed sessions lack the passkey-v1 method and are invalid even if their cookie is renamed. Existing database records are not deleted; no data reset is needed.
-
-Passkeys are bound to the exact HTTPS origin (optionally configure server-only PASSKEY_ORIGIN). Face ID, fingerprint or device unlock is chosen by the operating system; biometric data stays on the device. npm run test:passkeys checks real software-authenticator signatures, user verification, replay/counter/expiry protection and retired password endpoints. npm run test:smoke exercises financial functionality with isolated signed fixtures.
+[راهنمای Vercel CLI](https://vercel.com/docs/projects/deploy-from-cli)

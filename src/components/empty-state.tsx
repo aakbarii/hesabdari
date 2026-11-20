@@ -4,8 +4,6 @@ import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useAppearance } from "@/components/appearance-provider";
-import { JoojoMascot } from "@/components/joojo-mode";
 
 export function EmptyState({
   title,
@@ -22,11 +20,10 @@ export function EmptyState({
   icon?: ReactNode;
   className?: string;
 }) {
-  const { mood } = useAppearance();
   return (
     <Card className={cn(className)}>
       <CardContent className="py-12 text-center space-y-3">
-        {mood === "joojo" ? <JoojoMascot pose="cozy" className="mx-auto h-32 w-32" /> : icon ? (
+        {icon ? (
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
             {icon}
           </div>

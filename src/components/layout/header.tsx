@@ -6,7 +6,6 @@ const ModuleWorkbench = dynamic(() => import("@/components/module-workbench"), {
 import { ThemeToggle } from "./theme-toggle";
 import { GlobalSearch } from "./global-search";
 import { AppLogo } from "./app-logo";
-import { JoojoHeaderBadge } from "@/components/joojo-mode";
 import { WorkflowGuide } from "./workflow-guide";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,9 +53,6 @@ export function Header({ title }: { title: string }) {
           <AppLogo size="sm" showText={false} />
         </div>
         <div className="flex min-w-0 items-center gap-1">
-          <p className="hidden">
-            جوجو
-          </p>
           <h1 key={heading} className="text-base font-semibold tracking-tight motion-fade-in truncate leading-tight lg:text-lg">
             {heading}
           </h1>
@@ -64,14 +60,13 @@ export function Header({ title }: { title: string }) {
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        <div className="hidden sm:block"><JoojoHeaderBadge /></div>
         <div>
           <GlobalSearch />
         </div>
         <ModuleWorkbench key={pathname} module={pathname.split("/")[1] || "dashboard"} />
         {pathname !== "/transactions" && (
           <Button
-            className="lg:hidden rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-300/40 hover:from-rose-600 hover:to-pink-600 border-0"
+            className="lg:hidden rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 border-0"
             size="icon"
             aria-label={en ? "Quick add" : "ثبت سریع"}
             title={en ? "Quick add" : "ثبت سریع"}

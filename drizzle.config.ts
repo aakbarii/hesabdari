@@ -5,6 +5,6 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "sqlite",
   dbCredentials: {
-    url: "./data/hesabdari.db",
+    url: "./data/joojo.db",
   },
 });

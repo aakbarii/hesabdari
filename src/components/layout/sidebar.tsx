@@ -36,7 +36,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/layout/app-logo";
-import { JoojoSidebarNote } from "@/components/joojo-mode";
 
 import { AUTH_ENABLED } from "@/lib/app-config";
 import { useAppearance } from "@/components/appearance-provider";
@@ -100,7 +99,6 @@ export function Sidebar() {
         <AppLogo size="md" />
       </div>
       <nav aria-label={en ? "Main menu" : "منوی اصلی"} className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
-        <JoojoSidebarNote />
 
         {navGroups.map((group) => (
           <div key={group.titleKey} className="space-y-1">

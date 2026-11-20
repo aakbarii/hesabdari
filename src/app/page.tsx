@@ -27,13 +27,10 @@ import {
   Sunrise,
   ArrowLeft,
   RefreshCw,
-  Plus,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
-import { useAppearance } from "@/components/appearance-provider";
-import { JoojoHero } from "@/components/joojo-mode";
 import type { MessageKey } from "@/lib/i18n";
 import {
   formatToman,
@@ -45,11 +42,7 @@ import {
   type DashboardWidgetId,
 } from "@/lib/constants";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { toast } from "sonner";
-import { useHeroSrc, useHeroes } from "@/components/hero-provider";
-import { HeroCustomizeMenu } from "@/components/layout/hero-customize-menu";
-import { Image as ImageIcon } from "lucide-react";
 
 const ExpenseCategoryChart = dynamic(
   () =>
@@ -130,11 +123,8 @@ const CHART_COLORS = [
 ];
 
 export default function DashboardPage() {
-  const { mood } = useAppearance();
   const { t, locale } = useLocale();
   const say = (fa: string, en: string) => (locale === "en" ? en : fa);
-  const hero = useHeroSrc("dashboard");
-  const { show: showHeroBanner } = useHeroes();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [widgets, setWidgets] = useState<DashboardWidgetId[]>([]);
@@ -170,10 +160,10 @@ export default function DashboardPage() {
     };
     load();
     const onTx = () => load();
-    window.addEventListener("hesabdari:tx-created", onTx);
+    window.addEventListener("joojo:tx-created", onTx);
     return () => {
       controller.abort();
-      window.removeEventListener("hesabdari:tx-created", onTx);
+      window.removeEventListener("joojo:tx-created", onTx);
     };
   }, [reload, locale]);
 
@@ -227,104 +217,28 @@ export default function DashboardPage() {
     <>
       <Header title={say("داشبورد", "Dashboard")} />
       <div className="p-4 lg:p-8 space-y-6 motion-stagger">
-        {mood === "joojo" ? (
-          <JoojoHero
-            heroKey="dashboard"
-            title={say("امروزت رو با جوجو قشنگ بساز! 🌸", "Make today a little kinder with Joojo 🌸")}
-            subtitle={say("یه قدم برای هدف‌هات، یه لبخند برای خودت؛ جوجو اینجاست که همراهت باشه ♡", "One step for your goals, one smile for you. Joojo is here ♡")}
-            action={
-              <>
-                <Link
-                  href="/life"
-                  className={cn(
-                    buttonVariants(),
-                    "rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-sm shadow-rose-300/40 font-bold px-4"
-                  )}
-                >
-                  {say("دفترچه امروز", "Today's notebook")} <ArrowLeft size={16} />
-                </Link>
-                <Link
-                  href="/transactions?new=expense"
-                  className={cn(
-                    buttonVariants({ variant: "outline" }),
-                    "rounded-full bg-white/80 border-rose-200/90 text-foreground hover:bg-pink-50/80 font-medium px-4"
-                  )}
-                >
-                  <Plus size={16} />{say("ثبت سریع", "Quick add")}
-                </Link>
-              </>
-            }
-          />
-        ) : hero.hidden ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-4">
-            <div>
-              <p className="font-semibold">{say("امروز را با خیال آسوده شروع کن.", "Start today with a clear picture.")}</p>
-              <p className="text-sm text-muted-foreground">{say("دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.", "Money, plans and goals, in one view.")}</p>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                showHeroBanner("dashboard").then(() =>
-                  toast.success(locale === "en" ? "Hero shown" : "تصویر نمایش داده شد")
-                )
-              }
-            >
-              <ImageIcon className="h-3.5 w-3.5 me-1" />
-              {locale === "en" ? "Show image" : "نمایش تصویر"}
-            </Button>
+        <section className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold sm:text-2xl">{say("خلاصهٔ مالی", "Financial overview")}</h2>
+            <p className="text-sm text-muted-foreground">{say("درآمد، هزینه و ماندهٔ ماه جاری", "Income, expenses and balance for this month")}</p>
           </div>
-        ) : (
-        <section className="dashboard-welcome relative overflow-hidden rounded-3xl p-6 sm:p-8 min-h-[220px]">
-          {hero.src.startsWith("/api/") ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={hero.src}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover object-center"
-            />
-          ) : (
-            <Image
-              src={hero.src}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover object-center"
-            />
+          {data && (
+            <div className="border-t border-border pt-4 sm:border-t-0 sm:border-s sm:ps-6 sm:pt-0">
+              <p className="text-xs text-muted-foreground">{say("مانده", "Balance")} · {getJalaliMonthName(data.month, locale)}</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">{formatToman(data.monthly.balance)}</p>
+              <Link href="/reports" className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                {say("گزارش مالی", "Financial report")} <ArrowLeft className="size-3.5" />
+              </Link>
+            </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-l from-emerald-950/85 via-emerald-950/70 to-emerald-900/55" />
-          <HeroCustomizeMenu
-            heroKey="dashboard"
-            light
-            className="absolute top-4 end-4 z-20"
-          />
-          <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
-            <div className="max-w-xl space-y-3">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-emerald-50"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> {say("فضای شخصی جوجو", "Your Joojo space")}</span>
-              <h2 className="text-2xl font-semibold leading-relaxed sm:text-3xl">{say("امروز را با خیال آسوده شروع کن.", "Start today with a clear picture.")}</h2>
-              <p className="text-sm leading-7 text-emerald-50/80">{say("دارایی‌ها، برنامه‌ها و هدف‌هایت؛ همه در یک نگاه.", "Money, plans and goals, in one view.")}</p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Link href="/transactions?new=expense" className="hidden sm:inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50"><Plus className="h-4 w-4" /> {say("ثبت تراکنش", "Add transaction")}</Link>
-                <Link href="/life" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/25 px-4 text-sm transition hover:bg-white/10">{say("برنامه امروز", "Today's plan")} <ArrowLeft className="h-4 w-4" /></Link>
-              </div>
-            </div>
-            {data && <div className="dashboard-balance min-w-0 w-full rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm sm:w-auto sm:min-w-56">
-              <p className="text-xs text-emerald-50/75">{say("مانده این ماه", "This month")} · {getJalaliMonthName(data.month, locale)}</p>
-              <p className="mt-3 text-xl font-semibold tabular-nums sm:text-2xl">{formatToman(data.monthly.balance)}</p>
-              <Link href="/reports" className="mt-4 inline-flex items-center gap-2 text-xs text-emerald-50/80 hover:text-white">{say("مشاهده گزارش مالی", "View the money report")} <ArrowLeft className="h-3.5 w-3.5" /></Link>
-            </div>}
-          </div>
         </section>
-        )}
         <div className="grid grid-cols-[minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:flex-wrap sm:justify-between">
           <div className="flex min-w-0 gap-2">
             <Link
               href="/transactions?new=expense"
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "min-h-11 flex-1 px-3 text-xs sm:flex-none sm:px-4 sm:text-sm rounded-2xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-sm shadow-rose-300/40 border-0"
+                "min-h-11 flex-1 px-3 text-xs sm:flex-none sm:px-4 sm:text-sm rounded-2xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm border-0"
               )}
             >
               <ArrowDownRight className="h-4 w-4 ml-1" />
@@ -432,7 +346,7 @@ export default function DashboardPage() {
                       <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                         {say("موجودی کل", "Total balance")}
                       </CardTitle>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-pink-100/80 text-pink-600 dark:bg-pink-950/40">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-accent text-primary">
                         <Wallet className="h-4 w-4" />
                       </div>
                     </CardHeader>

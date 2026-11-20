@@ -11,13 +11,11 @@ import { QuickAddFab } from "@/components/layout/quick-add-fab";
 import { ConfirmProvider } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/locale-provider";
-import { JoojoPet } from "@/components/joojo-pet";
-
-const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
+import { isPublicPath, readSession } from "@/lib/client-session";
 
 export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuth = AUTH_PATHS.includes(pathname) || pathname === "/install/joojo";
+  const isAuth = isPublicPath(pathname);
   const router = useRouter();
   const en = useLocale().locale === "en";
   const [retry, setRetry] = useState(0);
@@ -27,24 +25,15 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isAuth) return;
     let cancelled = false;
-    fetch("/api/auth/me")
-      .then((r) => {
-        if (r.status === 401) return { user: null };
-        if (!r.ok) throw new Error("Session check failed");
-        return r.json();
-      })
-      .then((d) => {
-        if (cancelled) return;
-        if (d.user) {
-          setSession("in");
-        } else {
-          setSession("out");
-          router.replace("/login");
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setSession("error");
-      });
+    readSession().then((state) => {
+      if (cancelled) return;
+      if (state === "in") setSession("in");
+      else if (state === "error") setSession("error");
+      else {
+        setSession("out");
+        router.replace("/login");
+      }
+    });
     return () => {
       cancelled = true;
     };
@@ -66,7 +55,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       </Button>
     </div>
   </main>;
-  if (session !== "in") return null;
+  if (session !== "in") return <main className="grid min-h-dvh place-items-center p-6 text-sm text-muted-foreground">{en ? "Taking you to sign in…" : "در حال رفتن به ورود…"}</main>;
 
   return (
     <ConfirmProvider>
@@ -82,7 +71,6 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
         </div>
         <QuickAddFab />
         <MobileNav />
-        <JoojoPet />
       </div>
     </ConfirmProvider>
   );

@@ -47,7 +47,7 @@ nsis:
   # ASCII only — Persian breaks NSIS shortcut encoding on some Windows locales
   shortcutName: Ravaal
   runAfterFinish: true
-  # Never wipe %APPDATA%\Saman or %APPDATA%\Hesabdari
+  # Never wipe %APPDATA%\Joojo, or older %APPDATA%\Saman and %APPDATA%\Hesabdari copies
   deleteAppDataOnUninstall: false
 portable:
   artifactName: Ravaal-Portable.exe

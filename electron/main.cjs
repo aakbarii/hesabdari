@@ -5,14 +5,21 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 const { createManager, APP_URL } = require("./server-manager.cjs");
 
-// Keep the existing data location when renaming the displayed product.
-const previousUserDataPath = path.join(app.getPath("appData"), "Hesabdari");
-const renamedUserDataPath = path.join(app.getPath("appData"), "Saman");
-const legacyUserDataPath = !fs.existsSync(renamedUserDataPath) && fs.existsSync(previousUserDataPath)
-  ? previousUserDataPath
-  : renamedUserDataPath;
-fs.mkdirSync(legacyUserDataPath, { recursive: true });
-app.setPath("userData", legacyUserDataPath);
+// Joojo is the app folder. Older installs keep their database via a one-time copy.
+const joojoUserDataPath = path.join(app.getPath("appData"), "Joojo");
+const legacyUserDataPath = ["Saman", "Hesabdari"]
+  .map((name) => path.join(app.getPath("appData"), name))
+  .find((dir) => fs.existsSync(dir));
+if (!fs.existsSync(joojoUserDataPath) && legacyUserDataPath) {
+  try {
+    fs.cpSync(legacyUserDataPath, joojoUserDataPath, { recursive: true });
+  } catch (error) {
+    console.error(error);
+  }
+}
+const userDataPath = fs.existsSync(joojoUserDataPath) ? joojoUserDataPath : legacyUserDataPath || joojoUserDataPath;
+fs.mkdirSync(userDataPath, { recursive: true });
+app.setPath("userData", userDataPath);
 
 // Faster Chromium startup on Windows desktop shells
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
@@ -195,7 +202,7 @@ async function openApp() {
     await navigateToApp();
   } catch (err) {
     dialog.showErrorBox(
-      "Hesabdari",
+      "Joojo",
       `Could not start:\n${err instanceof Error ? err.message : String(err)}\n\nLog:\n${mgr?.logFile || ""}`
     );
   } finally {
@@ -230,10 +237,21 @@ function installWarmStartLight() {
       spawn(
         "reg",
         [
-          "add",
+          "delete",
           "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
           "/v",
           "HesabdariServer",
+          "/f",
+        ],
+        { windowsHide: true, stdio: "ignore" }
+      );
+      spawn(
+        "reg",
+        [
+          "add",
+          "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+          "/v",
+          "JoojoServer",
           "/t",
           "REG_SZ",
           "/d",
@@ -318,7 +336,7 @@ async function boot() {
     setImmediate(installWarmStartLight);
   } catch (err) {
     dialog.showErrorBox(
-      "Hesabdari",
+      "Joojo",
       `Could not start:\n${err instanceof Error ? err.message : String(err)}\n\nLog:\n${mgr.logFile}`
     );
     quitFully();

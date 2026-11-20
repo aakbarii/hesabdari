@@ -2,7 +2,7 @@
  * Pure-Node warm start (no Electron).
  * Starts the Next server at Windows login so the UI opens instantly.
  *
- * DATA SAFETY: always uses %APPDATA%\Hesabdari\data — never creates a new DB elsewhere.
+ * DATA SAFETY: always uses %APPDATA%\Joojo\data — never creates a new DB elsewhere.
  */
 const path = require("path");
 const fs = require("fs");
@@ -13,15 +13,18 @@ const PORT = 3847;
 const HOST = "127.0.0.1";
 
 function userDataDir() {
-  if (process.env.HESABDARI_USER_DATA) return process.env.HESABDARI_USER_DATA;
+  if (process.env.JOOJO_USER_DATA || process.env.HESABDARI_USER_DATA) {
+    return process.env.JOOJO_USER_DATA || process.env.HESABDARI_USER_DATA;
+  }
   const base =
     process.env.APPDATA ||
     process.env.HOME ||
     process.env.USERPROFILE ||
     process.cwd();
-  const samanDir = path.join(base, "Saman");
-  if (fs.existsSync(samanDir)) return samanDir;
-  return path.join(base, "Hesabdari");
+  const joojoDir = path.join(base, "Joojo");
+  if (fs.existsSync(joojoDir)) return joojoDir;
+  const legacy = ["Saman", "Hesabdari"].map((name) => path.join(base, name)).find((dir) => fs.existsSync(dir));
+  return legacy || joojoDir;
 }
 
 function isPortOpen(timeoutMs = 80) {
@@ -77,8 +80,8 @@ async function main() {
       ...process.env,
       PORT: String(PORT),
       HOSTNAME: HOST,
-      HESABDARI_ROOT: cwd,
-      HESABDARI_DATA_DIR: dataDir,
+      JOOJO_ROOT: cwd,
+      JOOJO_DATA_DIR: dataDir,
       NODE_ENV: "production",
       NODE_COMPILE_CACHE: compileCacheDir,
       NEXT_TELEMETRY_DISABLED: "1",

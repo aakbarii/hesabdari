@@ -17,7 +17,7 @@ if (Test-Path $pkg) {
 }
 
 Set-Location $root
-$out = Join-Path $root "hesabdari-share.zip"
+$out = Join-Path $root "joojo-share.zip"
 if (Test-Path $out) { Remove-Item $out -Force }
 
 $excludeDirs = @(
@@ -35,10 +35,10 @@ $excludeFiles = @(
   ".env.local",
   ".env.development.local",
   ".env.production.local",
-  "hesabdari-share.zip"
+  "joojo-share.zip"
 )
 
-$temp = Join-Path $env:TEMP ("hesabdari-share-" + [guid]::NewGuid().ToString("N"))
+$temp = Join-Path $env:TEMP ("joojo-share-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $temp | Out-Null
 
 try {

@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 // Always use a disposable database; this script never connects to the user's data.
-const dataDir = mkdtempSync(path.join(tmpdir(), "hesabdari-smoke-"));
+const dataDir = mkdtempSync(path.join(tmpdir(), "joojo-smoke-"));
 const port = Number(process.env.SMOKE_PORT || 3117);
 const base = `http://127.0.0.1:${port}`;
 const serverDir = process.env.SMOKE_SERVER_DIR ? path.resolve(process.env.SMOKE_SERVER_DIR) : undefined;
@@ -14,7 +14,7 @@ const nodeBin = process.env.SMOKE_NODE_BIN || process.execPath;
 const serverArgs = serverDir ? [path.join(serverDir, "server.js")] : ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(port)];
 const server = spawn(nodeBin, serverArgs, {
   cwd: serverDir,
-  env: { ...process.env, ADMIN_EMAIL: "admin@smoke.test", ADMIN_SETUP_TOKEN: "isolated-admin-setup-token", TURSO_DATABASE_URL: "", TURSO_AUTH_TOKEN: "", PORT: String(port), HOSTNAME: "127.0.0.1", HESABDARI_ROOT: serverDir || process.cwd(), HESABDARI_DATA_DIR: dataDir, SESSION_SECRET: "isolated-smoke-test-secret-do-not-use-in-production", NEXT_TELEMETRY_DISABLED: "1" },
+  env: { ...process.env, ADMIN_EMAIL: "admin@smoke.test", ADMIN_SETUP_TOKEN: "isolated-admin-setup-token", TURSO_DATABASE_URL: "", TURSO_AUTH_TOKEN: "", PORT: String(port), HOSTNAME: "127.0.0.1", JOOJO_ROOT: serverDir || process.cwd(), JOOJO_DATA_DIR: dataDir, SESSION_SECRET: "isolated-smoke-test-secret-do-not-use-in-production", NEXT_TELEMETRY_DISABLED: "1" },
   stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
 });
 let logs = "";
@@ -41,12 +41,14 @@ try {
   }
   assert.ok(ready, "Test server did not start");
   await request("/api/health");
-  const installResponse = await fetch(base + "/install/joojo", { redirect: "manual" });
-  assert.equal(installResponse.status, 200, "Install page must work without a session");
-  const installHtml = await installResponse.text();
-  assert.match(installHtml, /rel="apple-touch-icon"[^>]*href="\/joojo\/stella-icon-180\.png\?v=4"/);
-  assert.match(installHtml, /rel="manifest"[^>]*href="\/joojo\/manifest\.json\?v=4"/);
-  checks += 3;
+  const loginResponse = await fetch(base + "/login", { redirect: "manual" });
+  assert.equal(loginResponse.status, 200, "Login must work without a session");
+  const loginHtml = await loginResponse.text();
+  assert.match(loginHtml, /rel="apple-touch-icon"[^>]*href="\/apple-touch-icon\.png\?v=5"/);
+  assert.match(loginHtml, /rel="manifest"[^>]*href="\/manifest\.json\?v=5"/);
+  const manifest = (await request("/manifest.json?v=5")).data;
+  assert.equal(manifest.short_name, "حسابداری");
+  checks += 4;
   const me = (await request("/api/auth/me")).data;
   const authEnabled = !me.user;
   let alice, bob;
@@ -56,8 +58,8 @@ try {
     // Financial fixtures use this test's private signing key and disposable DB.
     // Real passkey ceremonies/signatures are covered by passkey-smoke.mjs.
     const { createClient } = await import("@libsql/client");
-    const fixtures = createClient({ url: "file:"+path.join(dataDir,"hesabdari.db").split(path.sep).join("/") });
-    const cookieFor = id => { const payload=Buffer.from(JSON.stringify({userId:id,exp:Date.now()+3600000,method:"passkey-v1"})).toString("base64url");return "joojo_passkey_session="+payload+"."+createHmac("sha256","isolated-smoke-test-secret-do-not-use-in-production").update(payload).digest("base64url"); };
+    const fixtures = createClient({ url: "file:"+path.join(dataDir,"joojo.db").split(path.sep).join("/") });
+    const cookieFor = id => { const payload=Buffer.from(JSON.stringify({userId:id,exp:Date.now()+3600000,method:"passkey-v2"})).toString("base64url");return "joojo_passkey_session="+payload+"."+createHmac("sha256","isolated-smoke-test-secret-do-not-use-in-production").update(payload).digest("base64url"); };
     try { for (const id of ["smoke-alice","smoke-bob","smoke-admin"]) {
       await fixtures.execute({sql:"INSERT INTO users(id,email,name,created_at) VALUES(?,?,?,?)",args:[id,id === "smoke-admin" ? "admin@smoke.test" : id+"@passkey.local.invalid",id,Math.floor(Date.now()/1000)]});
       for (const type of ["expense","income"]) await fixtures.execute({sql:"INSERT INTO categories(id,user_id,name,type,color,created_at) VALUES(?,?,?,?,?,?)",args:[id+type,id,type,type,"#f43f5e",Math.floor(Date.now()/1000)]});
@@ -72,11 +74,11 @@ try {
   } else { throw new Error("This smoke suite requires passkey authentication"); }
   const cookie = alice.cookie;
   const initialAppearance = (await request("/api/settings", { cookie })).data;
-  assert.equal(initialAppearance.appearanceMood, "joojo");
-  assert.equal(initialAppearance.accentColor, "rose");
+  assert.equal(initialAppearance.appearanceMood, "masculine");
+  assert.equal(initialAppearance.accentColor, "slate");
   assert.deepEqual(initialAppearance.widgets, ["balance", "monthly", "recent", "life"]);
   await request("/api/settings", { method: "PATCH", cookie, body: { gender: "female" } });
-  assert.equal((await request("/api/settings", { cookie })).data.appearanceMood, "joojo", "Profile changes must preserve the chosen theme");
+  assert.equal((await request("/api/settings", { cookie })).data.appearanceMood, "masculine", "Profile changes must preserve the chosen theme");
   const account = (await request("/api/accounts", { method: "POST", cookie, body: { name: "بانک آزمایشی", type: "bank", initialBalance: 100000 } })).data;
   const destination = (await request("/api/accounts", { method: "POST", cookie, body: { name: "نقدی", type: "cash" } })).data;
   let other;
@@ -85,7 +87,7 @@ try {
   } else {
     // Seed a foreign fixture only inside this script's disposable database.
     const { createClient } = await import("@libsql/client");
-    const fixtures = createClient({ url: `file:${path.join(dataDir, "hesabdari.db")}` });
+    const fixtures = createClient({ url: `file:${path.join(dataDir, "joojo.db")}` });
     const timestamp = Math.floor(Date.now() / 1000);
     await fixtures.execute({ sql: "INSERT INTO users (id, email, name, created_at) VALUES (?, ?, ?, ?)", args: ["smoke-other", "other@smoke.test", "Other", timestamp] });
     await fixtures.execute({ sql: "INSERT INTO accounts (id, user_id, name, type, color, initial_balance, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", args: ["smoke-foreign-account", "smoke-other", "Other", "bank", "#10b981", 0, 1, timestamp] });
@@ -120,8 +122,8 @@ try {
   await request("/api/dashboard", { method: "PATCH", cookie, body: { widgets: ["not-a-widget"] }, status: 400 });
   await request("/api/settings", { method: "PATCH", cookie, body: { currencyUnit: "rial" } });
   // Switching the complete skin survives a fresh GET and retains the separate accent preference.
-  await request("/api/settings", { method: "PATCH", cookie, body: { appearanceMood: "joojo", accentColor: "indigo" } });
-  const joojoSettings = (await request("/api/settings", { cookie })).data;
+  await request("/api/settings", { method: "PATCH", cookie, body: { appearanceMood: "minimal", accentColor: "indigo" } });
+  const appearanceSettings = (await request("/api/settings", { cookie })).data;
   const adminPage = await fetch(base + "/sanjabadmin", { headers: cookie ? { Cookie: cookie } : {}, redirect: "manual" });
   if (!authEnabled) assert.equal(adminPage.status, 200);
   else if (adminPage.status === 307) assert.equal(new URL(adminPage.headers.get("location"), base).pathname, "/");
@@ -134,8 +136,8 @@ try {
   const oldAdminPage = await fetch(base + "/admin", { headers: cookie ? { Cookie: cookie } : {}, redirect: "manual" });
   assert.equal(oldAdminPage.status, 404);
   checks += 2;
-  assert.equal(joojoSettings.appearanceMood, "joojo");
-  assert.equal(joojoSettings.accentColor, "indigo");
+  assert.equal(appearanceSettings.appearanceMood, "minimal");
+  assert.equal(appearanceSettings.accentColor, "indigo");
   if (authEnabled) assert.notEqual((await request("/api/settings", { cookie: bob.cookie })).data.accentColor, "indigo");
   await request("/api/settings", { method: "PATCH", cookie, body: { appearanceMood: "neutral" } });
   const restoredSettings = (await request("/api/settings", { cookie })).data;
@@ -220,6 +222,6 @@ try {
   server.kill();
   await new Promise((resolve) => { if (server.exitCode !== null) resolve(); else server.once("exit", resolve); });
   const target=path.resolve(dataDir);
-  assert.ok(target.startsWith(path.resolve(tmpdir())+path.sep)&&path.basename(target).startsWith("hesabdari-smoke-"));
+  assert.ok(target.startsWith(path.resolve(tmpdir())+path.sep)&&path.basename(target).startsWith("joojo-smoke-"));
   try { rmSync(target, { recursive: true, force: true, maxRetries: 6, retryDelay: 200 }); } catch (cleanupError) { if (cleanupError.code !== "EBUSY") throw cleanupError; }
 }

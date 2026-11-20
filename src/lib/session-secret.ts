@@ -8,8 +8,8 @@ let cachedSecret: string | undefined;
 export function getSessionSecret(): string {
   if (process.env.SESSION_SECRET?.trim()) return process.env.SESSION_SECRET;
   if (cachedSecret) return cachedSecret;
-  const dataDir = process.env.HESABDARI_DATA_DIR || path.join(
-    /* turbopackIgnore: true */ process.env.HESABDARI_ROOT || process.cwd(), "data",
+  const dataDir = process.env.JOOJO_DATA_DIR || process.env.HESABDARI_DATA_DIR || path.join(
+    /* turbopackIgnore: true */ process.env.JOOJO_ROOT || process.env.HESABDARI_ROOT || process.cwd(), "data",
   );
   mkdirSync(dataDir, { recursive: true });
   const secretPath = path.join(dataDir, ".session-secret");

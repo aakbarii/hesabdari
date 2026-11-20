@@ -182,7 +182,7 @@ export default function TransactionsPage() {
       const params = new URLSearchParams(window.location.search);
       const type = params.get("new");
       if ((type === "income" || type === "expense") && accs.length) {
-        const last = localStorage.getItem("hesabdari:lastAccountId");
+        const last = localStorage.getItem("joojo:lastAccountId") ?? localStorage.getItem("hesabdari:lastAccountId");
         setTxForm({ ...emptyTxForm, date: toISODate(new Date()), type, accountId: accs.find((a: Account) => a.id === last)?.id ?? accs[0].id });
         setReceiptFile(null); setTxOpen(true);
         params.delete("new");
@@ -202,14 +202,14 @@ export default function TransactionsPage() {
     const controller = new AbortController();
     const timer = setTimeout(() => { void load(controller.signal); }, 200);
     const refresh = () => { void load(controller.signal); };
-    window.addEventListener("hesabdari:tx-created", refresh);
-    return () => { clearTimeout(timer); controller.abort(); window.removeEventListener("hesabdari:tx-created", refresh); };
+    window.addEventListener("joojo:tx-created", refresh);
+    return () => { clearTimeout(timer); controller.abort(); window.removeEventListener("joojo:tx-created", refresh); };
   }, [load]);
 
   const openNewTx = (type: "income" | "expense" = "expense") => {
     const last =
       typeof window !== "undefined"
-        ? localStorage.getItem("hesabdari:lastAccountId") ?? ""
+        ? localStorage.getItem("joojo:lastAccountId") ?? localStorage.getItem("hesabdari:lastAccountId") ?? ""
         : "";
     setTxForm({
       ...emptyTxForm,
@@ -255,7 +255,7 @@ export default function TransactionsPage() {
     const data = await res.json();
     if (res.ok) {
       if (txForm.accountId) {
-        localStorage.setItem("hesabdari:lastAccountId", txForm.accountId);
+        localStorage.setItem("joojo:lastAccountId", txForm.accountId);
       }
       if (receiptFile && data.id) {
         const fd = new FormData();

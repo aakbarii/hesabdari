@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { isPublicPath, readSession } from "@/lib/client-session";
 import {
   ACCENT_COLORS,
   APPEARANCE_MOODS,
@@ -60,12 +61,7 @@ function applyDomAppearance(mood: AppearanceMood, accent: AccentColorId) {
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = [
-    "/login",
-    "/register",
-    "/forgot-password",
-    "/reset-password",
-  ].includes(pathname);
+  const isAuthPage = isPublicPath(pathname);
 
   const [mood, setMoodState] = useState<AppearanceMood>(DEFAULT_APPEARANCE_MOOD);
   const [accent, setAccentState] = useState<AccentColorId>(DEFAULT_ACCENT_COLOR);
@@ -81,9 +77,17 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   }, [mood, accent]);
 
   useEffect(() => {
-    if (isAuthPage) return;
+    if (isAuthPage) {
+      setLoaded(true);
+      return;
+    }
     const controller = new AbortController();
-    fetch("/api/settings", { signal: controller.signal })
+    readSession().then((session) => {
+      if (controller.signal.aborted || session !== "in") {
+        if (!controller.signal.aborted) setLoaded(true);
+        return;
+      }
+      return fetch("/api/settings", { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error("settings failed");
         return r.json();
@@ -117,6 +121,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       .finally(() => {
         if (!controller.signal.aborted) setLoaded(true);
       });
+    });
     return () => controller.abort();
   }, [isAuthPage]);
 

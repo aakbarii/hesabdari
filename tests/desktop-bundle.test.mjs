@@ -14,8 +14,8 @@ test("desktop cleanup removes build copies of private files and preserves source
     fs.mkdirSync(path.join(bundle, "data"), { recursive: true });
     fs.mkdirSync(path.join(bundle, "public"), { recursive: true });
     fs.mkdirSync(path.join(fixture, "data"));
-    fs.writeFileSync(path.join(fixture, "data", "hesabdari.db"), "source");
-    fs.writeFileSync(path.join(bundle, "data", "hesabdari.db"), "copy");
+    fs.writeFileSync(path.join(fixture, "data", "joojo.db"), "source");
+    fs.writeFileSync(path.join(bundle, "data", "joojo.db"), "copy");
     fs.writeFileSync(path.join(bundle, ".env.local"), "private");
     fs.writeFileSync(path.join(bundle, ".session-secret"), "private");
     fs.writeFileSync(path.join(bundle, "public", "icon.svg"), "asset");
@@ -24,7 +24,7 @@ test("desktop cleanup removes build copies of private files and preserves source
     assert.equal(fs.existsSync(path.join(bundle, ".env.local")), false);
     assert.equal(fs.existsSync(path.join(bundle, ".session-secret")), false);
     assert.equal(fs.readFileSync(path.join(bundle, "public", "icon.svg"), "utf8"), "asset");
-    assert.equal(fs.readFileSync(path.join(fixture, "data", "hesabdari.db"), "utf8"), "source");
+    assert.equal(fs.readFileSync(path.join(fixture, "data", "joojo.db"), "utf8"), "source");
     assert.throws(() => cleanDesktopBundle(path.join(fixture, "data")), /non-build directory/);
   } finally {
     process.chdir(originalCwd);

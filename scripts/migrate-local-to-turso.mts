@@ -1,6 +1,6 @@
 // One-time copy of a local SQLite workspace into the shared cloud database.
 //
-//   TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… npx tsx scripts/migrate-local-to-turso.ts [path/to/hesabdari.db]
+//   TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… npx tsx scripts/migrate-local-to-turso.ts [path/to/joojo.db]
 //
 // Run it once against an empty database. Rows are copied with their original ids, so
 // re-running it is safe, but it refuses to touch a database that already has other accounts.
@@ -13,7 +13,7 @@ if (!targetUrl) {
   throw new Error("Set TURSO_DATABASE_URL (and TURSO_AUTH_TOKEN) to the cloud database first.");
 }
 
-const sourcePath = path.resolve(process.argv[2] ?? path.join("data", "hesabdari.db"));
+const sourcePath = path.resolve(process.argv[2] ?? (fs.existsSync(path.join("data", "joojo.db")) || !fs.existsSync(path.join("data", "hesabdari.db")) ? path.join("data", "joojo.db") : path.join("data", "hesabdari.db")));
 if (!fs.existsSync(sourcePath)) {
   throw new Error(`Local database not found: ${sourcePath}`);
 }

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Download, Share, X } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
 
-const DISMISS_IOS = "hesabdari-ios-install-dismissed";
-const DISMISS_ANDROID = "hesabdari-android-install-dismissed";
+const DISMISS_IOS = "joojo-ios-install-dismissed";
+const DISMISS_ANDROID = "joojo-android-install-dismissed";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;

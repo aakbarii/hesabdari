@@ -6,20 +6,21 @@ import path from "path";
 import * as schema from "./schema";
 
 const dataDir =
+  process.env.JOOJO_DATA_DIR ||
   process.env.HESABDARI_DATA_DIR ||
   path.join(
-    /* turbopackIgnore: true */ process.env.HESABDARI_ROOT || process.cwd(),
+    /* turbopackIgnore: true */ process.env.JOOJO_ROOT || process.env.HESABDARI_ROOT || process.cwd(),
     "data"
   );
 const appRoot =
-  /* turbopackIgnore: true */ process.env.HESABDARI_ROOT || process.cwd();
+  /* turbopackIgnore: true */ process.env.JOOJO_ROOT || process.env.HESABDARI_ROOT || process.cwd();
 
 type Database = ReturnType<typeof drizzle<typeof schema>>;
 
 declare global {
-  var __hesabdari_client__: Client | undefined;
+  var __joojo_client__: Client | undefined;
 
-  var __hesabdari_db__: Database | undefined;
+  var __joojo_db__: Database | undefined;
 }
 
 /**
@@ -32,12 +33,23 @@ function databaseUrl(): string {
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
-  return `file:${path.join(dataDir, "hesabdari.db").split(path.sep).join("/")}`;
+  const next = path.join(dataDir, "joojo.db");
+  const previous = path.join(dataDir, "hesabdari.db");
+  if (!fs.existsSync(next) && fs.existsSync(previous)) {
+    try {
+      for (const suffix of ["", "-wal", "-shm"]) {
+        if (fs.existsSync(previous + suffix)) fs.renameSync(previous + suffix, next + suffix);
+      }
+    } catch {
+      return `file:${previous.split(path.sep).join("/")}`;
+    }
+  }
+  return `file:${next.split(path.sep).join("/")}`;
 }
 
 function getConnection(): { client: Client; db: Database } {
-  if (globalThis.__hesabdari_client__ && globalThis.__hesabdari_db__) {
-    return { client: globalThis.__hesabdari_client__, db: globalThis.__hesabdari_db__ };
+  if (globalThis.__joojo_client__ && globalThis.__joojo_db__) {
+    return { client: globalThis.__joojo_client__, db: globalThis.__joojo_db__ };
   }
 
   const client = createClient({
@@ -46,8 +58,8 @@ function getConnection(): { client: Client; db: Database } {
   });
   const db = drizzle(client, { schema });
 
-  globalThis.__hesabdari_client__ = client;
-  globalThis.__hesabdari_db__ = db;
+  globalThis.__joojo_client__ = client;
+  globalThis.__joojo_db__ = db;
 
   return { client, db };
 }

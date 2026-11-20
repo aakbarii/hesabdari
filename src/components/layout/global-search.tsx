@@ -101,7 +101,7 @@ export function GlobalSearch() {
               autoFocus
               placeholder={tx("تراکنش، حساب، هدف، بدهی...", "Transaction, account, goal, debt...")}
               value={query}
-              aria-label={tx("جستجو در جوجو", "Search Joojo")}
+              aria-label={tx("جستجو در حسابداری", "Search Hesabdari")}
               onChange={(e) => {
                 setQuery(e.target.value);
                 setResults([]);

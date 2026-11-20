@@ -119,7 +119,7 @@ export function HeroCustomizeMenu({
                 }
               >
                 <RotateCcw className="h-4 w-4" />
-                {t("پیش‌فرض جوجو", "Joojo default")}
+                {t("تصویر پیش‌فرض", "Default image")}
               </button>
             )}
           </div>

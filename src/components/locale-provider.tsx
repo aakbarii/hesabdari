@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { isPublicPath, readSession } from "@/lib/client-session";
 import { setClientLocale } from "@/lib/currency";
 import {
   DEFAULT_LOCALE,
@@ -53,12 +54,7 @@ function applyDomLocale(locale: Locale) {
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = [
-    "/login",
-    "/register",
-    "/forgot-password",
-    "/reset-password",
-  ].includes(pathname);
+  const isAuthPage = isPublicPath(pathname);
 
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [loaded, setLoaded] = useState(false);
@@ -84,7 +80,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       return;
     }
     const controller = new AbortController();
-    fetch("/api/settings", { signal: controller.signal })
+    readSession().then((session) => {
+      if (controller.signal.aborted || session !== "in") {
+        if (!controller.signal.aborted) setLoaded(true);
+        return;
+      }
+      return fetch("/api/settings", { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error("settings");
         return r.json();
@@ -101,6 +102,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       .finally(() => {
         if (!controller.signal.aborted) setLoaded(true);
       });
+    });
     return () => controller.abort();
   }, [isAuthPage]);
 

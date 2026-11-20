@@ -59,19 +59,19 @@ import { generateResetToken, hashResetToken } from "../tokens";
 
 declare global {
 
-  var __hesabdari_init__: Promise<void> | undefined;
+  var __joojo_init__: Promise<void> | undefined;
 }
 
 /** Runs migrations and default seeding once per process, even when requests race on cold start. */
 export function ensureDb(): Promise<void> {
-  globalThis.__hesabdari_init__ ??= (async () => {
+  globalThis.__joojo_init__ ??= (async () => {
     await runMigrations();
     await seedDefaultUser();
   })().catch((error) => {
-    globalThis.__hesabdari_init__ = undefined;
+    globalThis.__joojo_init__ = undefined;
     throw error;
   });
-  return globalThis.__hesabdari_init__;
+  return globalThis.__joojo_init__;
 }
 
 async function seedDefaultUser() {
@@ -574,7 +574,7 @@ export async function getUserSettings(userId: string = DEFAULT_USER_ID) {
     appearanceMood: isAppearanceMood(settings.appearanceMood)
       ? settings.appearanceMood
       : DEFAULT_APPEARANCE_MOOD,
-    accentColor: isAccentColorId(settings.accentColor)
+    accentColor: isAppearanceMood(settings.appearanceMood) && isAccentColorId(settings.accentColor)
       ? settings.accentColor
       : DEFAULT_ACCENT_COLOR,
     visibleNav,

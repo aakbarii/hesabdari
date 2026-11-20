@@ -19,6 +19,7 @@ import {
   type CurrencyUnit,
 } from "@/lib/currency";
 import { usePathname } from "next/navigation";
+import { isPublicPath, readSession } from "@/lib/client-session";
 
 type CurrencyContextValue = {
   currency: CurrencyUnit;
@@ -33,16 +34,24 @@ const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = ["/login", "/register", "/forgot-password", "/reset-password"].includes(pathname);
+  const isAuthPage = isPublicPath(pathname);
   const [currency, setCurrencyState] = useState<CurrencyUnit>(
     DEFAULT_CURRENCY_UNIT
   );
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (isAuthPage) return;
+    if (isAuthPage) {
+      setLoaded(true);
+      return;
+    }
     const controller = new AbortController();
-    fetch("/api/settings", { signal: controller.signal })
+    readSession().then((session) => {
+      if (controller.signal.aborted || session !== "in") {
+        if (!controller.signal.aborted) setLoaded(true);
+        return;
+      }
+      return fetch("/api/settings", { signal: controller.signal })
       .then((r) => { if (!r.ok) throw new Error("Settings failed"); return r.json(); })
       .then((data) => {
         const unit: CurrencyUnit =
@@ -54,6 +63,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         if (!controller.signal.aborted) setClientCurrency(DEFAULT_CURRENCY_UNIT);
       })
       .finally(() => { if (!controller.signal.aborted) setLoaded(true); });
+    });
     return () => controller.abort();
   }, [isAuthPage]);
 

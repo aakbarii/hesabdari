@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { isPublicPath, readSession } from "@/lib/client-session";
 import {
   PAGE_HEROES,
   parsePageHeroPrefs,
@@ -35,12 +36,7 @@ const HeroContext = createContext<HeroContextValue | null>(null);
 
 export function HeroProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = [
-    "/login",
-    "/register",
-    "/forgot-password",
-    "/reset-password",
-  ].includes(pathname);
+  const isAuthPage = isPublicPath(pathname);
 
   const [prefs, setPrefs] = useState<PageHeroPrefs>({});
   const [loaded, setLoaded] = useState(false);
@@ -63,7 +59,18 @@ export function HeroProvider({ children }: { children: ReactNode }) {
       setLoaded(true);
       return;
     }
-    reload();
+    let cancelled = false;
+    readSession().then((session) => {
+      if (cancelled) return;
+      if (session !== "in") {
+        setLoaded(true);
+        return;
+      }
+      reload();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthPage, reload]);
 
   const hide = useCallback(async (key: PageHeroKey) => {

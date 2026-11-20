@@ -48,7 +48,7 @@ export async function sendPasswordResetEmail(
   name: string,
   resetUrl: string
 ): Promise<boolean> {
-  const subject = "بازیابی رمز عبور — حسابداری شخصی";
+  const subject = "بازیابی رمز عبور — حسابداری";
   const text =
     `سلام ${name},\n\n` +
     `درخواست بازیابی رمز عبور برای حساب شما ثبت شد.\n\n` +

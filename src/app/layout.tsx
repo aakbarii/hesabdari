@@ -8,33 +8,32 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
-import "./joojo.css";
 import "./responsive.css";
 import "./motion.css";
 import { MobileViewport } from "@/components/mobile-viewport";
 
 export const metadata: Metadata = {
   title: {
-    default: "جوجو | سیستم هوشمند مدیریت زندگی و دارایی",
-    template: "%s | جوجو",
+    default: "حسابداری | مدیریت مالی شخصی",
+    template: "%s | حسابداری",
   },
-  description: "جوجو (Joojo Life OS) — سیستم جامع مدیریت مالی، بودجه‌بندی، رژیم و کالری‌شمار، تمرینات ورزشی، تمرکز و رشد فردی",
-  applicationName: "جوجو (Joojo)",
-  manifest: "/manifest.json?v=4",
+  description: "مدیریت دخل‌وخرج، حساب‌ها، بودجه و برنامه‌های شخصی",
+  applicationName: "حسابداری",
+  manifest: "/manifest.json?v=5",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "جوجو",
+    title: "حسابداری",
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
     icon: [
-      { url: "/joojo/stella-icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/joojo/stella-icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icon-192.png?v=5", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png?v=5", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/joojo/stella-icon-180.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png?v=5", sizes: "180x180", type: "image/png" }],
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -46,8 +45,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fff8fa" },
-    { media: "(prefers-color-scheme: dark)", color: "#251e24" },
+    { media: "(prefers-color-scheme: light)", color: "#edf2f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#101a28" },
   ],
 };
 
@@ -57,7 +56,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" dir="rtl" data-appearance="joojo" suppressHydrationWarning>
+    <html lang="fa" dir="rtl" data-appearance="masculine" suppressHydrationWarning>
       <body className="font-sans antialiased">
         <MobileViewport />
         <ThemeProvider

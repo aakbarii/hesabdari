@@ -24,7 +24,7 @@ export function AppLogo({
   clickable = true,
 }: AppLogoProps) {
   const { locale } = useLocale();
-  const brand = locale === "en" ? "Joojo" : "جوجو";
+  const brand = locale === "en" ? "Hesabdari" : "حسابداری";
   const sizeMap = {
     sm: { icon: 28, box: "h-7 w-7", text: "text-sm", sub: "text-[10px]" },
     md: { icon: 36, box: "h-9 w-9", text: "text-base", sub: "text-xs" },
@@ -38,16 +38,16 @@ export function AppLogo({
     <div className={cn("inline-flex items-center gap-2.5 select-none", className)}>
       <div
         className={cn(
-          "relative flex shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-sm transition-transform duration-200 group-hover:scale-105",
+          "relative flex shrink-0 items-center justify-center rounded-xl overflow-hidden",
           currentSize.box
         )}
       >
         <Image
-          src="/joojo/stella-icon-192.png"
-          alt={brand}
+          src="/logo-mark.svg"
+          alt={showText ? "" : brand}
           width={currentSize.icon}
           height={currentSize.icon}
-          className="h-full w-full object-contain drop-shadow"
+          className="h-full w-full object-contain"
           priority
         />
       </div>

@@ -1,5 +1,5 @@
-const CACHE = "hesabdari-static-v7";
-const PRECACHE = ["/offline.html", "/manifest.json?v=4", "/joojo/stella-icon-192.png", "/joojo/stella-icon-180.png"];
+const CACHE = "hesabdari-minimal-v1";
+const PRECACHE = ["/offline.html", "/manifest.json?v=5", "/icon-192.png?v=5", "/apple-touch-icon.png?v=5"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -11,7 +11,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k.startsWith("hesabdari-") && k !== CACHE).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => (k.startsWith("joojo-") || k.startsWith("hesabdari-")) && k !== CACHE).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();

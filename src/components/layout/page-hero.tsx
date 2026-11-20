@@ -1,7 +1,5 @@
 "use client";
 
-import { useAppearance } from "@/components/appearance-provider";
-import { JoojoHero } from "@/components/joojo-mode";
 
 import { useTransition } from "react";
 import Image from "next/image";
@@ -26,7 +24,7 @@ type PageHeroProps = {
   customizable?: boolean;
 };
 
-function HeroVisual({
+export function PageHero({
   heroKey,
   image,
   title,
@@ -41,6 +39,7 @@ function HeroVisual({
   const resolved = resolve(heroKey);
   const fallback = image ?? PAGE_HEROES[heroKey];
   const src = loaded ? resolved.src : fallback;
+  const custom = loaded && resolved.src !== PAGE_HEROES[heroKey];
   const hidden = loaded && resolved.hidden;
   const [pending, start] = useTransition();
   const t = (fa: string, en: string) => (locale === "en" ? en : fa);
@@ -90,12 +89,12 @@ function HeroVisual({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-border/50 shadow-sm",
-        compact ? "min-h-[120px]" : "min-h-[148px] sm:min-h-[168px]",
+        "relative overflow-hidden rounded-xl border border-border bg-card",
+        custom && (compact ? "min-h-[120px]" : "min-h-[148px]"),
         className
       )}
     >
-      {src.startsWith("/api/") ? (
+      {custom && (src.startsWith("/api/") ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src}
@@ -107,13 +106,11 @@ function HeroVisual({
           src={src}
           alt=""
           fill
-          priority
           sizes="(max-width: 768px) 100vw, 960px"
           className="object-cover object-center"
         />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/75 to-background/25 dark:from-background dark:via-background/80 dark:to-background/30" />
-      <div className="absolute inset-0 bg-gradient-to-l from-background/40 via-transparent to-transparent" />
+      ))}
+      {custom && <div className="absolute inset-0 bg-background/85" />}
 
       {customizable && (
         <HeroCustomizeMenu
@@ -124,12 +121,12 @@ function HeroVisual({
 
       <div
         className={cn(
-          "relative z-10 flex h-full flex-col justify-end gap-3 p-5 sm:flex-row sm:items-end sm:justify-between",
+          "relative z-10 flex h-full flex-col justify-end gap-3 p-5 sm:flex-row sm:items-center sm:justify-between",
           compact ? "p-4" : "sm:p-6"
         )}
       >
         <div className="min-w-0 space-y-1 pe-10">
-          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground drop-shadow-sm">
+          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
             {title}
           </h2>
           {subtitle ? (
@@ -142,9 +139,4 @@ function HeroVisual({
       </div>
     </div>
   );
-}
-
-export function PageHero(props: PageHeroProps) {
-  const { mood } = useAppearance();
-  return <>{mood === "joojo" ? <JoojoHero {...props} /> : <HeroVisual {...props} />}</>;
 }

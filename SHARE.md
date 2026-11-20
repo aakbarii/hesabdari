@@ -8,7 +8,7 @@ npm run desktop:build
 
 خروجی اصلی:
 
-`dist-desktop/Hesabdari Setup *.exe` (یا مشابه)
+`dist-desktop/Ravaal-*.exe`
 
 نصب کن → میانبر دسکتاپ ساخته می‌شود.
 
@@ -20,11 +20,11 @@ npm run desktop:build
 
 همچنین portable هم ساخته می‌شود:
 
-`dist-desktop/Hesabdari-Portable.exe`
+`dist-desktop/Ravaal-*-portable.exe`
 
 لاگ:
 
-`%APPDATA%\Hesabdari\server.log`
+`%APPDATA%\Joojo\server.log`
 
 ---
 

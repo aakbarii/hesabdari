@@ -2,7 +2,7 @@
  * Persistent Next.js server for desktop.
  *
  * DATA SAFETY:
- * - User DB lives ONLY in userData/data/ (HESABDARI_DATA_DIR).
+ * - User DB lives ONLY in userData/data/ (JOOJO_DATA_DIR).
  * - Runtime mirror / deletes NEVER touch the data/ folder or *.db files.
  * - Installing a new build reuses the same data path — no wipe.
  *
@@ -53,7 +53,9 @@ function assertNotUserData(targetPath, dataDir) {
   if (
     resolved === dataRoot ||
     resolved.startsWith(dataRoot + path.sep) ||
+    resolved.endsWith(`${path.sep}joojo.db`) ||
     resolved.endsWith(`${path.sep}hesabdari.db`) ||
+    resolved.includes(`${path.sep}joojo.db-`) ||
     resolved.includes(`${path.sep}hesabdari.db-`)
   ) {
     throw new Error(`Refusing to modify protected data path:\n${targetPath}`);
@@ -347,9 +349,9 @@ function createManager({
       ...process.env,
       PORT: String(PORT),
       HOSTNAME: HOST,
-      HESABDARI_ROOT: cwd,
+      JOOJO_ROOT: cwd,
       // CRITICAL: always point at existing AppData data — preserves user DB
-      HESABDARI_DATA_DIR: dataDir,
+      JOOJO_DATA_DIR: dataDir,
       NODE_ENV: "production",
       NODE_COMPILE_CACHE: compileCacheDir,
       NEXT_TELEMETRY_DISABLED: "1",

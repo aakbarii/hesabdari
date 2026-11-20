@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
 
-const LAST_ACCOUNT_KEY = "hesabdari:lastAccountId";
+const LAST_ACCOUNT_KEY = "joojo:lastAccountId";
 
 interface Account {
   id: string;
@@ -64,7 +64,7 @@ export function QuickAddFab() {
       setCategories(cats);
       const last =
         typeof window !== "undefined"
-          ? localStorage.getItem(LAST_ACCOUNT_KEY)
+          ? localStorage.getItem(LAST_ACCOUNT_KEY) ?? localStorage.getItem("hesabdari:lastAccountId")
           : null;
       const preferred =
         (last && accs.find((a: Account) => a.id === last)?.id) ||
@@ -103,7 +103,7 @@ export function QuickAddFab() {
       setCategoryId("");
       router.refresh();
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("hesabdari:tx-created"));
+        window.dispatchEvent(new Event("joojo:tx-created"));
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : tx("خطا در ثبت", "Couldn't save"));

@@ -1,12 +1,6 @@
 import { NAV_GROUPS, NAV_ITEMS } from "@/lib/constants";
 
 export const APPEARANCE_MOODS = {
-  joojo: {
-    label: "جوجو مود",
-    labelEn: "JooJoo",
-    description: "صورتی ملایم، کارت‌های خلوت و جوجوی صورتی",
-    descriptionEn: "A pink-bow world of chicks, stickers and pastel notebooks",
-  },
   neutral: {
     label: "خنثی",
     labelEn: "Neutral",
@@ -20,10 +14,10 @@ export const APPEARANCE_MOODS = {
     descriptionEn: "Soft rose tones and rounded surfaces",
   },
   masculine: {
-    label: "پسرانه",
-    labelEn: "Masculine",
-    description: "سرد و محکم با ته‌رنگ سربی",
-    descriptionEn: "Cool slate with firmer edges",
+    label: "سرمه‌ای",
+    labelEn: "Navy",
+    description: "سطوح ساده با رنگ سرمه‌ای و خاکستری",
+    descriptionEn: "Navy and slate with simple surfaces",
   },
   ocean: {
     label: "اقیانوس",
@@ -73,8 +67,8 @@ export const ACCENT_COLORS = [
 
 export type AccentColorId = (typeof ACCENT_COLORS)[number]["id"];
 
-export const DEFAULT_APPEARANCE_MOOD: AppearanceMood = "joojo";
-export const DEFAULT_ACCENT_COLOR: AccentColorId = "rose";
+export const DEFAULT_APPEARANCE_MOOD: AppearanceMood = "masculine";
+export const DEFAULT_ACCENT_COLOR: AccentColorId = "slate";
 
 /** Routes that cannot be hidden from navigation */
 export const LOCKED_NAV_HREFS = ["/", "/settings"] as const;
