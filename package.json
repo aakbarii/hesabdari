@@ -25,8 +25,7 @@
     "desktop:node": "node scripts/ensure-portable-node.mjs",
     "desktop:fix": "node scripts/fix-desktop-pack.mjs",
     "desktop": "npm run build && npm run desktop:prepare && electron .",
-    "desktop:build": "npm run build && npm run desktop:prepare && npm run desktop:node && node scripts/package-desktop.mjs dir && npm run desktop:fix && node scripts/package-desktop.mjs installers",
-    "test:passkeys": "node scripts/passkey-smoke.mjs"
+    "desktop:build": "npm run build && npm run desktop:prepare && npm run desktop:node && node scripts/package-desktop.mjs dir && npm run desktop:fix && node scripts/package-desktop.mjs installers"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

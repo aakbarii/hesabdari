@@ -23,7 +23,7 @@ server.stderr.on("data", (chunk) => { logs += chunk; });
 let checks = 0;
 async function request(url, { method = "GET", body, cookie, status = 200, raw } = {}) {
   const response = await fetch(base + url, {
-    method, headers: { "Content-Type": "application/json", ...(cookie ? { Cookie: cookie } : {}) },
+    method, headers: { "Content-Type": "application/json", Origin: base, ...(cookie ? { Cookie: cookie } : {}) },
     ...(body !== undefined ? { body: JSON.stringify(body) } : raw !== undefined ? { body: raw } : {}),
     redirect: "manual",
   });
@@ -54,24 +54,35 @@ try {
   let alice, bob;
   if (authEnabled) {
     await request("/api/accounts", { status: 401 });
-    for (const route of ["login", "register", "setup", "forgot-password", "reset-password"]) await request("/api/auth/"+route, { method: "POST", body: {}, status: 410 });
+    for (const route of ["passkey", "phone", "setup", "forgot-password", "reset-password"]) await request("/api/auth/"+route, { method: "POST", body: {}, status: 410 });
+    const email = "password-smoke@example.test";
+    const password = "isolated fixture password 43";
+    const signup = await request("/api/auth/register", { method: "POST", body: { email, password, name: "Password test" } });
+    const newUser = (await request("/api/auth/me", { cookie: signup.cookie })).data.user;
+    assert.ok(newUser?.id);
+    await request("/api/auth/login", { method: "POST", body: { email, password: "incorrect password" }, status: 401 });
+    const signedIn = await request("/api/auth/login", { method: "POST", body: { email: email.toUpperCase(), password } });
+    assert.equal((await request("/api/auth/me", { cookie: signedIn.cookie })).data.user?.id, newUser.id);
+    await request("/api/auth/register", { method: "POST", body: { email, password, name: "Duplicate" }, status: 409 });
+    await request("/api/auth/register", { method: "POST", body: { email: "admin@smoke.test", password, name: "Reserved" }, status: 409 });
     // Financial fixtures use this test's private signing key and disposable DB.
-    // Real passkey ceremonies/signatures are covered by passkey-smoke.mjs.
     const { createClient } = await import("@libsql/client");
     const fixtures = createClient({ url: "file:"+path.join(dataDir,"joojo.db").split(path.sep).join("/") });
-    const cookieFor = id => { const payload=Buffer.from(JSON.stringify({userId:id,exp:Date.now()+3600000,method:"passkey-v2"})).toString("base64url");return "joojo_passkey_session="+payload+"."+createHmac("sha256","isolated-smoke-test-secret-do-not-use-in-production").update(payload).digest("base64url"); };
+    const cookieFor = id => { const payload=Buffer.from(JSON.stringify({userId:id,exp:Date.now()+3600000,method:"hesabdari-password-v1"})).toString("base64url");return "hesabdari_session_v3="+payload+"."+createHmac("sha256","isolated-smoke-test-secret-do-not-use-in-production").update(payload).digest("base64url"); };
     try { for (const id of ["smoke-alice","smoke-bob","smoke-admin"]) {
       await fixtures.execute({sql:"INSERT INTO users(id,email,name,created_at) VALUES(?,?,?,?)",args:[id,id === "smoke-admin" ? "admin@smoke.test" : id+"@passkey.local.invalid",id,Math.floor(Date.now()/1000)]});
       for (const type of ["expense","income"]) await fixtures.execute({sql:"INSERT INTO categories(id,user_id,name,type,color,created_at) VALUES(?,?,?,?,?,?)",args:[id+type,id,type,type,"#f43f5e",Math.floor(Date.now()/1000)]});
     }
     } finally { fixtures.close(); }
+    await request("/api/auth/login", { method: "POST", body: { email: "smoke-alice@passkey.local.invalid", password }, status: 401 });
+    await request("/api/accounts", { cookie: cookieFor("smoke-alice").replace("hesabdari_session_v3=", "joojo_passkey_session="), status: 401 });
     alice={cookie:cookieFor("smoke-alice")};bob={cookie:cookieFor("smoke-bob")};
     assert.equal((await request("/api/auth/me",{cookie:alice.cookie})).data.user.role,"user");
     assert.equal((await request("/api/auth/me",{cookie:cookieFor("smoke-admin")})).data.user.role,"admin");
     await request("/api/admin/users",{cookie:alice.cookie,status:403});
     await request("/api/admin/users",{cookie:cookieFor("smoke-admin")});
     await request("/api/profile",{method:"PATCH",cookie:alice.cookie,body:{email:"admin@smoke.test"},status:400});
-  } else { throw new Error("This smoke suite requires passkey authentication"); }
+  } else { throw new Error("This smoke suite requires authentication"); }
   const cookie = alice.cookie;
   const initialAppearance = (await request("/api/settings", { cookie })).data;
   assert.equal(initialAppearance.appearanceMood, "masculine");

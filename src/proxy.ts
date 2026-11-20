@@ -6,7 +6,7 @@ import {
   signSession,
   verifySession,
 } from "@/lib/auth";
-import { passwordAuthRemoved } from "@/lib/passkey-only";
+import { retiredAuthRoute } from "@/lib/retired-auth";
 import { AUTH_ENABLED } from "@/lib/app-config";
 
 async function withRefreshedSession(response: NextResponse, userId: string) {
@@ -19,7 +19,7 @@ const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-passwor
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (pathname.startsWith("/api/auth/") && !["/api/auth/passkey", "/api/auth/me", "/api/auth/logout"].includes(pathname.replace(/\/$/, ""))) return passwordAuthRemoved();
+  if (pathname.startsWith("/api/auth/") && !["/api/auth/login", "/api/auth/register", "/api/auth/me", "/api/auth/logout"].includes(pathname.replace(/\/$/, ""))) return retiredAuthRoute();
   if (pathname === "/forgot-password" || pathname === "/reset-password") return NextResponse.redirect(new URL("/login", request.url));
   // Keep the original authentication flow below for re-enabling it later.
   if (!AUTH_ENABLED) {

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { PasskeySettings } from "@/components/passkey-settings";
+import { AccountProfile } from "@/components/account-profile";
 
 
 import { useEffect, useState } from "react";
@@ -328,7 +328,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <PasskeySettings />
+        <AccountProfile />
 
 
 

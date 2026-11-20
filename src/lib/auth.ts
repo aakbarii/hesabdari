@@ -1,10 +1,10 @@
 import { getSessionSecret } from "./session-secret";
 
-export const SESSION_COOKIE = "joojo_passkey_session";
+export const SESSION_COOKIE = "hesabdari_session_v3";
 /** Persistent session; refreshed by the proxy, within the browser 400-day limit. */
 const SESSION_DAYS = 400;
-// Previous sessions could be issued by the retired name-and-phone login.
-const SESSION_METHOD = "passkey-v2";
+// Only password sessions issued by this version are accepted.
+const SESSION_METHOD = "hesabdari-password-v1";
 
 const getSecret = getSessionSecret;
 

@@ -1,1 +1,5 @@
-export { passwordAuthRemoved as POST } from "@/lib/passkey-only";
+import { passwordAccess } from "@/lib/password-access";
+export const runtime = "nodejs";
+export function POST(request: Request) {
+  return passwordAccess(request, true);
+}
